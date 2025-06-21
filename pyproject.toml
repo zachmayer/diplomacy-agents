@@ -1,0 +1,11 @@
+[project]
+name = "diplomacy-agents"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "diplomacy>=1.1.2",
+    "logfire>=3.21.1",
+    "pydantic-ai>=0.3.1",
+]
