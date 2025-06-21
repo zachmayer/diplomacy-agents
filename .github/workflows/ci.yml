@@ -24,4 +24,4 @@ jobs:
           enable-cache: true
 
       - name: Checks
-        run: make lint types
+        run: make check-ci

@@ -10,6 +10,6 @@ repos:
         stages: [pre-commit]
       - id: lint-types
         name: Lint & Types
-        entry: make lint types
+        entry: make check-ci
         language: system
         stages: [pre-push] 
