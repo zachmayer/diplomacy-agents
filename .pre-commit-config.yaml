@@ -1,0 +1,15 @@
+minimum_pre_commit_version: '3.5.0'
+
+repos:
+  - repo: local
+    hooks:
+      - id: format
+        name: Format (ruff)
+        entry: make format
+        language: system
+        stages: [pre-commit]
+      - id: lint-types
+        name: Lint & Types
+        entry: make lint types
+        language: system
+        stages: [pre-push] 

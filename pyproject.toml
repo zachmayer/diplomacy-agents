@@ -6,6 +6,57 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "diplomacy>=1.1.2",
-    "logfire>=3.21.1",
     "pydantic-ai>=0.3.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pyright>=1.1.402",
+    "ruff>=0.12.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "E", "F",  # pycodestyle & pyflakes basics
+  "I",         # Import sorting (isort)
+  "N",         # PEP 8 naming
+  "B",         # Bugbear – common bugs
+  "UP",        # PyUpgrade – modernises code
+  "SIM",       # Simplify code
+  "C4",        # Comprehensions etc.
+  "D",         # Docstrings
+  "ANN",       # Type annotations
+  "T",         # Print statements
+  "ARG",       # Unused arguments
+  "W",         # Newline at EOF (W292)
+]
+
+# Ignore rules that clash with formatter or are overly strict
+ignore = [
+  "E501",   # Line length handled by formatter
+  "COM812", # Trailing commas – Ruff formatter handles
+  "D203",   # Conflicts with D211
+  "D212",   # Conflicts with D213
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+case-sensitive = true
+known-third-party = ["diplomacy", "pydantic"]
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
