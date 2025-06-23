@@ -21,21 +21,33 @@ types: ## Type-check using pyright in strict mode
 .PHONY: contract
 contract: ## Type contracts: cast/ignore only in engine.py
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E 'cast\(|# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '\bcast\(|# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
 		echo '❌  Type-Safety Contract breached'; exit 1; \
 	else \
 		echo '✅  Type-Safety Contract upheld'; \
 	fi
 
-test: ## Run tests
-	uv run pytest -vv
+.PHONY: test-unit
+test-unit: ## Run fast unit tests (everything except smoke)
+	uv run pytest -vv -k "not smoke"
 
+.PHONY: test-smoke
+test-smoke: ## Run slower conductor smoke test
+	uv run pytest -vv -k "smoke"
+
+.PHONY: test
+test: test-unit test-smoke ## Run all tests (unit then smoke)
+
+.PHONY: check-all
 check-all: format lint types contract test ## Run all checks
 
-check-ci: lint types contract test ## Run all checks
+.PHONY: check-ci
+check-ci: lint types contract test-unit ## Checks for CI (unit tests only)
 
+.PHONY: install
 install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
-run:  ## Run a self-play match via CLI
-	uv run -m diplomacy_agents.cli self-play
+.PHONY: run
+run:  ## Run event-driven self-play match (seed 42)
+	uv run -m diplomacy_agents.cli conductor
