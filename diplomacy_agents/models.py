@@ -12,10 +12,28 @@ from diplomacy_agents.types import Order, Phase
 
 # Press models
 class PressMessage(BaseModel, frozen=True):
-    """A single press message sent within a phase."""
+    """
+    Diplomacy *press* message authored by one power.
 
-    to: PressRecipient
-    text: str = Field(..., max_length=2_000)
+    ``to`` may be either the literal string ``'ALL'`` (broadcast) or the name of
+    another power (``'FRANCE'``, ``'GERMANY'``, …).
+
+    Write the ``text`` *in-character* as your power's ruler.  Use it to form
+    alliances, negotiate supports, bluff, or issue threats.  Do **not** narrate
+    system events (“a new event occurred”); every player receives that
+    information already.  Stay concise (≤ 2 kB) so the whole history fits into
+    the model context.
+    """
+
+    to: PressRecipient = Field(
+        ...,
+        description="Recipient of the press – either 'ALL' for broadcast or a power token like 'FRANCE'.",
+    )
+    text: str = Field(
+        ...,
+        max_length=2_000,
+        description="Body of the message written from the sender's perspective.",
+    )
 
 
 class PressLog(BaseModel, frozen=True):
@@ -82,7 +100,7 @@ class OrdersResult(BaseModel, frozen=True):
 
     status: Literal[
         "ORDERS ACCEPTED",
-        "ORDERS REJECTED: RUN `get_my_orders`",
+        "ORDERS REJECTED: RUN `get_my_possible_orders`",
     ]
 
 

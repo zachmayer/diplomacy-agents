@@ -34,7 +34,6 @@ __all__ = [
     "export_datc",
     "to_power",
     "Game",
-    "create_model_message",
 ]
 
 # ---------------------------------------------------------------------------
@@ -260,20 +259,6 @@ def to_power(token: str) -> Power:
     if token not in get_args(Power):
         raise ValueError(f"Unknown power '{token}'.")
     return cast(Power, token)
-
-
-def create_model_message(role: str, content: str) -> object:  # noqa: ANN401
-    """Create ModelMessage instance - type casting isolated to engine.py."""
-    from pydantic_ai.messages import (  # type: ignore[import-not-found]
-        ModelRequest,
-        SystemPromptPart,
-        UserPromptPart,
-    )
-
-    if role == "system":
-        return ModelRequest(parts=[SystemPromptPart(content=content)])  # type: ignore[call-arg]
-    else:  # "user" or "assistant" – treat both as user prompts for context
-        return ModelRequest(parts=[UserPromptPart(content=content)])  # type: ignore[call-arg]
 
 
 # Public alias – preferred import name per API spec

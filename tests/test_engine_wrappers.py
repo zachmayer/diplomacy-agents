@@ -10,7 +10,6 @@ from diplomacy_agents.engine import (
     all_possible_orders,
     broadcast_board_state,
     centers,
-    create_model_message,
     export_datc,
     legal_orders,
     press_history,
@@ -213,18 +212,3 @@ def test_export_datc(fresh_game: Game) -> None:
         # File should exist and have some content
         assert save_path.exists()
         assert save_path.stat().st_size > 0
-
-
-def test_create_model_message() -> None:
-    """Test create_model_message creates message objects."""
-    # Test user message
-    user_msg = create_model_message("user", "Hello")
-    assert user_msg is not None
-
-    # Test system message
-    system_msg = create_model_message("system", "Board state updated")
-    assert system_msg is not None
-
-    # Test assistant message
-    assistant_msg = create_model_message("assistant", "I understand")
-    assert assistant_msg is not None

@@ -27,20 +27,27 @@ contract: ## Type contracts: cast/ignore only in engine.py
 		echo '✅  Type-Safety Contract upheld'; \
 	fi
 
+.PHONY: test-unit
 test-unit: ## Run fast unit tests (everything except smoke)
 	uv run pytest -vv -k "not smoke"
 
+.PHONY: test-smoke
 test-smoke: ## Run slower conductor smoke test
 	uv run pytest -vv -k "smoke"
 
+.PHONY: test
 test: test-unit test-smoke ## Run all tests (unit then smoke)
 
+.PHONY: check-all
 check-all: format lint types contract test ## Run all checks
 
+.PHONY: check-ci
 check-ci: lint types contract test-unit ## Checks for CI (unit tests only)
 
+.PHONY: install
 install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
+.PHONY: run
 run:  ## Run event-driven self-play match (seed 42)
 	uv run -m diplomacy_agents.cli conductor

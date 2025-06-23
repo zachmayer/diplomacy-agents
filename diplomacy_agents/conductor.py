@@ -10,7 +10,6 @@ All casting to and from the untyped *diplomacy* engine remains inside
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import random
 import time
@@ -18,7 +17,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
-from diplomacy_agents.engine import Game, create_model_message, legal_orders, send_press, snapshot_board
+from pydantic_ai.messages import (
+    ModelRequest,
+    SystemPromptPart,
+    ToolCallPart,
+)
+
+from diplomacy_agents.engine import Game, legal_orders, send_press, snapshot_board
 from diplomacy_agents.literals import Location, Power, PressRecipient
 from diplomacy_agents.models import BoardState, PressMessage
 from diplomacy_agents.types import Order
@@ -129,7 +134,7 @@ class GameManager:  # noqa: D101
         self._orders_buf[pwr] = orders
         await self._broadcast(
             "SYSTEM",
-            {"status": "ORDERS_SUBMITTED", "power": pwr},
+            {"status": "ORDERS_SUBMITTED", "power": pwr, "orders": orders},
             "SYSTEM",
             "ALL",
         )
@@ -161,18 +166,45 @@ class GameManager:  # noqa: D101
 
     async def _main_loop(self) -> None:  # noqa: C901 (simple but long)
         """Phase-processing loop – runs until game end."""
-        # Broadcast initial board.
+        # Kick off with an initial PHASE_CHANGE message that includes the
+        # starting board state so agents have one canonical system snapshot.
         await self._broadcast(
-            "BOARD_STATE",
-            snapshot_board(self.game).model_dump(),
+            "PHASE_CHANGE",
+            {
+                "phase": self.game.get_current_phase(),
+                "board": snapshot_board(self.game).model_dump(),
+            },
             "SYSTEM",
             "ALL",
         )
 
         while not self.game.is_game_done:
             # Wait until every power has submitted at least once.
+            wait_start = time.monotonic()
+            last_log = wait_start
             while len(self._orders_buf) < len(self.game.powers):
                 await asyncio.sleep(0.1)
+                now = time.monotonic()
+                if now - last_log >= 10:
+                    logger.info(
+                        "WAITING_FOR_ORDERS %d/%d submitted (%.0fs elapsed)",
+                        len(self._orders_buf),
+                        len(self.game.powers),
+                        now - wait_start,
+                    )
+                    # Nudge agents with a system event so they wake up again.
+                    await self._broadcast(
+                        "SYSTEM",
+                        {
+                            "status": "AWAITING_ORDERS",
+                            "submitted": len(self._orders_buf),
+                            "total": len(self.game.powers),
+                            "elapsed": int(now - wait_start),
+                        },
+                        "SYSTEM",
+                        "ALL",
+                    )
+                    last_log = now
 
             # Clear buffer for next phase.
             self._orders_buf.clear()
@@ -182,16 +214,13 @@ class GameManager:  # noqa: D101
             self.game.process()
             logger.info("ADVANCED to phase %s", self.game.get_current_phase())
 
-            # Broadcast new board + phase change.
-            await self._broadcast(
-                "BOARD_STATE",
-                snapshot_board(self.game).model_dump(),
-                "SYSTEM",
-                "ALL",
-            )
+            # Broadcast phase change including fresh board snapshot.
             await self._broadcast(
                 "PHASE_CHANGE",
-                {"phase": self.game.get_current_phase()},
+                {
+                    "phase": self.game.get_current_phase(),
+                    "board": snapshot_board(self.game).model_dump(),
+                },
                 "SYSTEM",
                 "ALL",
             )
@@ -202,23 +231,42 @@ class GameManager:  # noqa: D101
 # ---------------------------------------------------------------------------
 
 
-def _to_chat(ev: Event, me: Power) -> object:  # noqa: D401, ANN401
-    """Map *Event* → ModelRequest for pydantic_ai."""
-    if ev.kind == "PRESS":
-        role = "user" if ev.recipient == me else "assistant"
-        content = f"{ev.sender}→{ev.recipient}: {ev.payload['text']}"
-    elif ev.kind == "BOARD_STATE":
-        phase_info = ev.payload.get("phase") or "?"
-        content = f"BOARD_STATE {phase_info}: {json.dumps(ev.payload)}"
-        role = "system"
-    elif ev.kind == "PHASE_CHANGE":
-        content = f"PHASE_CHANGE: {ev.payload['phase']}"
-        role = "system"
-    else:  # SYSTEM
-        content = json.dumps(ev.payload)
-        role = "system"
+def _event_to_message(ev: Event, me: Power) -> ModelRequest | None:  # noqa: D401, ANN001
+    """
+    Convert *Event* into a ModelRequest for the agent run chain.
 
-    return create_model_message(role, content)
+    Mapping rules (per pydantic-ai conventions):
+    1.  Messages *originated by **me*** – already present in history via the
+        model's **assistant** response; skip to avoid duplicates.
+    2.  Messages from **other powers** or the conductor – encoded as
+        *system* prompts so the agent perceives them as external context.
+    3.  Phase changes and explicit system notifications remain system prompts.
+    """
+    if ev.kind == "PRESS":
+        # Skip own messages – they were already added to history as the model's response.
+        if ev.sender == me:
+            return None
+
+        # All external press is treated as a system message for the receiving agent.
+        content = f"{ev.sender}→{ev.recipient}: {ev.payload['text']}"
+        return ModelRequest(parts=[SystemPromptPart(content=content)])
+
+    if ev.kind == "SYSTEM":
+        # Show own order submissions.
+        if ev.payload.get("status") == "ORDERS_SUBMITTED" and ev.payload["power"] == me:
+            joined = ", ".join(ev.payload["orders"])
+            return ModelRequest(parts=[SystemPromptPart(content=f"YOUR_ORDERS: {joined}")])
+        # other system nudges ignored.
+        return None
+
+    if ev.kind == "PHASE_CHANGE":
+        phase = ev.payload["phase"]
+        board_json = ev.payload["board"]
+        content = f"PHASE_CHANGE {phase}\nBOARD_STATE {board_json}"
+        return ModelRequest(parts=[SystemPromptPart(content=content)])
+
+    # Ignore BOARD_STATE events (redundant) after refactor.
+    return None
 
 
 async def driver(
@@ -227,13 +275,33 @@ async def driver(
     rpc: GameRPC,
 ) -> None:  # noqa: D401
     """Forever task that consumes *inbox* events and wakes *agent*."""
-    history: list[Any] = []
+    from pydantic_ai.messages import ModelMessage
+
+    history: list[ModelMessage] = []
     logger.info("Driver started for %s", rpc.power)
     while True:
         ev = await inbox.get()
         logger.debug("INBOX %s received %s event", rpc.power, ev.kind)
-        history.append(_to_chat(ev, rpc.power))
+        msg = _event_to_message(ev, rpc.power)
+        if msg is not None:
+            history.append(msg)
+
         agent_any: Any = agent
         run_fn: Any = agent_any.run
-        await run_fn("NEW_EVENT", deps=rpc, message_history=history)
+
+        result = await run_fn(None, deps=rpc, message_history=history)
+
+        # Extend history with model's new messages, skipping tool call/response
+        for msg in result.new_messages():
+            # Skip tool call requests (contain ToolCallPart) and tool responses (role == 'tool').
+            if any(isinstance(p, ToolCallPart) for p in msg.parts):
+                continue
+
+            # Guard against pydantic-ai generated tool response messages which have role="tool".
+            # These should not be replayed in future requests as they break OpenAI's role ordering rules.
+            if getattr(msg, "role", None) == "tool":  # type: ignore[attr-defined]
+                continue
+
+            history.append(msg)
+
         logger.debug("Agent %s run completed", rpc.power)
