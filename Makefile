@@ -27,12 +27,17 @@ contract: ## Type contracts: cast/ignore only in engine.py
 		echo '✅  Type-Safety Contract upheld'; \
 	fi
 
-test: ## Run tests
-	uv run pytest -vv
+test-unit: ## Run fast unit tests (everything except smoke)
+	uv run pytest -vv -k "not smoke"
+
+test-smoke: ## Run slower conductor smoke test
+	uv run pytest -vv -k "smoke"
+
+test: test-unit test-smoke ## Run all tests (unit then smoke)
 
 check-all: format lint types contract test ## Run all checks
 
-check-ci: lint types contract test ## Run all checks
+check-ci: lint types contract test-unit ## Checks for CI (unit tests only)
 
 install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
