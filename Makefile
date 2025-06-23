@@ -21,7 +21,7 @@ types: ## Type-check using pyright in strict mode
 .PHONY: contract
 contract: ## Type contracts: cast/ignore only in engine.py
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E 'cast\(|# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '\bcast\(|# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
 		echo '❌  Type-Safety Contract breached'; exit 1; \
 	else \
 		echo '✅  Type-Safety Contract upheld'; \
@@ -37,5 +37,5 @@ check-ci: lint types contract test ## Run all checks
 install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
-run:  ## Run a self-play match via CLI
-	uv run -m diplomacy_agents.cli self-play
+run:  ## Run event-driven self-play match (seed 42)
+	uv run -m diplomacy_agents.cli conductor

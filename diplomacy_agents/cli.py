@@ -10,20 +10,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from collections.abc import Mapping
-from pathlib import Path
+from collections.abc import Coroutine, Mapping
+from typing import Any
 
 import click
-from pydantic_ai.agent import Agent, AgentRunResult
 
-from diplomacy_agents.agent import DEFAULT_MODEL, Deps, build_agent
-from diplomacy_agents.engine import (
-    Game,
-    broadcast_board_state,
-    export_datc,
-    snapshot_board,
-    to_power,
-)
+from diplomacy_agents.agent import DEFAULT_MODEL, build_agent
+from diplomacy_agents.conductor import GameManager, GameRPC, driver
+from diplomacy_agents.engine import to_power
 from diplomacy_agents.literals import Power
 
 # ---------------------------------------------------------------------------
@@ -42,56 +36,11 @@ logger = logging.getLogger("cli")
 # ---------------------------------------------------------------------------
 
 
-async def _self_play(models: Mapping[Power, str] | None = None, seed: int | None = None) -> None:  # noqa: C901
-    """Run a full game where each power is controlled by LLM agents in parallel."""
+async def _self_play(models: Mapping[Power, str] | None = None, seed: int | None = None) -> None:  # noqa: D401, ARG001
+    """Emit warning that legacy self-play is deprecated."""
     if seed is not None:
         random.seed(seed)
-
-    rules = {"NO_DEADLINE", "ALWAYS_WAIT", "CD_DUMMIES", "IGNORE_ERRORS"}
-    game = Game(rules=rules)
-
-    logger.info("Initial board (classic map):\n%s", game.raw)  # Refer to raw for printable board
-
-    agents: dict[Power, Agent[Deps, str]] = {}
-    token_counter: dict[Power, int] = {}
-
-    for p in game.powers:
-        model_name = models[p] if models and p in models else DEFAULT_MODEL
-        agents[p] = build_agent(game, p, model_name=model_name)
-        token_counter[p] = 0
-
-    tick = 0
-    while not game.is_game_done:
-        tick += 1
-        phase = game.get_current_phase()
-        logger.info("=== Phase %s (tick %d) ===", phase, tick)
-
-        async def _run_power(pwr: Power, ag: Agent[Deps, str]) -> tuple[Power, AgentRunResult[str]]:
-            res = await ag.run("Your move", deps=Deps(game, pwr))
-            return pwr, res
-
-        results = await asyncio.gather(*[_run_power(p, a) for p, a in agents.items()])
-
-        for power, result in results:
-            usage = result.usage()
-            token_counter[power] += usage.total_tokens or 0
-
-        game.process()
-
-        board_state = snapshot_board(game)
-        broadcast_board_state(game, board_state)
-        logger.info("Broadcast board state to all players")
-
-    logger.info("\n*** Game over – result:\n\n%s", game.raw)
-
-    out_dir = Path("runs")
-    out_dir.mkdir(exist_ok=True)
-    out_path = out_dir / f"final_{int(random.random() * 1e6):06}.json"
-    try:
-        export_datc(game, out_path)
-        logger.info("Saved final game record → %s", out_path)
-    except Exception as exc:  # pragma: no cover
-        logger.warning("Could not write DATC save file: %s", exc)
+    logger.error("Legacy self_play is deprecated – use 'conductor' command instead.")
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +79,24 @@ def self_play_cmd(seed: int | None, models_opt: tuple[str, ...]) -> None:  # noq
             models[power_typed] = model_name
 
     asyncio.run(_self_play(models=models, seed=seed))
+
+
+@cli.command("conductor", help="Run self-play via event-driven conductor.")
+@click.option("--seed", type=int, default=42, help="RNG seed for reproducibility.")
+def conductor_cmd(seed: int) -> None:  # noqa: D401
+    """Launch the event-driven self-play match."""
+
+    async def _run() -> None:
+        gm = GameManager(seed=seed)
+        tasks: list[asyncio.Task[None]] = []
+        for p in gm.game.powers:
+            rpc = GameRPC(power=p, gm=gm)
+            agent_obj = build_agent(rpc, model_name=DEFAULT_MODEL)
+            coro: Coroutine[Any, Any, None] = driver(agent_obj, gm.inboxes[p], rpc)
+            tasks.append(asyncio.create_task(coro))
+        await asyncio.gather(*tasks)
+
+    asyncio.run(_run())
 
 
 if __name__ == "__main__":

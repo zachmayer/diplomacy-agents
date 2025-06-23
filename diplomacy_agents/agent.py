@@ -1,4 +1,11 @@
-"""Agent construction utilities – builds pydantic-ai LLM agents for each power."""
+"""
+Agent construction utilities – builds pydantic-ai LLM agents for each power.
+
+This *new* version is exclusively designed for the **event-driven conductor**
+architecture.  The only dependency passed to the Agent is a
+``diplomacy_agents.conductor.GameRPC`` instance which exposes a minimal, typed
+RPC surface (board_state, my_possible_orders, send_press, submit_orders).
+"""
 
 # Ignore unused-function errors triggered by the @agent.tool decorators in this module.
 # pyright: reportUnusedFunction=false
@@ -6,20 +13,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import (
-    Game,
-    all_possible_orders,
-    legal_orders,
-    press_history,
-    send_press,
-    snapshot_board,
-    submit_orders as engine_submit_orders,
-)
+from diplomacy_agents.conductor import GameRPC
+from diplomacy_agents.engine import all_possible_orders
 from diplomacy_agents.literals import Power
 from diplomacy_agents.models import (
     BoardPossibleOrders,
@@ -31,13 +30,11 @@ from diplomacy_agents.models import (
     PhaseInfo,
     PowerInfo,
     PowerState,
-    PressHistory,
     PressMessage,
 )
 
 __all__ = [
     "DEFAULT_MODEL",
-    "Deps",
     "build_agent",
 ]
 
@@ -46,26 +43,20 @@ logger = logging.getLogger("agents")
 DEFAULT_MODEL: KnownModelName = "openai:gpt-4.1-nano-2025-04-14"
 
 
-@dataclass(slots=True, frozen=True)
-class Deps:
-    """Typed context passed to every pydantic-ai tool call."""
+def build_agent(rpc: GameRPC, /, *, model_name: str | KnownModelName = DEFAULT_MODEL) -> Agent[GameRPC, str]:
+    """Return a fully configured pydantic-ai Agent bound to *rpc.power*."""
+    power: Power = rpc.power
 
-    game: Game
-    power: Power  # e.g. "FRANCE"
+    system_prompt = (
+        f"You are playing the Diplomacy power '{power}'. Your goal is to win the game.\n"
+        "Use the TOOLS to inspect the board, negotiate, and submit orders.\n"
+        "The game enforces ALWAYS_WAIT so *submit_orders* must be called each phase.\n"
+        'After using tools, reply with the exact phrase "DONE"'
+    )
 
-
-def build_agent(_game: Game, power: Power, /, *, model_name: str | KnownModelName = DEFAULT_MODEL) -> Agent[Deps, str]:
-    """Return a fully configured pydantic-ai Agent for *power*."""
-    system_prompt = f"""
-You are playing the Diplomacy power '{power}'. Your goal is to win the game.
-Use the TOOLS to inspect the board, and submit orders. Send and receive messages via tools to negotiate with other powers.
-The game enforces ALWAYS_WAIT so *submit_orders* must be called each phase.
-After using tools, reply with the exact phrase "DONE"
-"""
-
-    agent = Agent(
+    agent: Agent[GameRPC, str] = Agent(
         model=model_name,
-        deps_type=Deps,
+        deps_type=GameRPC,
         system_prompt=system_prompt,
         retries=3,
     )
@@ -75,15 +66,15 @@ After using tools, reply with the exact phrase "DONE"
     # ------------------------------------------------------------------
 
     @agent.tool(name="power_info")
-    def power_info_tool(ctx: RunContext[Deps]) -> PowerInfo:  # noqa: D401
+    def power_info_tool(ctx: RunContext[GameRPC]) -> PowerInfo:  # noqa: D401
         """Return the power you are playing as."""
         logger.info("[%s] TOOLS power_info -> %s", power, ctx.deps.power)
         return PowerInfo(power=ctx.deps.power)
 
     @agent.tool(name="phase_info")
-    def phase_info_tool(ctx: RunContext[Deps]) -> PhaseInfo:
+    def phase_info_tool(ctx: RunContext[GameRPC]) -> PhaseInfo:
         """Return the current phase of the game, e.g. 'S1903M'."""
-        phase = ctx.deps.game.get_current_phase()
+        phase = ctx.deps.gm.game.get_current_phase()
         logger.info("[%s] TOOLS phase_info -> %s", power, phase)
         return PhaseInfo(phase=phase)
 
@@ -92,64 +83,55 @@ After using tools, reply with the exact phrase "DONE"
     # ------------------------------------------------------------------
 
     @agent.tool
-    def get_board_state(ctx: RunContext[Deps]) -> BoardState:
+    def get_board_state(ctx: RunContext[GameRPC]) -> BoardState:
         """Return full board snapshot."""
         logger.info("[%s] TOOLS get_board_state", power)
-        return snapshot_board(ctx.deps.game)
+        return ctx.deps.board_state()
 
     @agent.tool
-    def get_power_state(ctx: RunContext[Deps], target_power: Power) -> PowerState:
+    def get_power_state(ctx: RunContext[GameRPC], target_power: Power) -> PowerState:
         """Return state for *target_power*."""
-        if target_power not in ctx.deps.game.powers:
+        game_state = ctx.deps.board_state()
+        if target_power not in game_state.powers:
             raise ValueError(f"Unknown power '{target_power}'.")
-
-        board_state = snapshot_board(ctx.deps.game)
-        return board_state.powers[target_power]
+        return game_state.powers[target_power]
 
     @agent.tool
-    def get_my_state(ctx: RunContext[Deps]) -> PowerState:
+    def get_my_state(ctx: RunContext[GameRPC]) -> PowerState:
         """Return state for your own power."""
-        logger.info("[%s] TOOLS get_my_state", ctx.deps.power)
-        return get_power_state(ctx, ctx.deps.power)
+        logger.info("[%s] TOOLS get_my_state", power)
+        return get_power_state(ctx, power)
 
     # ------------------------------------------------------------------
     # Orders ------------------------------------------------------------
     # ------------------------------------------------------------------
 
     @agent.tool
-    def get_board_possible_orders(ctx: RunContext[Deps]) -> BoardPossibleOrders:  # noqa: D401
+    def get_board_possible_orders(ctx: RunContext[GameRPC]) -> BoardPossibleOrders:  # noqa: D401
         """Return map of legal orders for all units on board."""
         logger.info("[%s] TOOLS get_board_possible_orders", power)
-        orders_map = all_possible_orders(ctx.deps.game)
+        orders_map = all_possible_orders(ctx.deps.gm.game)
         return BoardPossibleOrders(orders=orders_map)
 
     @agent.tool
-    def get_my_possible_orders(ctx: RunContext[Deps]) -> MyPossibleOrders:
+    def get_my_possible_orders(ctx: RunContext[GameRPC]) -> MyPossibleOrders:
         """Return all legal orders for your units."""
         logger.info("[%s] TOOLS get_my_orders", power)
-        orders_map = legal_orders(ctx.deps.game, ctx.deps.power)
+        orders_map = ctx.deps.my_possible_orders()
         return MyPossibleOrders(orders=orders_map)
 
     @agent.tool
-    def send_message(ctx: RunContext[Deps], data: PressMessage) -> MessageAck:
+    async def send_message(ctx: RunContext[GameRPC], data: PressMessage) -> MessageAck:
         """Send press message."""
-        logger.info("[%s] TOOLS send_message %s -> '%s'", ctx.deps.power, data.to, data.text)
-        send_press(ctx.deps.game, sender=ctx.deps.power, press=data)
+        logger.info("[%s] TOOLS send_message %s -> '%s'", power, data.to, data.text)
+        await ctx.deps.send_press(data.to, data.text)
         return MessageAck()
 
     @agent.tool
-    def view_messages(ctx: RunContext[Deps], limit: int = 200) -> PressHistory:
-        """Return last *limit* messages involving me."""
-        payload = press_history(ctx.deps.game, power, limit=limit)
-        messages = [PressMessage(**m) for m in payload]
-        logger.info("[%s] TOOLS view_messages(%d) -> %d msgs", power, limit, len(messages))
-        return PressHistory(messages=messages)
-
-    @agent.tool
-    def submit_orders(ctx: RunContext[Deps], data: OrdersInput) -> OrdersResult:
+    async def submit_orders(ctx: RunContext[GameRPC], data: OrdersInput) -> OrdersResult:
         """Submit orders for your power."""
         orders = [o.order.strip() for o in data.items if o.order.strip()]
-        ok = engine_submit_orders(ctx.deps.game, ctx.deps.power, orders)
+        ok = await ctx.deps.submit_orders(orders)
         logger.info("[%s] TOOLS submit_orders %s", power, "ACCEPTED" if ok else "REJECTED")
         status = "ORDERS ACCEPTED" if ok else "ORDERS REJECTED: RUN `get_my_orders`"
         return OrdersResult(status=status)

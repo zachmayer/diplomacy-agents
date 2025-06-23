@@ -34,6 +34,7 @@ __all__ = [
     "export_datc",
     "to_power",
     "Game",
+    "create_model_message",
 ]
 
 # ---------------------------------------------------------------------------
@@ -79,7 +80,14 @@ class Game:
     @property
     def time(self) -> int:
         """Return the current game time in unix seconds."""
-        return cast(int, self._inner.time)  # type: ignore[attr-defined]
+        # Fallback if the Game object doesn't have a time attribute
+        if hasattr(self._inner, "time"):
+            return cast(int, self._inner.time)  # type: ignore[attr-defined]
+        else:
+            # Use current timestamp as fallback
+            import time
+
+            return int(time.time())
 
     @property
     def all_locations(self) -> list[str]:
@@ -138,8 +146,17 @@ def centers(game: Game, pwr: Power) -> tuple[Location, ...]:
 
 def units(game: Game, pwr: Power) -> dict[Location, UnitType]:
     """Typed wrapper around ``Game.raw.get_units``."""
-    raw: dict[str, str] = game.raw.get_units(pwr)  # type: ignore[attr-defined]
-    return {cast(Location, loc_key): cast(UnitType, unit_type) for loc_key, unit_type in raw.items()}
+    raw: list[str] = game.raw.get_units(pwr)  # type: ignore[attr-defined]
+
+    # Parse list of unit strings like ['A BUD', 'F TRI']
+    result: dict[Location, UnitType] = {}
+    for unit_str in raw:
+        parts: list[str] = unit_str.split(" ", 1)  # Split into unit type and location
+        if len(parts) == 2:
+            unit_type: str = parts[0]
+            location: str = parts[1]
+            result[cast(Location, location)] = cast(UnitType, unit_type)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -198,7 +215,17 @@ def press_history(game: Game, power: Power, limit: int = 200) -> list[dict[str, 
     """Return last *limit* messages involving *power* as raw ``dict`` representations."""
     raw_msgs = list(game.messages.values())
     filtered = [m for m in reversed(raw_msgs) if m.sender == power or m.recipient in (power, "ALL")][:limit]
-    return [m.__dict__ for m in filtered]
+    # Message objects use __slots__, so build dict manually
+    return [
+        {
+            "sender": m.sender,
+            "recipient": m.recipient,
+            "message": m.message,
+            "phase": m.phase,
+            "time_sent": m.time_sent,
+        }
+        for m in filtered
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -233,6 +260,20 @@ def to_power(token: str) -> Power:
     if token not in get_args(Power):
         raise ValueError(f"Unknown power '{token}'.")
     return cast(Power, token)
+
+
+def create_model_message(role: str, content: str) -> object:  # noqa: ANN401
+    """Create ModelMessage instance - type casting isolated to engine.py."""
+    from pydantic_ai.messages import (  # type: ignore[import-not-found]
+        ModelRequest,
+        SystemPromptPart,
+        UserPromptPart,
+    )
+
+    if role == "system":
+        return ModelRequest(parts=[SystemPromptPart(content=content)])  # type: ignore[call-arg]
+    else:  # "user" or "assistant" – treat both as user prompts for context
+        return ModelRequest(parts=[UserPromptPart(content=content)])  # type: ignore[call-arg]
 
 
 # Public alias – preferred import name per API spec
