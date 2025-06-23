@@ -299,7 +299,7 @@ async def driver(
 
             # Guard against pydantic-ai generated tool response messages which have role="tool".
             # These should not be replayed in future requests as they break OpenAI's role ordering rules.
-            if getattr(msg, "role", None) == "tool":  # type: ignore[attr-defined]
+            if getattr(msg, "role", None) == "tool":
                 continue
 
             history.append(msg)
