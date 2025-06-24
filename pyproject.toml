@@ -78,3 +78,5 @@ pythonpath = ["."]
 filterwarnings = [
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated.*:DeprecationWarning',
 ]
+log_cli = true
+log_cli_level = "INFO"

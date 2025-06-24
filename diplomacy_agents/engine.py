@@ -43,6 +43,8 @@ __all__ = [
     "centers_by_power",
     "uncontrolled_centers",
     "build_orders_model",
+    "phase_type",
+    "phase_long",
 ]
 
 # ---------------------------------------------------------------------------
@@ -345,7 +347,7 @@ def uncontrolled_centers(game: Game) -> tuple[Location, ...]:  # noqa: D401
 # ---------------------------------------------------------------------------
 
 
-def build_orders_model(legal_map: dict[str, list[str]]) -> type[BaseModel]:  # noqa: D401
+def build_orders_model(legal_map: dict[str, list[str]], *, adjustment: bool = False) -> type[BaseModel]:  # noqa: D401
     """
     Return a dynamic Pydantic model with integer fields per location.
 
@@ -359,7 +361,21 @@ def build_orders_model(legal_map: dict[str, list[str]]) -> type[BaseModel]:  # n
     fields: dict[str, tuple[type, object]] = {}
     for loc, opts in legal_map.items():
         idx_type = conint(ge=0, lt=len(opts))
-        fields[str(loc)] = (idx_type, ...)
+        if adjustment:
+            # Optional field – default None makes it optional for Pydantic
+            fields[str(loc)] = (idx_type, None)
+        else:
+            fields[str(loc)] = (idx_type, ...)
 
     model = create_model("OrdersSelection", **cast(Any, fields))
     return model
+
+
+def phase_type(game: Game) -> str:  # noqa: D401
+    """Return the single-letter phase type (M/R/A/–) for the current phase."""
+    return game.raw.phase_type  # type: ignore[attr-defined,return-value]
+
+
+def phase_long(game: Game) -> str:  # noqa: D401
+    """Return the long, human-readable phase description (e.g. 'SPRING 1901 MOVEMENT')."""
+    return game.raw.phase  # type: ignore[attr-defined,return-value]

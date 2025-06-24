@@ -1,0 +1,37 @@
+# Todo
+
+- order phase
+  - map graph tool
+  - map svg tool?
+  - order history tool
+  - chat history tool
+- diplomacy phase
+  - public chat
+  - private chat
+  - show chat on map SVG animation
+  - diary/scratch-pad/memory/plans tool
+- Models
+  - randomly assign each power a model
+  - o3-pro-mode
+  - o3
+  - o4-mini
+  - gpt4.1
+  - gpt4.1-mini
+  - gpt4.1-nano
+  - gpt4o
+  - opus 4
+  - sonnet 4
+  - gemini 2.5 pro
+  - gemini 2.5 flash
+  - R1
+- Dummies
+  - Always hold
+  - Random moves
+- Output
+- script to run 100 experiments
+  - CSV with game id, power, model, centers, outcome
+  - do some analytics
+  - regression model centers ~ model + power
+- Introspection/internals
+  - Nice way to save/analyze chat history
+  - Nice way to save/analyze internal diary/scratch-pad/memory/plans

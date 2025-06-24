@@ -32,10 +32,11 @@ from diplomacy_agents.engine import (
     Game,
     build_orders_model,
     centers,
-    centers_by_power,
     export_datc,
     generate_svg_animation,
     legal_orders,
+    phase_long,
+    phase_type,
     snapshot_board,
     submit_orders,
     svg_string,
@@ -51,16 +52,99 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Prompt builder -------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def _build_prompt(
+    game: Game,
+    power: Power,
+) -> str:
+    """Return formatted XML prompt for *power* covering current game context."""
+    # Build board snapshot and legal orders dynamically
+    board_state_json = json.dumps(snapshot_board(game).model_dump(), indent=2, sort_keys=True)
+    legal_map: dict[str, list[str]] = {str(loc): orders for loc, orders in legal_orders(game, power).items()}
+
+    # Data
+    phase = game.get_current_phase()
+    phase_long_txt = phase_long(game)
+    units_map = units(game, power)
+    units_owned: list[str] = [f"{ut} {loc}" for loc, ut in units_map.items()]
+    owned_centers: list[str] = [str(c) for c in centers(game, power)]
+    uncontrolled_scs = ", ".join(str(c) for c in uncontrolled_centers(game))
+    score_line = " | ".join(f"{p}: {len(centers(game, p))}" for p in game.powers)
+
+    # Legal orders – numbered per location ----------------------------
+    orders_lines: list[str] = []
+    for loc, opts in legal_map.items():
+        loc_str = str(loc)
+        orders_lines.append(f"Potential orders for {loc_str}:")
+        for i, order in enumerate(opts):
+            orders_lines.append(f"{i}. {order}")
+        orders_lines.append("")  # blank line between units
+
+    orders_block = "\n".join(orders_lines)
+
+    support_note = (
+        "\nNote that it is legal both support and convoy other powers' units. Only do this if it is to your advantage."
+        if phase_type(game) == "M"
+        else ""
+    )
+
+    response_text = _response_instruction(game, power)
+
+    prompt = f"""
+
+<main-goal>
+You are playing diplomacy. Your goal is to win by controlling 18 or more supply centers.
+</main-goal>
+
+<who-am-i>
+You are power {power}.
+</who-am-i>
+
+<supply-center-counts>
+{score_line}
+
+Remember: the first power to control 18 supply centers wins the game.
+</supply-center-counts>
+
+<game-state>
+It is phase {phase}: {phase_long_txt}.
+
+You have {len(units_owned)} unit(s): {", ".join(units_owned) if units_owned else "none"}.
+
+You control {len(owned_centers)} supply center(s): {", ".join(owned_centers) if owned_centers else "none"}.
+
+The uncontrolled supply center(s) are: {uncontrolled_scs}.
+
+The full board state is:
+{board_state_json}
+
+Note the location of both the other power's units and supply centers. Both are critical to your strategy.
+</game-state>
+
+<legal-orders>
+Your legal orders are:
+
+{orders_block}
+{support_note}
+</legal-orders>
+
+<response>
+{response_text}
+</response>
+"""
+
+    return prompt
+
+
 async def _query_power(
+    game: Game,
     power: Power,
     model_name: str,
-    board_state_json: str,
     legal_map: dict[str, list[str]],
-    phase: str,
-    units_owned: list[str],
-    owned_centers: list[str],
-    sc_block: str,
-    uncontrolled_scs: str,
 ) -> tuple[Power, list[str]]:
     """
     Run the model for *power* and return its chosen order list.
@@ -68,7 +152,7 @@ async def _query_power(
     The model is asked to emit a *dictionary* mapping each orderable
     location/unit to the integer index of its chosen order.
     """
-    output_model = build_orders_model(legal_map)
+    output_model = build_orders_model(legal_map, adjustment=(game.get_current_phase()[-1] == "A"))
 
     # Build a fresh Agent instance constrained by the dynamic model
     agent = Agent(
@@ -78,52 +162,7 @@ async def _query_power(
         retries=3,
     )
 
-    # ------------------------------------------------------------------
-    # Build prompt ------------------------------------------------------
-    # ------------------------------------------------------------------
-
-    orders_lines: list[str] = []
-    for loc, opts in legal_map.items():
-        loc_str = str(loc)
-        orders_lines.append(f"Orders for {loc_str}:")
-        for i, order in enumerate(opts):
-            orders_lines.append(f"{i}. {order}")
-        orders_lines.append("")  # blank line between units
-
-    orders_block = "\n".join(orders_lines)
-
-    summary_line = (
-        f"You are playing diplomacy. Your goal is to win by controlling 18 supply centers. "
-        f"You are power {power}. It is phase {phase}. "
-        f"You have {len(units_owned)} unit(s): {', '.join(units_owned) if units_owned else 'none'}. "
-        f"You control {len(owned_centers)} supply center(s): {', '.join(owned_centers) if owned_centers else 'none'}."
-    )
-
-    prompt = f"""
-            <main-goal>
-            {summary_line}
-            </main-goal>
-
-            <board-state>
-            {board_state_json}
-            </board-state>
-
-            <supply-centers-by-player>
-            {sc_block}
-            </supply-centers-by-player>
-
-            <uncontrolled-supply-centers>
-            {uncontrolled_scs}
-            </uncontrolled-supply-centers>
-
-            <legal-orders>
-            {orders_block}
-            </legal-orders>
-
-            <response>
-            Respond with a JSON object where each key is the location token and each value is the INTEGER index of the chosen order for that location.
-            </response>
-            """
+    prompt = _build_prompt(game, power)
 
     logger.debug(prompt)
 
@@ -143,7 +182,7 @@ async def run_match(
     *,
     model_name: str,
     seed: int = 42,
-    max_phases: int = 100,
+    max_phases: int = 1000,
 ) -> None:
     """
     Run a full self-play Diplomacy match using stateless orchestration.
@@ -172,9 +211,7 @@ async def run_match(
         if phase_no > max_phases:
             break
 
-        # Serialise the current board state once and share across agents.
-        board_state_data = snapshot_board(game).model_dump()
-        board_state_json = json.dumps(board_state_data, indent=2, sort_keys=True)
+        # Snapshot collected inside prompt builder; external serialisation not needed here
 
         # Kick off concurrent queries for every power
         coros: list[Awaitable[tuple[Power, list[str]]]] = []
@@ -182,29 +219,14 @@ async def run_match(
         alive_powers: list[Power] = [p for p in game.powers if len(centers(game, p)) > 0]
         for p in alive_powers:
             raw_legal_map = legal_orders(game, p)
-            # Ensure keys are plain str for type checking
             legal_map: dict[str, list[str]] = {str(k): v for k, v in raw_legal_map.items()}
-
-            # Data for prompt summary ----------------------------------
-            phase_name = game.get_current_phase()
-            units_map = units(game, p)  # {loc: unit_type}
-            units_list: list[str] = [str(loc) for loc in units_map]
-            centers_list: list[str] = [str(c) for c in centers(game, p)]
-
-            sc_block = "\n".join(f"{p}: {tuple(str(c) for c in locs)}" for p, locs in centers_by_power(game).items())
-            uncontrolled_scs = ", ".join(str(c) for c in uncontrolled_centers(game))
 
             coros.append(
                 _query_power(
+                    game,
                     p,
                     model_name,
-                    board_state_json,
                     legal_map,
-                    phase_name,
-                    units_list,
-                    centers_list,
-                    sc_block,
-                    uncontrolled_scs,
                 )
             )
 
@@ -253,3 +275,33 @@ async def run_match(
         )
 
     logger.info("Game finished after %d phase(s).", phase_no)
+
+
+# ---------------------------------------------------------------------------
+# Response text helper -------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def _response_instruction(game: Game, power: Power) -> str:
+    """Return <response> guidance string based on current game phase and build/disband budget."""
+    game.get_current_phase()
+    pt = phase_type(game)
+
+    if pt == "A":
+        units_owned = len(units(game, power))
+        centers_owned = len(centers(game, power))
+        budget = units_owned - centers_owned
+
+        if budget > 0:
+            return (
+                f"You must disband exactly {budget} unit(s). Respond with a JSON object containing {budget} key-value pairs. "
+                "Each key is the LOCATION token of the unit you are disbanding and its value is the INTEGER index (usually 0) of the chosen '... D' order. "
+                "Omit all other locations."
+            )
+        if budget < 0:
+            n = -budget
+            return f"You may build up to {n} unit(s). Respond with a JSON object containing {n} key-value pairs (build location → index). "
+        return "You have no adjustments to make. Respond with an empty JSON object {}."
+
+    # Movement / Retreat default
+    return "Respond with a JSON object where each key is the location token and each value is the INTEGER index of the chosen order for that location."

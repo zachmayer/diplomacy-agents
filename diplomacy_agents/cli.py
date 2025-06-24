@@ -47,7 +47,7 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
 @click.option(
     "--max-phases",
     type=int,
-    default=100,
+    default=1000,
     help="Stop the match after N phases (useful for smoke tests).",
 )
 def conductor_cmd(seed: int, max_phases: int) -> None:  # noqa: D401
