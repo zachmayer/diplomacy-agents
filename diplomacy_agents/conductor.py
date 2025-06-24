@@ -1,307 +1,310 @@
 """
-Event-driven conductor and RPC layer for Diplomacy-Agents.
+Stateless conductor for Diplomacy-Agents.
 
-This module owns the *push*-based architecture that wakes each agent every
-time something interesting happens (new press, board update, phase change).
-All casting to and from the untyped *diplomacy* engine remains inside
-``engine.py`` – this file is pure application logic and **fully typed**.
+This module implements the *new* simplified match driver requested by the
+project refactor.  Key characteristics:
+
+1. No event broadcasting, no per-power inbox traffic.
+2. Each LLM agent is called exactly *once* per phase.
+3. The agent receives the *full* board state as the **user** message.
+4. The agent must respond with a list of order strings (``list[str]``).
+5. Whatever the agent returns is submitted to the diplomacy engine verbatim –
+   illegal orders are silently converted to ``HOLD`` by the engine.
+6. All seven powers are queried *concurrently* via ``asyncio.gather``.
+7. After every phase the conductor prints which powers are still active vs.
+   eliminated.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import random
-import time
-from collections.abc import Mapping
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Awaitable
+from pathlib import Path
+from typing import cast
 
-from pydantic_ai.messages import (
-    ModelRequest,
-    SystemPromptPart,
-    ToolCallPart,
+from pydantic_ai import Agent
+from pydantic_ai.exceptions import UnexpectedModelBehavior
+
+from diplomacy_agents.engine import (
+    Game,
+    build_orders_model,
+    centers,
+    export_datc,
+    generate_svg_animation,
+    legal_orders,
+    phase_long,
+    phase_type,
+    snapshot_board,
+    submit_orders,
+    svg_string,
+    uncontrolled_centers,
+    units,
 )
-
-from diplomacy_agents.engine import Game, legal_orders, send_press, snapshot_board
-from diplomacy_agents.literals import Location, Power, PressRecipient
-from diplomacy_agents.models import BoardState, PressMessage
-from diplomacy_agents.types import Order
+from diplomacy_agents.literals import Power
 
 __all__ = [
-    "Event",
-    "GameManager",
-    "GameRPC",
-    "driver",
+    "run_match",
 ]
-
-# Type-only imports ---------------------------------------------------------
-
-if TYPE_CHECKING:  # pragma: no cover
-    pass
-
-# ---------------------------------------------------------------------------
-# Event model ----------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-@dataclass(slots=True, frozen=True)
-class Event:  # noqa: D101 (concise dataclass)
-    kind: Literal["PRESS", "BOARD_STATE", "PHASE_CHANGE", "SYSTEM"]
-    payload: dict[str, Any]
-    sender: str  # "SYSTEM" | Power
-    recipient: str  # "ALL" | Power
-    ts: float
-
-
-# ---------------------------------------------------------------------------
-# Game RPC – thin helper passed to agents ------------------------------------
-# ---------------------------------------------------------------------------
-
-
-@dataclass(slots=True, frozen=True)
-class GameRPC:  # noqa: D101
-    power: Power
-    gm: GameManager
-
-    # Synchronous helpers --------------------------------------------------
-
-    def board_state(self) -> BoardState:  # noqa: D401
-        """Return the latest board snapshot."""
-        return snapshot_board(self.gm.game)
-
-    def my_possible_orders(self) -> dict[Location, list[Order]]:  # noqa: D401
-        """Legal orders for *self.power* right now."""
-        return legal_orders(self.gm.game, self.power)
-
-    # Async RPCs -----------------------------------------------------------
-
-    async def send_press(self, to: PressRecipient, text: str) -> None:  # noqa: D401
-        """Send a press message to *to*."""
-        await self.gm.handle_press(self.power, to, text)
-
-    async def submit_orders(self, orders: list[Order]) -> bool:  # noqa: D401
-        """Submit orders for *self.power*; returns ``True`` if accepted."""
-        return await self.gm.handle_orders(self.power, orders)
-
-
-# ---------------------------------------------------------------------------
-# GameManager – core event loop ---------------------------------------------
-# ---------------------------------------------------------------------------
 
 logger = logging.getLogger(__name__)
 
 
-class GameManager:  # noqa: D101
-    def __init__(self, *, seed: int = 42) -> None:
-        """Initialize new game and spin up async phase loop."""
-        # Ensure at least basic logging configured if the application hasn't.
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+# ---------------------------------------------------------------------------
+# Prompt builder -------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
-        random.seed(seed)
-        self.game: Game = Game(rules={"NO_DEADLINE", "ALWAYS_WAIT", "CD_DUMMIES"})
 
-        # Async inbox per power; every event is pushed to every relevant inbox.
-        self.inboxes: Mapping[Power, asyncio.Queue[Event]] = {p: asyncio.Queue() for p in self.game.powers}
+def _sc_counts_line(game: Game) -> str:  # noqa: D401
+    """Return pipe-separated counts per power, e.g. ``'FRANCE: 3 | GERMANY: 3'``."""
+    return " | ".join(f"{p}: {len(centers(game, p))}" for p in game.powers)
 
-        # Track which powers have submitted orders this phase.
-        self._orders_buf: dict[Power, list[Order]] = {}
 
-        # Kick off the main phase-processing loop.
-        asyncio.create_task(self._main_loop())
+def _build_prompt(
+    game: Game,
+    power: Power,
+) -> str:
+    """Return formatted XML prompt for *power* covering current game context."""
+    # Build board snapshot and legal orders dynamically
+    board_state_json = json.dumps(snapshot_board(game).model_dump(), indent=2, sort_keys=True)
+    legal_map: dict[str, list[str]] = {str(loc): orders for loc, orders in legal_orders(game, power).items()}
 
-    # ------------------------------------------------------------------
-    # Agent-facing RPCs -------------------------------------------------
-    # ------------------------------------------------------------------
+    # Data
+    phase = game.get_current_phase()
+    phase_long_txt = phase_long(game)
+    units_map = units(game, power)
+    units_owned: list[str] = [f"{ut} {loc}" for loc, ut in units_map.items()]
+    owned_centers: list[str] = [str(c) for c in centers(game, power)]
+    uncontrolled_scs = ", ".join(str(c) for c in uncontrolled_centers(game))
+    score_line = _sc_counts_line(game)
 
-    async def handle_press(self, sender: Power, to: PressRecipient, text: str) -> None:
-        """Validate + store press, then broadcast event."""
-        press = PressMessage(to=to, text=text)
-        logger.info("PRESS %s → %s: %s", sender, to, text)
-        send_press(self.game, sender, press)  # writes into engine log
-        await self._broadcast("PRESS", press.model_dump(), sender, str(to))
+    # Legal orders – numbered per location ----------------------------
+    orders_lines: list[str] = []
+    for loc, opts in legal_map.items():
+        loc_str = str(loc)
+        orders_lines.append(f"Potential orders for {loc_str}:")
+        for i, order in enumerate(opts):
+            orders_lines.append(f"{i}. {order}")
+        orders_lines.append("")  # blank line between units
 
-    async def handle_orders(self, pwr: Power, orders: list[Order]) -> bool:
-        """Validate and buffer orders; broadcast status event."""
-        legal_set = {o for loc_orders in legal_orders(self.game, pwr).values() for o in loc_orders}
-        if not all(o in legal_set for o in orders):
-            logger.info("ORDERS_REJECTED %s invalid=%s", pwr, orders)
-            return False
+    orders_block = "\n".join(orders_lines)
 
-        # Use engine helper instead of raw access
-        self.game.set_orders(pwr, orders)
-        logger.info("ORDERS_ACCEPTED %s: %s", pwr, orders)
-        self._orders_buf[pwr] = orders
-        await self._broadcast(
-            "SYSTEM",
-            {"status": "ORDERS_SUBMITTED", "power": pwr, "orders": orders},
-            "SYSTEM",
-            "ALL",
-        )
-        return True
+    support_note = (
+        "\nNote that it is legal both support and convoy other powers' units. Only do this if it is to your advantage."
+        if phase_type(game) == "M"
+        else ""
+    )
 
-    # ------------------------------------------------------------------
-    # Internal helpers --------------------------------------------------
-    # ------------------------------------------------------------------
+    response_text = _response_instruction(game, power)
 
-    async def _broadcast(
-        self,
-        kind: Literal["PRESS", "BOARD_STATE", "PHASE_CHANGE", "SYSTEM"],
-        payload: dict[str, Any],
-        sender: str,
-        recipient: str | Literal["ALL"],
-    ) -> None:
-        """Push *Event* to all matching inboxes.*."""
-        ev = Event(kind, payload, sender, recipient, time.time())
-        logger.debug("BROADCAST %s from %s to %s", kind, sender, recipient)
-        if recipient == "ALL":
-            for power in self.inboxes:
-                self.inboxes[power].put_nowait(ev)
-        else:
-            # recipient must be a Power when not "ALL"
-            for power in self.inboxes:
-                if power == recipient:
-                    self.inboxes[power].put_nowait(ev)
-                    break
+    prompt = f"""
 
-    async def _main_loop(self) -> None:  # noqa: C901 (simple but long)
-        """Phase-processing loop – runs until game end."""
-        # Kick off with an initial PHASE_CHANGE message that includes the
-        # starting board state so agents have one canonical system snapshot.
-        await self._broadcast(
-            "PHASE_CHANGE",
-            {
-                "phase": self.game.get_current_phase(),
-                "board": snapshot_board(self.game).model_dump(),
-            },
-            "SYSTEM",
-            "ALL",
-        )
+<main-goal>
+You are playing diplomacy. Your goal is to win by controlling 18 or more supply centers.
+</main-goal>
 
-        while not self.game.is_game_done:
-            # Wait until every power has submitted at least once.
-            wait_start = time.monotonic()
-            last_log = wait_start
-            while len(self._orders_buf) < len(self.game.powers):
-                await asyncio.sleep(0.1)
-                now = time.monotonic()
-                if now - last_log >= 10:
-                    logger.info(
-                        "WAITING_FOR_ORDERS %d/%d submitted (%.0fs elapsed)",
-                        len(self._orders_buf),
-                        len(self.game.powers),
-                        now - wait_start,
-                    )
-                    # Nudge agents with a system event so they wake up again.
-                    await self._broadcast(
-                        "SYSTEM",
-                        {
-                            "status": "AWAITING_ORDERS",
-                            "submitted": len(self._orders_buf),
-                            "total": len(self.game.powers),
-                            "elapsed": int(now - wait_start),
-                        },
-                        "SYSTEM",
-                        "ALL",
-                    )
-                    last_log = now
+<who-am-i>
+You are power {power}.
+</who-am-i>
 
-            # Clear buffer for next phase.
-            self._orders_buf.clear()
+<supply-center-counts>
+{score_line}
 
-            # Process phase, generate new board.
-            logger.info("PROCESSING phase %s", self.game.get_current_phase())
-            self.game.process()
-            logger.info("ADVANCED to phase %s", self.game.get_current_phase())
+Remember: the first power to control 18 supply centers wins the game.
+</supply-center-counts>
 
-            # Broadcast phase change including fresh board snapshot.
-            await self._broadcast(
-                "PHASE_CHANGE",
-                {
-                    "phase": self.game.get_current_phase(),
-                    "board": snapshot_board(self.game).model_dump(),
-                },
-                "SYSTEM",
-                "ALL",
+<game-state>
+It is phase {phase}: {phase_long_txt}.
+
+You have {len(units_owned)} unit(s): {", ".join(units_owned) if units_owned else "none"}.
+
+You control {len(owned_centers)} supply center(s): {", ".join(owned_centers) if owned_centers else "none"}.
+
+The uncontrolled supply center(s) are: {uncontrolled_scs}.
+
+The full board state is:
+{board_state_json}
+
+Note the location of both the other power's units and supply centers. Both are critical to your strategy.
+</game-state>
+
+<legal-orders>
+Your legal orders are:
+
+{orders_block}
+{support_note}
+</legal-orders>
+
+<response>
+{response_text}
+</response>
+"""
+
+    return prompt
+
+
+async def _query_power(
+    game: Game,
+    power: Power,
+    model_name: str,
+    legal_map: dict[str, list[str]],
+) -> tuple[Power, list[str]]:
+    """
+    Run the model for *power* and return its chosen order list.
+
+    The model is asked to emit a *dictionary* mapping each orderable
+    location/unit to the integer index of its chosen order.
+    """
+    output_model = build_orders_model(legal_map, adjustment=(game.get_current_phase()[-1] == "A"))
+
+    # Build a fresh Agent instance constrained by the dynamic model
+    agent = Agent(
+        model=model_name,
+        system_prompt=f"You are playing diplomacy as {power}.",
+        output_type=output_model,
+        retries=3,
+    )
+
+    prompt = _build_prompt(game, power)
+
+    logger.debug(prompt)
+
+    chosen_orders: list[str] = []
+    try:
+        result = await agent.run(prompt)
+        for loc, opts in legal_map.items():
+            idx_raw = getattr(result.output, str(loc), None)
+            if idx_raw is not None:
+                idx_int = cast(int, idx_raw)
+                chosen_orders.append(opts[idx_int])
+    except UnexpectedModelBehavior:
+        chosen_orders = []  # fallback to empty -> HOLD
+
+    return power, chosen_orders
+
+
+def _phase_year(phase_token: str) -> int:  # noqa: D401
+    """Extract 4-digit year from phase token like 'S1901M'."""
+    return int(phase_token[1:5])
+
+
+async def run_match(
+    *,
+    model_name: str,
+    seed: int = 42,
+    max_year: int = 1951,
+) -> None:
+    """
+    Run a full self-play Diplomacy match using stateless orchestration.
+
+    Parameters
+    ----------
+    model_name:
+        Identifier understood by Pydantic-AI, e.g. ``"openai:gpt-4o-mini"``.
+    seed:
+        RNG seed for reproducibility.
+    max_year:
+        Optional guard to stop the match after *N* years – useful in tests.
+
+    """
+    random.seed(seed)
+
+    # Initialise engine with rules that remove time-outs and CD handling – the
+    # conductor decides when to process a phase.
+    # https://github.com/diplomacy/diplomacy/blob/df1d0892ce27501386d8dbf2e9948055ea960445/diplomacy/README_RULES.txt#L22
+    game = Game(rules={"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"})
+
+    phase_no = 0
+    frames: list[str] = []  # in-memory SVG frames
+    while not game.is_game_done:
+        # Stop if the engine has advanced beyond the requested max_year.
+        if _phase_year(game.get_current_phase()) > max_year:
+            break
+
+        phase_no += 1
+
+        # Snapshot collected inside prompt builder; external serialisation not needed here
+
+        # Kick off concurrent queries for every power
+        coros: list[Awaitable[object]] = []
+        # Only query agents for powers that still own at least one centre.
+        alive_powers: list[Power] = [p for p in game.powers if len(centers(game, p)) > 0]
+        for p in alive_powers:
+            raw_legal_map = legal_orders(game, p)
+            legal_map: dict[str, list[str]] = {str(k): v for k, v in raw_legal_map.items()}
+
+            # Cast coroutine to Awaitable with explicit result type for Pyright.
+            awaitable: Awaitable[object] = _query_power(game, p, model_name, legal_map)
+            coros.append(awaitable)
+
+        results_raw = await asyncio.gather(*coros)
+        results: list[tuple[Power, list[str]]] = cast(list[tuple[Power, list[str]]], results_raw)
+
+        # Submit whatever orders the model produced.
+        for pwr, orders in results:
+            if orders:
+                ok = submit_orders(game, pwr, orders)
+                if not ok:
+                    logger.warning("Invalid orders from %s dropped: %s", pwr, orders)
+
+        # Capture frame BEFORE processing so order arrows are visible
+        pre_process_svg = svg_string(game)
+        frames.append(pre_process_svg)
+
+        # Advance the game to resolve the phase
+        game.process()
+
+        # ------------------------------------------------------------------
+        # Persist artefacts – overwrite same filenames each phase ------------
+        # ------------------------------------------------------------------
+
+        # DATC save after processing (post-state)
+        save_dir = Path("game_saves")
+        save_dir.mkdir(exist_ok=True)
+        export_datc(game, save_dir / "game_state.datc")
+
+        # 2) Animated SVG aggregating all frames so far
+        svg_text = svg_string(game)
+        frames.append(svg_text)
+
+        animate_dir = Path("board_svg")
+        animate_dir.mkdir(exist_ok=True)
+        animate_path = animate_dir / "board_animation.svg"
+        generate_svg_animation(frames, animate_path)
+
+        # Log concise supply-center counts per power.
+        logger.info("PHASE %s - %s", game.get_current_phase(), _sc_counts_line(game))
+
+    logger.info("Game finished after %d phase(s).", phase_no)
+
+
+# ---------------------------------------------------------------------------
+# Response text helper -------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def _response_instruction(game: Game, power: Power) -> str:
+    """Return <response> guidance string based on current game phase and build/disband budget."""
+    game.get_current_phase()
+    pt = phase_type(game)
+
+    if pt == "A":
+        units_owned = len(units(game, power))
+        centers_owned = len(centers(game, power))
+        budget = units_owned - centers_owned
+
+        if budget > 0:
+            return (
+                f"You must disband exactly {budget} unit(s). Respond with a JSON object containing {budget} key-value pairs. "
+                "Each key is the LOCATION token of the unit you are disbanding and its value is the INTEGER index (usually 0) of the chosen '... D' order. "
+                "Omit all other locations."
             )
+        if budget < 0:
+            n = -budget
+            return f"You may build up to {n} unit(s). Respond with a JSON object containing {n} key-value pairs (build location → index). "
+        return "You have no adjustments to make. Respond with an empty JSON object {}."
 
-
-# ---------------------------------------------------------------------------
-# Agent driver ---------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-def _event_to_message(ev: Event, me: Power) -> ModelRequest | None:  # noqa: D401, ANN001
-    """
-    Convert *Event* into a ModelRequest for the agent run chain.
-
-    Mapping rules (per pydantic-ai conventions):
-    1.  Messages *originated by **me*** – already present in history via the
-        model's **assistant** response; skip to avoid duplicates.
-    2.  Messages from **other powers** or the conductor – encoded as
-        *system* prompts so the agent perceives them as external context.
-    3.  Phase changes and explicit system notifications remain system prompts.
-    """
-    if ev.kind == "PRESS":
-        # Skip own messages – they were already added to history as the model's response.
-        if ev.sender == me:
-            return None
-
-        # All external press is treated as a system message for the receiving agent.
-        content = f"{ev.sender}→{ev.recipient}: {ev.payload['text']}"
-        return ModelRequest(parts=[SystemPromptPart(content=content)])
-
-    if ev.kind == "SYSTEM":
-        # Show own order submissions.
-        if ev.payload.get("status") == "ORDERS_SUBMITTED" and ev.payload["power"] == me:
-            joined = ", ".join(ev.payload["orders"])
-            return ModelRequest(parts=[SystemPromptPart(content=f"YOUR_ORDERS: {joined}")])
-        # other system nudges ignored.
-        return None
-
-    if ev.kind == "PHASE_CHANGE":
-        phase = ev.payload["phase"]
-        board_json = ev.payload["board"]
-        content = f"PHASE_CHANGE {phase}\nBOARD_STATE {board_json}"
-        return ModelRequest(parts=[SystemPromptPart(content=content)])
-
-    # Ignore BOARD_STATE events (redundant) after refactor.
-    return None
-
-
-async def driver(
-    agent: Any,  # noqa: ANN401 – pydantic_ai.Agent runtime object
-    inbox: asyncio.Queue[Event],
-    rpc: GameRPC,
-) -> None:  # noqa: D401
-    """Forever task that consumes *inbox* events and wakes *agent*."""
-    from pydantic_ai.messages import ModelMessage
-
-    history: list[ModelMessage] = []
-    logger.info("Driver started for %s", rpc.power)
-    while True:
-        ev = await inbox.get()
-        logger.debug("INBOX %s received %s event", rpc.power, ev.kind)
-        msg = _event_to_message(ev, rpc.power)
-        if msg is not None:
-            history.append(msg)
-
-        agent_any: Any = agent
-        run_fn: Any = agent_any.run
-
-        result = await run_fn(None, deps=rpc, message_history=history)
-
-        # Extend history with model's new messages, skipping tool call/response
-        for msg in result.new_messages():
-            # Skip tool call requests (contain ToolCallPart) and tool responses (role == 'tool').
-            if any(isinstance(p, ToolCallPart) for p in msg.parts):
-                continue
-
-            # Guard against pydantic-ai generated tool response messages which have role="tool".
-            # These should not be replayed in future requests as they break OpenAI's role ordering rules.
-            if getattr(msg, "role", None) == "tool":
-                continue
-
-            history.append(msg)
-
-        logger.debug("Agent %s run completed", rpc.power)
+    # Movement / Retreat default
+    return "Respond with a JSON object where each key is the location token and each value is the INTEGER index of the chosen order for that location."

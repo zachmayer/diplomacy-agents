@@ -12,9 +12,12 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast, get_args
 
+import drawsvg as draw  # type: ignore[reportUnknownVariableType]
 from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
 from diplomacy.engine.message import Message  # type: ignore[reportMissingTypeStubs]
-from diplomacy.utils.export import to_saved_game_format  # type: ignore[import-not-found]
+from diplomacy.engine.renderer import Renderer
+from diplomacy.utils.export import to_saved_game_format  # type: ignore[reportUnknownVariableType]
+from pydantic import BaseModel, conint, create_model  # type: ignore[reportUnknownVariableType]
 
 from diplomacy_agents.literals import Location, Power, UnitType
 from diplomacy_agents.models import BoardState, PowerState, PressMessage
@@ -34,6 +37,14 @@ __all__ = [
     "export_datc",
     "to_power",
     "Game",
+    "svg_string",
+    "generate_svg_animation",
+    "ensure_str_list",
+    "centers_by_power",
+    "uncontrolled_centers",
+    "build_orders_model",
+    "phase_type",
+    "phase_long",
 ]
 
 # ---------------------------------------------------------------------------
@@ -74,19 +85,6 @@ class Game:
     def process(self) -> None:
         """Process the current phase and advance the game state."""
         self._inner.process()  # type: ignore[attr-defined]
-
-    # Expose engine timestamp (unix seconds) – handy for press logging
-    @property
-    def time(self) -> int:
-        """Return the current game time in unix seconds."""
-        # Fallback if the Game object doesn't have a time attribute
-        if hasattr(self._inner, "time"):
-            return cast(int, self._inner.time)  # type: ignore[attr-defined]
-        else:
-            # Use current timestamp as fallback
-            import time
-
-            return int(time.time())
 
     @property
     def all_locations(self) -> list[str]:
@@ -205,7 +203,6 @@ def send_press(game: Game, sender: Power, press: PressMessage) -> None:
         recipient=press.to,  # type: ignore[arg-type]
         message=press.text,
         phase=game.get_current_phase(),
-        time_sent=game.time,
     )
     game.add_message(msg)
 
@@ -221,7 +218,6 @@ def press_history(game: Game, power: Power, limit: int = 200) -> list[dict[str, 
             "recipient": m.recipient,
             "message": m.message,
             "phase": m.phase,
-            "time_sent": m.time_sent,
         }
         for m in filtered
     ]
@@ -239,7 +235,6 @@ def broadcast_board_state(game: Game, board_state: BoardState) -> None:
         recipient="ALL",  # type: ignore[arg-type]
         message=str(board_state.model_dump_json()),
         phase=game.get_current_phase(),
-        time_sent=game.time,
     )
     game.add_message(msg)
 
@@ -247,6 +242,59 @@ def broadcast_board_state(game: Game, board_state: BoardState) -> None:
 def export_datc(game: Game, path: Path) -> None:
     """Write game record in DATC save-file format."""
     to_saved_game_format(game.raw, output_path=str(path))
+
+
+# ---------------------------------------------------------------------------
+# SVG string helper (in-memory) ---------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def svg_string(game: Game) -> str:  # noqa: D401
+    """Render *game* position and return raw SVG text."""
+    renderer = Renderer(game.raw)  # type: ignore[arg-type]
+    # Include orders and province abbreviations in the SVG.
+    return str(renderer.render(incl_orders=True, incl_abbrev=True))  # type: ignore[no-any-return]
+
+
+# ---------------------------------------------------------------------------
+# SVG animation helper – in-memory frames -----------------------------------
+# ---------------------------------------------------------------------------
+
+
+def generate_svg_animation(frames: list[str], out_file: Path, size: tuple[int, int] = (1200, 850)) -> None:  # noqa: D401
+    """
+    Write *out_file* animated SVG built from *frames* SVG strings.
+
+    Each frame is shown for one second.
+    """
+    if not frames:
+        return
+
+    duration = len(frames)
+    # drawsvg is untyped – cast objects to *Any* before calling dynamic methods
+    d_any: Any = draw.Drawing(
+        *size,
+        animation_config=cast(Any, draw.types).SyncedAnimationConfig(duration=duration),  # type: ignore[attr-defined]
+    )
+
+    for i, svg_text in enumerate(frames):
+        img_any: Any = draw.Image(  # type: ignore[no-any-call]
+            0,
+            0,
+            *size,
+            data=svg_text.encode("utf-8"),
+            mime_type="image/svg+xml",
+        )
+
+        img_any.add_key_frame(i, opacity=0)
+        img_any.add_key_frame(i + 0.01, opacity=1)
+        img_any.add_key_frame(i + 1, opacity=1)
+        img_any.add_key_frame(i + 1.01, opacity=0)
+
+        d_any.append(img_any)
+
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    d_any.save_svg(out_file)
 
 
 # ---------------------------------------------------------------------------
@@ -263,3 +311,71 @@ def to_power(token: str) -> Power:
 
 # Public alias – preferred import name per API spec
 Engine = Game
+
+# ---------------------------------------------------------------------------
+# Typing helper -------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def ensure_str_list(val: list[object]) -> list[str]:  # noqa: D401
+    """Runtime-assert and cast *val* to ``list[str]`` (engine escape hatch)."""
+    assert all(isinstance(x, str) for x in val), "Expected list[str]"
+    return cast(list[str], val)
+
+
+# ---------------------------------------------------------------------------
+# New helpers for supply-center summary -------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def centers_by_power(game: Game) -> dict[Power, tuple[Location, ...]]:  # noqa: D401
+    """Return mapping of *all* powers to the supply centers they currently own."""
+    return {p: centers(game, p) for p in game.powers}
+
+
+def uncontrolled_centers(game: Game) -> tuple[Location, ...]:  # noqa: D401
+    """Return supply centers that are currently unowned by any power."""
+    # The map object exposes the full set of supply centers in *scs*.
+    all_scs: list[str] = list(game.raw.map.scs)  # type: ignore[attr-defined]
+    owned = {loc for locs in centers_by_power(game).values() for loc in locs}
+    free_list: list[Location] = [cast(Location, sc) for sc in all_scs if sc not in owned]
+    return tuple(free_list)
+
+
+# ---------------------------------------------------------------------------
+# Helper to build dynamic Pydantic model for order indices ------------------
+# ---------------------------------------------------------------------------
+
+
+def build_orders_model(legal_map: dict[str, list[str]], *, adjustment: bool = False) -> type[BaseModel]:  # noqa: D401
+    """
+    Return a dynamic Pydantic model with integer fields per location.
+
+    Each field is constrained to the valid index range for that unit's orders.
+    This centralises the `Any` casting needed to appease the type checker, so
+    caller modules remain *type-ignore*-free.
+    """
+    if not legal_map:
+        return create_model("OrdersEmpty")
+
+    fields: dict[str, tuple[type, object]] = {}
+    for loc, opts in legal_map.items():
+        idx_type = conint(ge=0, lt=len(opts))
+        if adjustment:
+            # Optional field – default None makes it optional for Pydantic
+            fields[str(loc)] = (idx_type, None)
+        else:
+            fields[str(loc)] = (idx_type, ...)
+
+    model = create_model("OrdersSelection", **cast(Any, fields))
+    return model
+
+
+def phase_type(game: Game) -> str:  # noqa: D401
+    """Return the single-letter phase type (M/R/A/–) for the current phase."""
+    return game.raw.phase_type  # type: ignore[attr-defined,return-value]
+
+
+def phase_long(game: Game) -> str:  # noqa: D401
+    """Return the long, human-readable phase description (e.g. 'SPRING 1901 MOVEMENT')."""
+    return game.raw.phase  # type: ignore[attr-defined,return-value]

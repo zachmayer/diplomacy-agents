@@ -56,6 +56,11 @@ Uses [diplomacy](https://github.com/diplomacy/diplomacy) python package for the 
    • `engine.py` is the only module that talks directly to the untyped `diplomacy` library. Keep it
      minimal and well-commented.
 
+6. **Zero-tolerance for legacy fallbacks.**  
+   • Code **must** target the dependency versions pinned in `pyproject.toml` — no runtime
+     version checks, *try/except* branches, or alternate code paths for "other" versions.  
+   • If an API changes, update the project; do **not** add fallbacks or shims.
+
 _Before every commit, run `make check-all` locally._
 
 ## 🐍 Coding guide for agents and humans
@@ -85,3 +90,11 @@ _Before every commit, run `make check-all` locally._
 - Validate external inputs at boundaries using Pydantic models.
 - Favor immutability: use frozen Pydantic models or tuples for data you don't intend to mutate.
 - Fail fast with clear exceptions; never use silent fallbacks.
+- **Never "swallow" exceptions** (e.g. blanket `except Exception: pass` or logging-only): either
+  1. re-raise the error,
+  2. raise a domain-specific exception, or
+  3. handle it in a way that guarantees program correctness.
+
+  Logging and continuing is only acceptable for *non-critical, optional* features that
+  don't affect core behaviour **and** where the log message explicitly says what failed
+  and why. In all other cases, let the error propagate so CI catches it.

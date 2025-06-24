@@ -23,7 +23,7 @@ PressRecipient = Literal[
     "TURKEY",
 ]  # reuse Power tokens plus ALL
 
-UnitType = Literal["A", "F"]
+UnitType = Literal["A", "F", "*A", "*F"]
 
 Location = Literal[
     "ADR",
