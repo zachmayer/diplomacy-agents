@@ -10,7 +10,7 @@ DEFAULT_MODEL: str = "openai:gpt-4.1-nano-2025-04-14"
 
 async def _smoke() -> None:
     """Run one-phase smoke test for the stateless conductor."""
-    await run_match(model_name=DEFAULT_MODEL, max_phases=1)
+    await run_match(model_name=DEFAULT_MODEL, max_year=1901)
 
 
 def test_smoke() -> None:

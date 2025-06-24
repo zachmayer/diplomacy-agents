@@ -57,6 +57,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+def _sc_counts_line(game: Game) -> str:  # noqa: D401
+    """Return pipe-separated counts per power, e.g. ``'FRANCE: 3 | GERMANY: 3'``."""
+    return " | ".join(f"{p}: {len(centers(game, p))}" for p in game.powers)
+
+
 def _build_prompt(
     game: Game,
     power: Power,
@@ -73,7 +78,7 @@ def _build_prompt(
     units_owned: list[str] = [f"{ut} {loc}" for loc, ut in units_map.items()]
     owned_centers: list[str] = [str(c) for c in centers(game, power)]
     uncontrolled_scs = ", ".join(str(c) for c in uncontrolled_centers(game))
-    score_line = " | ".join(f"{p}: {len(centers(game, p))}" for p in game.powers)
+    score_line = _sc_counts_line(game)
 
     # Legal orders – numbered per location ----------------------------
     orders_lines: list[str] = []
@@ -170,19 +175,26 @@ async def _query_power(
     try:
         result = await agent.run(prompt)
         for loc, opts in legal_map.items():
-            idx: int = cast(int, getattr(result.output, str(loc)))
-            chosen_orders.append(opts[idx])
+            idx_raw = getattr(result.output, str(loc), None)
+            if idx_raw is not None:
+                idx_int = cast(int, idx_raw)
+                chosen_orders.append(opts[idx_int])
     except UnexpectedModelBehavior:
         chosen_orders = []  # fallback to empty -> HOLD
 
     return power, chosen_orders
 
 
+def _phase_year(phase_token: str) -> int:  # noqa: D401
+    """Extract 4-digit year from phase token like 'S1901M'."""
+    return int(phase_token[1:5])
+
+
 async def run_match(
     *,
     model_name: str,
     seed: int = 42,
-    max_phases: int = 1000,
+    max_year: int = 1951,
 ) -> None:
     """
     Run a full self-play Diplomacy match using stateless orchestration.
@@ -193,8 +205,8 @@ async def run_match(
         Identifier understood by Pydantic-AI, e.g. ``"openai:gpt-4o-mini"``.
     seed:
         RNG seed for reproducibility.
-    max_phases:
-        Optional guard to stop the match after *N* phases – useful in tests.
+    max_year:
+        Optional guard to stop the match after *N* years – useful in tests.
 
     """
     random.seed(seed)
@@ -207,30 +219,28 @@ async def run_match(
     phase_no = 0
     frames: list[str] = []  # in-memory SVG frames
     while not game.is_game_done:
-        phase_no += 1
-        if phase_no > max_phases:
+        # Stop if the engine has advanced beyond the requested max_year.
+        if _phase_year(game.get_current_phase()) > max_year:
             break
+
+        phase_no += 1
 
         # Snapshot collected inside prompt builder; external serialisation not needed here
 
         # Kick off concurrent queries for every power
-        coros: list[Awaitable[tuple[Power, list[str]]]] = []
+        coros: list[Awaitable[object]] = []
         # Only query agents for powers that still own at least one centre.
         alive_powers: list[Power] = [p for p in game.powers if len(centers(game, p)) > 0]
         for p in alive_powers:
             raw_legal_map = legal_orders(game, p)
             legal_map: dict[str, list[str]] = {str(k): v for k, v in raw_legal_map.items()}
 
-            coros.append(
-                _query_power(
-                    game,
-                    p,
-                    model_name,
-                    legal_map,
-                )
-            )
+            # Cast coroutine to Awaitable with explicit result type for Pyright.
+            awaitable: Awaitable[object] = _query_power(game, p, model_name, legal_map)
+            coros.append(awaitable)
 
-        results = await asyncio.gather(*coros)
+        results_raw = await asyncio.gather(*coros)
+        results: list[tuple[Power, list[str]]] = cast(list[tuple[Power, list[str]]], results_raw)
 
         # Submit whatever orders the model produced.
         for pwr, orders in results:
@@ -264,15 +274,8 @@ async def run_match(
         animate_path = animate_dir / "board_animation.svg"
         generate_svg_animation(frames, animate_path)
 
-        # Compute status report.
-        active = [p for p in game.powers if len(centers(game, p)) > 0]
-        eliminated = [p for p in game.powers if p not in active]
-        logger.info(
-            "PHASE %s - ACTIVE: %s | ELIMINATED: %s",
-            game.get_current_phase(),
-            active,
-            eliminated,
-        )
+        # Log concise supply-center counts per power.
+        logger.info("PHASE %s - %s", game.get_current_phase(), _sc_counts_line(game))
 
     logger.info("Game finished after %d phase(s).", phase_no)
 

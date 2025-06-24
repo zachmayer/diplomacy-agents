@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Coroutine
+from typing import Any, cast
 
 import click
 
@@ -30,7 +32,7 @@ logger = logging.getLogger("cli")
 # ---------------------------------------------------------------------------
 
 # Local default model identifier
-DEFAULT_MODEL: str = "openai:gpt-4.1-nano"
+DEFAULT_MODEL: str = "openai:gpt-4.1"
 
 # ---------------------------------------------------------------------------
 # Click commands -------------------------------------------------------------
@@ -45,20 +47,22 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
 @cli.command("conductor", help="Run self-play via the stateless conductor.")
 @click.option("--seed", type=int, default=42, help="RNG seed for reproducibility.")
 @click.option(
-    "--max-phases",
+    "--max-year",
     type=int,
-    default=1000,
-    help="Stop the match after N phases (useful for smoke tests).",
+    default=1951,
+    help="Stop the match after the given game year (inclusive).",
 )
-def conductor_cmd(seed: int, max_phases: int) -> None:  # noqa: D401
+def conductor_cmd(seed: int, max_year: int) -> None:  # noqa: D401
     """Launch the stateless self-play match."""
-    asyncio.run(
+    coro = cast(
+        Coroutine[Any, Any, None],
         run_match(
             model_name=DEFAULT_MODEL,
             seed=seed,
-            max_phases=max_phases,
-        )
+            max_year=max_year,
+        ),
     )
+    asyncio.run(coro)
 
 
 if __name__ == "__main__":

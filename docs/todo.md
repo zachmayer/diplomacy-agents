@@ -2,6 +2,7 @@
 
 - order phase
   - map graph tool
+    - [https://diplomacy.readthedocs.io/en/stable/api/diplomacy.engine.map.html]
   - map svg tool?
   - order history tool
   - chat history tool
@@ -35,3 +36,6 @@
 - Introspection/internals
   - Nice way to save/analyze chat history
   - Nice way to save/analyze internal diary/scratch-pad/memory/plans
+- cost
+  - Simon Willison LLM cost
+  - add up input, output, cached, (thinking?), sum cost per game
