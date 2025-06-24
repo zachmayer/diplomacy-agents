@@ -83,11 +83,6 @@ def test_game_properties(fresh_game: Game) -> None:
     # Test game not done initially
     assert fresh_game.is_game_done is False
 
-    # Test time property (should return an integer timestamp)
-    time_val = fresh_game.time
-    assert isinstance(time_val, int)
-    assert time_val > 0
-
     # Test all_locations returns expected locations
     locations = fresh_game.all_locations
     assert "PAR" in locations

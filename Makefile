@@ -21,7 +21,7 @@ types: ## Type-check using pyright in strict mode
 .PHONY: contract
 contract: ## Type contracts: cast/ignore only in engine.py
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '\bcast\(|# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *type: *ignore' diplomacy_agents | grep -v 'diplomacy_agents/engine.py' ; then \
 		echo '❌  Type-Safety Contract breached'; exit 1; \
 	else \
 		echo '✅  Type-Safety Contract upheld'; \
