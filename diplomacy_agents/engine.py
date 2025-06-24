@@ -17,6 +17,7 @@ from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
 from diplomacy.engine.message import Message  # type: ignore[reportMissingTypeStubs]
 from diplomacy.engine.renderer import Renderer
 from diplomacy.utils.export import to_saved_game_format  # type: ignore[reportUnknownVariableType]
+from pydantic import BaseModel, conint, create_model  # type: ignore[reportUnknownVariableType]
 
 from diplomacy_agents.literals import Location, Power, UnitType
 from diplomacy_agents.models import BoardState, PowerState, PressMessage
@@ -39,6 +40,9 @@ __all__ = [
     "svg_string",
     "generate_svg_animation",
     "ensure_str_list",
+    "centers_by_power",
+    "uncontrolled_centers",
+    "build_orders_model",
 ]
 
 # ---------------------------------------------------------------------------
@@ -315,3 +319,47 @@ def ensure_str_list(val: list[object]) -> list[str]:  # noqa: D401
     """Runtime-assert and cast *val* to ``list[str]`` (engine escape hatch)."""
     assert all(isinstance(x, str) for x in val), "Expected list[str]"
     return cast(list[str], val)
+
+
+# ---------------------------------------------------------------------------
+# New helpers for supply-center summary -------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def centers_by_power(game: Game) -> dict[Power, tuple[Location, ...]]:  # noqa: D401
+    """Return mapping of *all* powers to the supply centers they currently own."""
+    return {p: centers(game, p) for p in game.powers}
+
+
+def uncontrolled_centers(game: Game) -> tuple[Location, ...]:  # noqa: D401
+    """Return supply centers that are currently unowned by any power."""
+    # The map object exposes the full set of supply centers in *scs*.
+    all_scs: list[str] = list(game.raw.map.scs)  # type: ignore[attr-defined]
+    owned = {loc for locs in centers_by_power(game).values() for loc in locs}
+    free_list: list[Location] = [cast(Location, sc) for sc in all_scs if sc not in owned]
+    return tuple(free_list)
+
+
+# ---------------------------------------------------------------------------
+# Helper to build dynamic Pydantic model for order indices ------------------
+# ---------------------------------------------------------------------------
+
+
+def build_orders_model(legal_map: dict[str, list[str]]) -> type[BaseModel]:  # noqa: D401
+    """
+    Return a dynamic Pydantic model with integer fields per location.
+
+    Each field is constrained to the valid index range for that unit's orders.
+    This centralises the `Any` casting needed to appease the type checker, so
+    caller modules remain *type-ignore*-free.
+    """
+    if not legal_map:
+        return create_model("OrdersEmpty")
+
+    fields: dict[str, tuple[type, object]] = {}
+    for loc, opts in legal_map.items():
+        idx_type = conint(ge=0, lt=len(opts))
+        fields[str(loc)] = (idx_type, ...)
+
+    model = create_model("OrdersSelection", **cast(Any, fields))
+    return model

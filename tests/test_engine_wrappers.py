@@ -10,6 +10,7 @@ from diplomacy_agents.engine import (
     all_possible_orders,
     broadcast_board_state,
     centers,
+    centers_by_power,
     export_datc,
     legal_orders,
     press_history,
@@ -17,6 +18,7 @@ from diplomacy_agents.engine import (
     snapshot_board,
     submit_orders,
     to_power,
+    uncontrolled_centers,
     units,
 )
 from diplomacy_agents.literals import Power
@@ -207,3 +209,28 @@ def test_export_datc(fresh_game: Game) -> None:
         # File should exist and have some content
         assert save_path.exists()
         assert save_path.stat().st_size > 0
+
+
+# ---------------------------------------------------------------------------
+# Supply center helpers -----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def test_supply_center_helpers_initial_state() -> None:
+    """centers_by_power and uncontrolled_centers reflect 1901 Spring setup."""
+    game = Game(rules={"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"})
+
+    centers_map = centers_by_power(game)
+    # All seven powers should have an entry
+    assert len(centers_map) == 7
+
+    owned_total = sum(len(scs) for scs in centers_map.values())
+    # Standard Diplomacy board has 34 supply centers.
+    assert owned_total < 34  # some neutrals at start
+
+    free = uncontrolled_centers(game)
+    assert len(free) == 34 - owned_total
+
+    # No overlap between owned and free lists
+    owned_set = {loc for locs in centers_map.values() for loc in locs}
+    assert not owned_set.intersection(free)
