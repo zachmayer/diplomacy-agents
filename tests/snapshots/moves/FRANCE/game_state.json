@@ -1,0 +1,24 @@
+{
+  "is_game_done": false,
+  "phase": "S1901M",
+  "phase_type": "M",
+  "powers": [
+    "AUSTRIA",
+    "ENGLAND",
+    "FRANCE",
+    "GERMANY",
+    "ITALY",
+    "RUSSIA",
+    "TURKEY"
+  ],
+  "supply_centers": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 3,
+    "GERMANY": 3,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3
+  },
+  "year": 1901
+}

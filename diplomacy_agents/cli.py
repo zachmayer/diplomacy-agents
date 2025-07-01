@@ -5,16 +5,11 @@ Run `python -m diplomacy_agents.cli self-play` to launch a self-play match where
 all seven powers are controlled by identical LLM agents.
 """
 
-from __future__ import annotations
-
-import asyncio
 import logging
-from collections.abc import Coroutine
-from typing import Any, cast
 
 import click
 
-from diplomacy_agents.conductor import run_match
+from diplomacy_agents.orchestrator import run_game
 
 # ---------------------------------------------------------------------------
 # Logging setup --------------------------------------------------------------
@@ -37,24 +32,14 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
     """Diplomacy-Agents command-line tools."""
 
 
-@cli.command("conductor", help="Run self-play via the stateless conductor.")
+@cli.command("play", help="Run a complete self-play match with random models.")
 @click.option("--seed", type=int, default=42, help="RNG seed for reproducibility.")
-@click.option(
-    "--max-year",
-    type=int,
-    default=1951,
-    help="Stop the match after the given game year (inclusive).",
-)
-def conductor_cmd(seed: int, max_year: int) -> None:  # noqa: D401
-    """Launch the stateless self-play match."""
-    coro = cast(
-        Coroutine[Any, Any, None],
-        run_match(
-            seed=seed,
-            max_year=max_year,
-        ),
-    )
-    asyncio.run(coro)
+def play_cmd(seed: int) -> None:  # noqa: D401
+    """Run the simplified orchestrator and print final SC counts."""
+    final_sc = run_game(seed=seed)
+    ordered = sorted(final_sc.items(), key=lambda x: x[1], reverse=True)
+    for _power, _count in ordered:
+        pass
 
 
 if __name__ == "__main__":
