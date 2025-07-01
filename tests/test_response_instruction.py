@@ -12,11 +12,11 @@ def _mk_game() -> Game:
 def test_movement_response() -> None:  # noqa: D103
     g = _mk_game()
     txt = _c._response_instruction(g, "FRANCE")
-    assert "JSON object" in txt and "location token" in txt
+    assert "JSON array" in txt
 
 
 def test_disband_response() -> None:  # noqa: D103
     g = _mk_game()
-    # Force budget positive: give FRANCE extra units via simple trick (unit count more than centers)
-    txt = _c._response_instruction(g, "GERMANY")  # initial budget 0 but adjust text still generic
-    assert "JSON object" in txt
+    # Movement phase – expect JSON array guidance as above
+    txt = _c._response_instruction(g, "GERMANY")
+    assert "JSON array" in txt

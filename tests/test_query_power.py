@@ -20,8 +20,8 @@ class _DummyAgent:  # noqa: D101
         self._output_type = output_type
 
     async def run(self, _: str) -> _DummyResult:  # noqa: D401
-        """Return object whose attributes are *None* for every location."""
-        return _DummyResult(self._output_type())  # all fields default to None
+        """Return object with an empty selection list."""
+        return _DummyResult(self._output_type([]))
 
 
 def test_query_power_handles_none_indices(monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: D103

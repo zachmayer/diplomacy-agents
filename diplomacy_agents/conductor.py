@@ -25,17 +25,16 @@ import time
 from collections.abc import Awaitable
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, Literal, cast, get_args
 
 # Pydantic helpers for the list-of-ints schema
-from pydantic import conint, conlist, create_model
+from pydantic import RootModel
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.engine import (
     Game,
-    build_orders_model,
     centers,
     export_datc,
     generate_svg_animation,
@@ -85,19 +84,19 @@ def _build_prompt(
     uncontrolled_scs = ", ".join(str(c) for c in uncontrolled_centers(game))
     score_line = _sc_counts_line(game)
 
-    # Legal orders – numbered per location ----------------------------
+    # Legal orders – bullet-listed per location ----------------------------
     orders_lines: list[str] = []
     for loc, opts in legal_map.items():
         loc_str = str(loc)
         orders_lines.append(f"Potential orders for {loc_str}:")
-        for i, order in enumerate(opts):
-            orders_lines.append(f"{i}. {order}")
+        for order in opts:
+            orders_lines.append(f"- {order}")
         orders_lines.append("")  # blank line between units
 
     orders_block = "\n".join(orders_lines)
 
     support_note = (
-        "\nNote that it is legal both support and convoy other powers' units. Only do this if it is to your advantage."
+        "\nNote that it is legal to support or convoy other powers' units; do so only if it benefits you."
         if phase_type(game) == "M"
         else ""
     )
@@ -163,20 +162,20 @@ async def _query_power(
     location/unit to the integer index of its chosen order.
     """
     # ------------------------------------------------------------------
-    # Select output schema ---------------------------------------------
+    # Select output schema: list[str] with custom validator -------------
     # ------------------------------------------------------------------
-    adjustment_phase = game.get_current_phase()[-1] == "A"
+    # Dynamically build Literal containing allowed orders
+    allowed_orders: tuple[str, ...] = tuple({o for opts in legal_map.values() for o in opts})
+    allowed_order_type: type = cast(
+        type,
+        Literal.__getitem__(allowed_orders),  # pyright: ignore[reportUnknownMemberType,reportAttributeAccessIssue]
+    )
 
-    if adjustment_phase:
-        output_model = build_orders_model(legal_map, adjustment=True)
-    else:
-        # List[int] schema: one index per unit in the order they appear in
-        unit_locs: list[str] = list(legal_map.keys())
-        max_choices = max(len(v) for v in legal_map.values())
+    # Define RootModel for list of allowed order strings
+    class OrdersModel(RootModel[list[allowed_order_type]]):
+        pass
 
-        Int = conint(ge=0, lt=max_choices)
-        IntList = conlist(Int, min_length=len(unit_locs), max_length=len(unit_locs))
-        output_model = create_model("OrdersList", orders=(IntList, ...))
+    output_model = OrdersModel
 
     # ------------------------------------------------------------------
     # Model invocation --------------------------------------------------
@@ -185,8 +184,8 @@ async def _query_power(
         model=model_name,
         system_prompt=f"You are playing diplomacy as {power}.",
         output_type=output_model,
-        retries=3,
-        output_retries=3,
+        retries=1,  # single model invocation retry
+        output_retries=3,  # up to three format retries handled by pydantic-ai
         model_settings={"max_tokens": 2048},
     )
 
@@ -204,19 +203,9 @@ async def _query_power(
         logger.warning("Model %s (%s) failed after %.2fs: %s", model_name, power, elapsed, str(e))
         return power, []
 
-    # ------------------------------------------------------------------
-    # Translate indices -> order strings --------------------------------
-    # ------------------------------------------------------------------
-    chosen_orders: list[str] = []
-    if adjustment_phase:
-        for loc, opts in legal_map.items():
-            idx_raw = getattr(result.output, str(loc), None)
-            if idx_raw is not None:
-                chosen_orders.append(opts[idx_raw])
-    else:
-        idx_list: list[int] = list(result.output.orders)  # type: ignore[attr-defined]
-        unit_locs = list(legal_map.keys())
-        chosen_orders = [legal_map[loc][idx] for loc, idx in zip(unit_locs, idx_list, strict=False)]
+    # Extract the list of order strings from the model output
+    output_raw = cast(Any, result.output)
+    chosen_orders: list[str] = list(getattr(output_raw, "root", []))
 
     return power, chosen_orders
 
@@ -256,10 +245,7 @@ async def run_match(
         candidate_models = MODEL_NAMES
 
     # Prepare power → model mapping *once* at the start of the game.
-    power_to_model: dict[Power, KnownModelName] = {
-        p: random.choice(candidate_models)
-        for p in Power.__args__  # type: ignore[attr-defined]
-    }
+    power_to_model: dict[Power, KnownModelName] = {p: random.choice(candidate_models) for p in get_args(Power)}
 
     logger.info(
         "Power–model assignment: %s",
@@ -370,8 +356,8 @@ def _response_instruction(game: Game, power: Power) -> str:
             return f"You may build up to {n} unit(s). Respond with a JSON object containing {n} key-value pairs (build location → index). "
         return "You have no adjustments to make. Respond with an empty JSON object {}."
 
-    # Movement / Retreat default – list[int] contract
+    # Movement / Retreat default – array of order strings
     return (
-        "Respond with a JSON array of INTEGER indices, e.g. [0,2,1]. "
-        "The array length must equal the number of units you currently control, and the order of the numbers must match the order in which the units are listed in the <legal-orders> section."
+        'Respond with a JSON array of full order strings, e.g. ["A PAR - BUR", "F BRE - MAO"]. '
+        "The array length must equal the number of units you currently control and each entry must exactly match one of the legal orders listed above."
     )
