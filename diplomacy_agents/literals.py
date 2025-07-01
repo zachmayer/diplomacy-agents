@@ -36,6 +36,9 @@ PressRecipient = Literal[
 
 UnitType = Literal["A", "F", "*A", "*F"]
 
+# Short phase type code used throughout the engine and DTOs -----------------
+PhaseType = Literal["M", "R", "A"]  # Movement, Retreats, Adjustments
+
 Location = Literal[
     "ADR",
     "AEG",
@@ -152,5 +155,6 @@ __all__ = [
     "PressRecipient",
     "UnitType",
     "Location",
+    "PhaseType",
     "MODEL_NAMES",
 ]

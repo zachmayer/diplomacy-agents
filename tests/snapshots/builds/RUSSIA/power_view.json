@@ -1,0 +1,30 @@
+{
+  "all_orders": [
+    "WAIVE",
+    "A SEV B",
+    "F SEV B"
+  ],
+  "orders_by_location": {
+    "SEV": [
+      "WAIVE",
+      "A SEV B",
+      "F SEV B"
+    ]
+  },
+  "phase": "W1901A",
+  "phase_type": "A",
+  "power": "RUSSIA",
+  "supply_centers": [
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR",
+    "RUM"
+  ],
+  "units": {
+    "MOS": "A",
+    "RUM": "F",
+    "STP/SC": "F",
+    "WAR": "A"
+  }
+}

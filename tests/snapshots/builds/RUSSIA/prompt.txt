@@ -1,0 +1,96 @@
+<main-goal>
+You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+</main-goal>
+
+<who-am-i>
+You are power RUSSIA in phase W1901A.
+</who-am-i>
+
+<game-state>
+{
+  "dislodged_units": [],
+  "is_game_done": false,
+  "phase": "W1901A",
+  "phase_type": "A",
+  "powers": [
+    "AUSTRIA",
+    "ENGLAND",
+    "FRANCE",
+    "GERMANY",
+    "ITALY",
+    "RUSSIA",
+    "TURKEY"
+  ],
+  "supply_centers": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 3,
+    "GERMANY": 3,
+    "ITALY": 3,
+    "RUSSIA": 5,
+    "TURKEY": 3
+  },
+  "units": {
+    "ANK": "F",
+    "BER": "A",
+    "BRE": "F",
+    "BUD": "A",
+    "CON": "A",
+    "EDI": "F",
+    "KIE": "F",
+    "LON": "F",
+    "LVP": "A",
+    "MAR": "A",
+    "MOS": "A",
+    "MUN": "A",
+    "NAP": "F",
+    "PAR": "A",
+    "ROM": "A",
+    "RUM": "F",
+    "SMY": "A",
+    "STP/SC": "F",
+    "TRI": "F",
+    "VEN": "A",
+    "VIE": "A",
+    "WAR": "A"
+  },
+  "year": 1901
+}
+</game-state>
+
+<your-view>
+{
+  "all_orders": [
+    "WAIVE",
+    "A SEV B",
+    "F SEV B"
+  ],
+  "orders_by_location": {
+    "SEV": [
+      "WAIVE",
+      "A SEV B",
+      "F SEV B"
+    ]
+  },
+  "phase": "W1901A",
+  "phase_type": "A",
+  "power": "RUSSIA",
+  "supply_centers": [
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR",
+    "RUM"
+  ],
+  "units": {
+    "MOS": "A",
+    "RUM": "F",
+    "STP/SC": "F",
+    "WAR": "A"
+  }
+}
+</your-view>
+
+<instructions>
+Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+</instructions>

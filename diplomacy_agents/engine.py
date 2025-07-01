@@ -2,30 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import cast
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
 from pydantic import BaseModel, ConfigDict, RootModel, field_validator
 
-# ---------------------------------------------------------------------------
-# Canonical literals ---------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-Power = Literal[
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY",
-]
-
-Location = str  # province token such as "PAR" or "SPA/NC"
-UnitType = Literal["A", "F"]  # army / fleet – *build* variants ignored for simplicity
-
-PhaseType = Literal["M", "R", "A"]  # Movement / Retreats / Adjustments
+# Canonical token literals ---------------------------------------------------
+from diplomacy_agents.literals import Location, PhaseType, Power, UnitType  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Data-transfer objects (DTOs) -----------------------------------------------
@@ -140,7 +124,7 @@ class DiplomacyEngine:
         all_possible: dict[str, list[str]] = self._game.get_all_possible_orders()  # type: ignore[attr-defined]
         orderable: tuple[str, ...] = tuple(self._game.get_orderable_locations(power))  # type: ignore[attr-defined]
 
-        valid = {loc: tuple(all_possible[loc]) for loc in orderable if loc in all_possible}
+        valid = {cast(Location, loc): tuple(all_possible[loc]) for loc in orderable if loc in all_possible}
 
         # Parse unit list like ["A PAR", "F BRE"] into {"PAR": "A", "BRE": "F"}
         units_map: dict[str, UnitType] = {}
@@ -204,7 +188,8 @@ class DiplomacyEngine:
             for unit_str in unit_strings:
                 unit_type_str, loc_str = unit_str.split(" ", 1)
                 unit_type_clean = unit_type_str.lstrip("*?")
-                overview[loc_str] = cast(UnitType, unit_type_clean)
+                loc = cast(Location, loc_str)  # explicit cast for type checker
+                overview[loc] = cast(UnitType, unit_type_clean)
         return overview
 
     def _get_dislodged_locations(self) -> list[Location]:
@@ -215,7 +200,7 @@ class DiplomacyEngine:
             for unit_str in unit_strings:
                 unit_type_str, loc_str = unit_str.split(" ", 1)
                 if unit_type_str.startswith("*"):
-                    dislodged.append(loc_str)
+                    dislodged.append(cast(Location, loc_str))
         return dislodged
 
 

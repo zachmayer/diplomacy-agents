@@ -9,8 +9,9 @@ from typing import cast
 from pydantic_ai import Agent
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import DiplomacyEngine, Power, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Power, PowerViewDTO
 from diplomacy_agents.literals import MODEL_NAMES  # candidate model list
+from diplomacy_agents.prompts import build_orders_prompt
 
 __all__ = ["GameOrchestrator", "run_game"]
 
@@ -22,7 +23,7 @@ class OrderAgent:
         self.power = power
         self.model_name = model_name
 
-    async def get_orders(self, view: PowerViewDTO) -> list[str]:  # noqa: D401
+    async def get_orders(self, game_state: GameStateDTO, view: PowerViewDTO) -> list[str]:  # noqa: D401
         """Request one order per unit from the underlying LLM."""
         order_model = view.create_order_model()
 
@@ -34,11 +35,7 @@ class OrderAgent:
             model_settings={"temperature": 0.7},
         )
 
-        prompt = (
-            f"You are {self.power} in phase {view.phase}.\n"
-            f"You own {len(view.supply_centers)} supply centres and have {len(view.units)} unit(s).\n"
-            "Select exactly one legal DATC order for each unit. Respond with a JSON object whose keys are the unit locations and whose values are the chosen order strings."
-        )
+        prompt = build_orders_prompt(game_state, view)
 
         result = await agent.run(prompt)
 
@@ -84,12 +81,14 @@ class GameOrchestrator:
 
     async def _run_single_phase(self) -> None:
         # Build power-specific tasks only for powers that still own units.
+        state = self.engine.get_game_state()
+
         tasks: dict[Power, asyncio.Task[list[str]]] = {}
-        for power in self.engine.get_game_state().powers:
+        for power in state.powers:
             view = self.engine.get_power_view(power)
             if not view.units:
                 continue  # eliminated powers – skip
-            task = asyncio.create_task(self.agents[power].get_orders(view))
+            task = asyncio.create_task(self.agents[power].get_orders(state, view))
             tasks[power] = task
 
         if not tasks:  # all powers eliminated? – should be game over

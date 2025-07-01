@@ -17,13 +17,17 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 
+# fmt: off
 from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+
+# fmt: on
+from diplomacy_agents.prompts import build_orders_prompt
 
 # type: ignore[reportPrivateUsage]
 from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
     _setup_build_russia,
     _setup_disband_germany,
-    _setup_retreat_s1901,
+    _setup_retreat_germany,
 )
 
 # ---------------------------------------------------------------------------
@@ -37,31 +41,6 @@ def _write_json(path: Path, data: object) -> None:  # noqa: D401
     path.write_text(json.dumps(data, indent=2, sort_keys=True))
 
 
-def _orders_prompt_xml(view: PowerViewDTO) -> str:  # noqa: D401
-    """
-    Return the legacy XML prompt describing all legal orders.
-
-    The format corresponds to the structure used by earlier agents:
-
-    <orders phase="S1901M" power="FRANCE">
-      <unit location="PAR">
-        <![CDATA[A PAR H]]>
-        <![CDATA[A PAR - BUR]]>
-        ...
-      </unit>
-      ...
-    </orders>
-    """
-    lines: list[str] = [f'<orders phase="{view.phase}" power="{view.power}">']
-    for loc, options in view.orders_by_location.items():
-        lines.append(f'  <unit location="{loc}">')
-        for order in options:
-            lines.append(f"    <![CDATA[{order}]]>")
-        lines.append("  </unit>")
-    lines.append("</orders>")
-    return "\n".join(lines)
-
-
 # ---------------------------------------------------------------------------
 # Parametrised snapshots -----------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -69,7 +48,7 @@ def _orders_prompt_xml(view: PowerViewDTO) -> str:  # noqa: D401
 
 _SNAP_CASES: list[tuple[str, str, Callable[[], DiplomacyEngine]]] = [
     ("moves", "FRANCE", DiplomacyEngine),
-    ("retreats", "GERMANY", _setup_retreat_s1901),
+    ("retreats", "GERMANY", _setup_retreat_germany),
     ("builds", "RUSSIA", _setup_build_russia),
     ("disbands", "GERMANY", _setup_disband_germany),
 ]
@@ -90,7 +69,7 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     _write_json(base_dir / "power_view.json", pov.model_dump(mode="json"))
     _write_json(base_dir / "orders_schema.json", orders_model.model_json_schema())
 
-    (base_dir / "prompt.txt").write_text(_orders_prompt_xml(pov))
+    (base_dir / "prompt.txt").write_text(build_orders_prompt(game_state, pov))
 
 
 # Dynamically generate a pytest test for each snapshot case so test names are

@@ -1,0 +1,96 @@
+<main-goal>
+You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+</main-goal>
+
+<who-am-i>
+You are power GERMANY in phase W1901A.
+</who-am-i>
+
+<game-state>
+{
+  "dislodged_units": [],
+  "is_game_done": false,
+  "phase": "W1901A",
+  "phase_type": "A",
+  "powers": [
+    "AUSTRIA",
+    "ENGLAND",
+    "FRANCE",
+    "GERMANY",
+    "ITALY",
+    "RUSSIA",
+    "TURKEY"
+  ],
+  "supply_centers": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 4,
+    "GERMANY": 2,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3
+  },
+  "units": {
+    "ANK": "F",
+    "BER": "A",
+    "BOH": "A",
+    "BRE": "F",
+    "BUD": "A",
+    "CON": "A",
+    "EDI": "F",
+    "KIE": "F",
+    "LON": "F",
+    "LVP": "A",
+    "MAR": "A",
+    "MOS": "A",
+    "MUN": "A",
+    "NAP": "F",
+    "ROM": "A",
+    "RUH": "A",
+    "SEV": "F",
+    "SMY": "A",
+    "STP/SC": "F",
+    "TRI": "F",
+    "VEN": "A",
+    "WAR": "A"
+  },
+  "year": 1901
+}
+</game-state>
+
+<your-view>
+{
+  "all_orders": [
+    "A RUH D",
+    "A BER D",
+    "F KIE D"
+  ],
+  "orders_by_location": {
+    "BER": [
+      "A BER D"
+    ],
+    "KIE": [
+      "F KIE D"
+    ],
+    "RUH": [
+      "A RUH D"
+    ]
+  },
+  "phase": "W1901A",
+  "phase_type": "A",
+  "power": "GERMANY",
+  "supply_centers": [
+    "BER",
+    "KIE"
+  ],
+  "units": {
+    "BER": "A",
+    "KIE": "F",
+    "RUH": "A"
+  }
+}
+</your-view>
+
+<instructions>
+Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+</instructions>

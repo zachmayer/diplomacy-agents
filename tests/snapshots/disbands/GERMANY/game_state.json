@@ -1,0 +1,49 @@
+{
+  "dislodged_units": [],
+  "is_game_done": false,
+  "phase": "W1901A",
+  "phase_type": "A",
+  "powers": [
+    "AUSTRIA",
+    "ENGLAND",
+    "FRANCE",
+    "GERMANY",
+    "ITALY",
+    "RUSSIA",
+    "TURKEY"
+  ],
+  "supply_centers": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 4,
+    "GERMANY": 2,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3
+  },
+  "units": {
+    "ANK": "F",
+    "BER": "A",
+    "BOH": "A",
+    "BRE": "F",
+    "BUD": "A",
+    "CON": "A",
+    "EDI": "F",
+    "KIE": "F",
+    "LON": "F",
+    "LVP": "A",
+    "MAR": "A",
+    "MOS": "A",
+    "MUN": "A",
+    "NAP": "F",
+    "ROM": "A",
+    "RUH": "A",
+    "SEV": "F",
+    "SMY": "A",
+    "STP/SC": "F",
+    "TRI": "F",
+    "VEN": "A",
+    "WAR": "A"
+  },
+  "year": 1901
+}
