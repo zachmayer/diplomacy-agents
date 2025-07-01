@@ -1,12 +1,38 @@
-JSON array of DATC order strings for FRANCE. Each element must be one of the legal orders in the current phase. Example subset: A MAR - BUR, A MAR - GAS, A MAR - PIE, A MAR - SPA, A MAR H, A MAR S A MUN - BUR, A MAR S A PAR - BUR, A MAR S A PAR - GAS, A MAR S A VEN - PIE, A MAR S F BRE - GAS, A PAR - BRE, A PAR - BUR, A PAR - GAS, A PAR - PIC, A PAR H, A PAR S A MAR - BUR, A PAR S A MAR - GAS, A PAR S A MUN - BUR, A PAR S F BRE, A PAR S F BRE - GAS, A PAR S F BRE - PIC, F BRE - ENG, F BRE - GAS, F BRE - MAO, F BRE - PIC ….
-
-When responding, provide a JSON array adhering to this schema:
-
-{
-  "description": "JSON array of DATC order strings for FRANCE. Each element must be one of the legal orders in the current phase. Example subset: A MAR - BUR, A MAR - GAS, A MAR - PIE, A MAR - SPA, A MAR H, A MAR S A MUN - BUR, A MAR S A PAR - BUR, A MAR S A PAR - GAS, A MAR S A VEN - PIE, A MAR S F BRE - GAS, A PAR - BRE, A PAR - BUR, A PAR - GAS, A PAR - PIC, A PAR H, A PAR S A MAR - BUR, A PAR S A MAR - GAS, A PAR S A MUN - BUR, A PAR S F BRE, A PAR S F BRE - GAS, A PAR S F BRE - PIC, F BRE - ENG, F BRE - GAS, F BRE - MAO, F BRE - PIC \u2026.",
-  "items": {
-    "type": "string"
-  },
-  "title": "OrdersList_FRANCE",
-  "type": "array"
-}
+<orders phase="S1901M" power="FRANCE">
+  <unit location="BRE">
+    <![CDATA[F BRE - GAS]]>
+    <![CDATA[F BRE H]]>
+    <![CDATA[F BRE - MAO]]>
+    <![CDATA[F BRE S A PAR - PIC]]>
+    <![CDATA[F BRE S A PAR - GAS]]>
+    <![CDATA[F BRE S A MAR - GAS]]>
+    <![CDATA[F BRE S F LON - ENG]]>
+    <![CDATA[F BRE - PIC]]>
+    <![CDATA[F BRE - ENG]]>
+  </unit>
+  <unit location="MAR">
+    <![CDATA[A MAR - PIE]]>
+    <![CDATA[A MAR - BUR]]>
+    <![CDATA[A MAR - SPA]]>
+    <![CDATA[A MAR - GAS]]>
+    <![CDATA[A MAR S A PAR - BUR]]>
+    <![CDATA[A MAR H]]>
+    <![CDATA[A MAR S A MUN - BUR]]>
+    <![CDATA[A MAR S A PAR - GAS]]>
+    <![CDATA[A MAR S A VEN - PIE]]>
+    <![CDATA[A MAR S F BRE - GAS]]>
+  </unit>
+  <unit location="PAR">
+    <![CDATA[A PAR - PIC]]>
+    <![CDATA[A PAR S A MUN - BUR]]>
+    <![CDATA[A PAR - BRE]]>
+    <![CDATA[A PAR S F BRE - PIC]]>
+    <![CDATA[A PAR S A MAR - BUR]]>
+    <![CDATA[A PAR S F BRE - GAS]]>
+    <![CDATA[A PAR - BUR]]>
+    <![CDATA[A PAR - GAS]]>
+    <![CDATA[A PAR S A MAR - GAS]]>
+    <![CDATA[A PAR H]]>
+    <![CDATA[A PAR S F BRE]]>
+  </unit>
+</orders>

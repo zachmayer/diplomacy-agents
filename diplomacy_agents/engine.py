@@ -44,6 +44,19 @@ class GameStateDTO(BaseModel):
     supply_centers: dict[Power, int]
     phase_type: PhaseType
 
+    # --- New: board-wide unit overview ----------------------------------
+    # Mapping from location token to unit type ("A" / "F") for every unit
+    # currently on the board – regardless of owner.  Useful for quick,
+    # impartial inspection (e.g. snapshot tests, UI summaries) without
+    # having to pull seven individual PowerViewDTOs.
+    units: dict[Location, UnitType]
+
+    # Locations of units that were dislodged in the last movement phase and
+    # must now retreat or be disbanded.  The information is aggregated for
+    # convenience; ownership can be inferred by consulting the per-power
+    # views if needed.
+    dislodged_units: tuple[Location, ...]
+
 
 class PowerViewDTO(BaseModel):
     """Perspective-specific snapshot for a single power."""
@@ -55,12 +68,12 @@ class PowerViewDTO(BaseModel):
     phase_type: PhaseType
     units: dict[Location, UnitType]
     supply_centers: tuple[Location, ...]
-    valid_orders: dict[Location, tuple[str, ...]]
-    allowed_orders: tuple[str, ...]
+    orders_by_location: dict[Location, tuple[str, ...]]
+    all_orders: tuple[str, ...]
 
     def create_order_model(self) -> type[BaseModel]:
         """Return a RootModel validating that each entry is a legal order string."""
-        allowed: set[str] = set(self.allowed_orders)
+        allowed: set[str] = set(self.all_orders)
 
         class _OrdersRoot(RootModel[list[str]]):
             """Pydantic root model ensuring all orders are legal for the phase."""
@@ -117,6 +130,9 @@ class DiplomacyEngine:
             powers=tuple(self._game.powers),  # type: ignore[attr-defined]
             supply_centers={p: len(self._game.get_centers(p)) for p in self._game.powers},  # type: ignore[attr-defined]
             phase_type=self._get_phase_type(),
+            # Board-wide unit map -------------------------------------------------
+            units=self._get_units_overview(),  # type: ignore[arg-type]
+            dislodged_units=tuple(self._get_dislodged_locations()),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -131,7 +147,9 @@ class DiplomacyEngine:
         unit_strings = cast(list[str], self._game.get_units(power))  # type: ignore[attr-defined,arg-type]
         for unit_str in unit_strings:
             unit_type_str, loc_str = unit_str.split(" ", 1)
-            unit_type = cast(UnitType, unit_type_str)  # type: ignore[reportUnnecessaryCast]
+            # Dislodged units are prefixed with '*', e.g. "*A MUN". Strip such markers.
+            unit_type_clean = unit_type_str.lstrip("*?")  # '?' appears in some variants.
+            unit_type = cast(UnitType, unit_type_clean)  # type: ignore[reportUnnecessaryCast]
             loc = cast(Location, loc_str)  # type: ignore[reportUnnecessaryCast]
             units_map[loc] = unit_type
 
@@ -141,8 +159,8 @@ class DiplomacyEngine:
             phase_type=self._get_phase_type(),
             units=units_map,  # type: ignore[arg-type]
             supply_centers=tuple(self._game.get_centers(power)),  # type: ignore[attr-defined]
-            valid_orders=valid,  # type: ignore[arg-type]
-            allowed_orders=tuple({o for opts in valid.values() for o in opts}),
+            orders_by_location=valid,  # type: ignore[arg-type]
+            all_orders=tuple({o for opts in valid.values() for o in opts}),
         )
 
     def submit_orders(self, power: Power, orders: list[str]) -> None:  # noqa: D401
@@ -173,6 +191,32 @@ class DiplomacyEngine:
         if pt_raw not in mapping:
             raise RuntimeError(f"Unknown phase type from engine: {pt_raw!r}")
         return mapping[pt_raw]
+
+    # ------------------------------------------------------------------
+    # Board-wide helpers -------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def _get_units_overview(self) -> dict[Location, UnitType]:
+        """Return {loc: unit_type} for every unit currently on the board."""
+        overview: dict[Location, UnitType] = {}
+        for power in self._game.powers:  # type: ignore[attr-defined]
+            unit_strings = cast(list[str], self._game.get_units(power))  # type: ignore[arg-type]
+            for unit_str in unit_strings:
+                unit_type_str, loc_str = unit_str.split(" ", 1)
+                unit_type_clean = unit_type_str.lstrip("*?")
+                overview[loc_str] = cast(UnitType, unit_type_clean)
+        return overview
+
+    def _get_dislodged_locations(self) -> list[Location]:
+        """Return locations of units that are currently dislodged."""
+        dislodged: list[Location] = []
+        for power in self._game.powers:  # type: ignore[attr-defined]
+            unit_strings = cast(list[str], self._game.get_units(power))  # type: ignore[arg-type]
+            for unit_str in unit_strings:
+                unit_type_str, loc_str = unit_str.split(" ", 1)
+                if unit_type_str.startswith("*"):
+                    dislodged.append(loc_str)
+        return dislodged
 
 
 __all__ = [

@@ -1,4 +1,5 @@
 {
+  "dislodged_units": [],
   "is_game_done": false,
   "phase": "S1901M",
   "phase_type": "M",
@@ -19,6 +20,30 @@
     "ITALY": 3,
     "RUSSIA": 4,
     "TURKEY": 3
+  },
+  "units": {
+    "ANK": "F",
+    "BER": "A",
+    "BRE": "F",
+    "BUD": "A",
+    "CON": "A",
+    "EDI": "F",
+    "KIE": "F",
+    "LON": "F",
+    "LVP": "A",
+    "MAR": "A",
+    "MOS": "A",
+    "MUN": "A",
+    "NAP": "F",
+    "PAR": "A",
+    "ROM": "A",
+    "SEV": "F",
+    "SMY": "A",
+    "STP/SC": "F",
+    "TRI": "F",
+    "VEN": "A",
+    "VIE": "A",
+    "WAR": "A"
   },
   "year": 1901
 }
