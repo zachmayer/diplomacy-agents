@@ -1,0 +1,149 @@
+
+<main-goal>
+You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+</main-goal>
+
+<who-am-i>
+You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
+</who-am-i>
+
+<full-game-state>
+{
+  "is_game_done": false,
+  "phase": "W1901A",
+  "phase_long": "WINTER 1901 ADJUSTMENTS",
+  "phase_type": "A",
+  "year": 1901,
+  "all_powers": [
+    "AUSTRIA",
+    "ENGLAND",
+    "FRANCE",
+    "GERMANY",
+    "ITALY",
+    "RUSSIA",
+    "TURKEY"
+  ],
+  "all_supply_center_counts": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 4,
+    "GERMANY": 2,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3
+  },
+  "all_supply_center_locations": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "PAR",
+      "MUN"
+    ],
+    "GERMANY": [
+      "BER",
+      "KIE"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ]
+  },
+  "all_unit_locations": {
+    "AUSTRIA": {
+      "BUD": "A",
+      "TRI": "F",
+      "BOH": "A"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "MUN": "A"
+    },
+    "GERMANY": {
+      "KIE": "F",
+      "BER": "A",
+      "RUH": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "WAR": "A",
+      "MOS": "A",
+      "SEV": "F",
+      "STP/SC": "F"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    }
+  }
+}
+</full-game-state>
+
+<your-power-view>
+{
+  "power": "GERMANY",
+  "my_supply_center_count": 2,
+  "my_unit_locations": {
+    "KIE": "F",
+    "BER": "A",
+    "RUH": "A"
+  },
+  "my_home_supply_center_locations": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "my_supply_center_locations": [
+    "BER",
+    "KIE"
+  ],
+  "my_orders_by_location": {
+    "BER": [
+      "A BER D"
+    ],
+    "KIE": [
+      "F KIE D"
+    ],
+    "RUH": [
+      "A RUH D"
+    ]
+  }
+}
+</your-power-view>
+
+<instructions>
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+You must remove 1 unit(s). Include exactly 1 disband order(s).
+</instructions>

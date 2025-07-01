@@ -11,19 +11,9 @@ Power = Literal[
     "RUSSIA",
     "TURKEY",
 ]
-
-PressRecipient = Literal[
-    "ALL",
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY",
-]  # reuse Power tokens plus ALL
-
 UnitType = Literal["A", "F", "*A", "*F"]
+
+PhaseType = Literal["M", "R", "A"]
 
 Location = Literal[
     "ADR",
@@ -108,4 +98,11 @@ Location = Literal[
     "WAR",
     "WES",
     "YOR",
+]
+
+__all__ = [
+    "Power",
+    "UnitType",
+    "Location",
+    "PhaseType",
 ]
