@@ -21,12 +21,17 @@ import asyncio
 import json
 import logging
 import random
+import time
 from collections.abc import Awaitable
+from datetime import datetime
 from pathlib import Path
 from typing import cast
 
+# Pydantic helpers for the list-of-ints schema
+from pydantic import conint, conlist, create_model
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import UnexpectedModelBehavior
+from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.engine import (
     Game,
@@ -43,7 +48,7 @@ from diplomacy_agents.engine import (
     uncontrolled_centers,
     units,
 )
-from diplomacy_agents.literals import Power
+from diplomacy_agents.literals import MODEL_NAMES, Power
 
 __all__ = [
     "run_match",
@@ -157,30 +162,61 @@ async def _query_power(
     The model is asked to emit a *dictionary* mapping each orderable
     location/unit to the integer index of its chosen order.
     """
-    output_model = build_orders_model(legal_map, adjustment=(game.get_current_phase()[-1] == "A"))
+    # ------------------------------------------------------------------
+    # Select output schema ---------------------------------------------
+    # ------------------------------------------------------------------
+    adjustment_phase = game.get_current_phase()[-1] == "A"
 
-    # Build a fresh Agent instance constrained by the dynamic model
+    if adjustment_phase:
+        output_model = build_orders_model(legal_map, adjustment=True)
+    else:
+        # List[int] schema: one index per unit in the order they appear in
+        unit_locs: list[str] = list(legal_map.keys())
+        max_choices = max(len(v) for v in legal_map.values())
+
+        Int = conint(ge=0, lt=max_choices)
+        IntList = conlist(Int, min_length=len(unit_locs), max_length=len(unit_locs))
+        output_model = create_model("OrdersList", orders=(IntList, ...))
+
+    # ------------------------------------------------------------------
+    # Model invocation --------------------------------------------------
+    # ------------------------------------------------------------------
     agent = Agent(
         model=model_name,
         system_prompt=f"You are playing diplomacy as {power}.",
         output_type=output_model,
         retries=3,
+        output_retries=3,
+        model_settings={"max_tokens": 2048},
     )
 
     prompt = _build_prompt(game, power)
-
     logger.debug(prompt)
 
-    chosen_orders: list[str] = []
+    t0 = time.perf_counter()
     try:
         result = await agent.run(prompt)
+        elapsed = time.perf_counter() - t0
+        logger.info("Model %s (%s) completed in %.2fs", model_name, power, elapsed)
+        logger.info("Raw output for %s: %s", power, result.output)
+    except UnexpectedModelBehavior as e:
+        elapsed = time.perf_counter() - t0
+        logger.warning("Model %s (%s) failed after %.2fs: %s", model_name, power, elapsed, str(e))
+        return power, []
+
+    # ------------------------------------------------------------------
+    # Translate indices -> order strings --------------------------------
+    # ------------------------------------------------------------------
+    chosen_orders: list[str] = []
+    if adjustment_phase:
         for loc, opts in legal_map.items():
             idx_raw = getattr(result.output, str(loc), None)
             if idx_raw is not None:
-                idx_int = cast(int, idx_raw)
-                chosen_orders.append(opts[idx_int])
-    except UnexpectedModelBehavior:
-        chosen_orders = []  # fallback to empty -> HOLD
+                chosen_orders.append(opts[idx_raw])
+    else:
+        idx_list: list[int] = list(result.output.orders)  # type: ignore[attr-defined]
+        unit_locs = list(legal_map.keys())
+        chosen_orders = [legal_map[loc][idx] for loc, idx in zip(unit_locs, idx_list, strict=False)]
 
     return power, chosen_orders
 
@@ -192,7 +228,7 @@ def _phase_year(phase_token: str) -> int:  # noqa: D401
 
 async def run_match(
     *,
-    model_name: str,
+    candidate_models: tuple[KnownModelName, ...] | None = None,
     seed: int = 42,
     max_year: int = 1951,
 ) -> None:
@@ -201,15 +237,38 @@ async def run_match(
 
     Parameters
     ----------
-    model_name:
-        Identifier understood by Pydantic-AI, e.g. ``"openai:gpt-4o-mini"``.
+    candidate_models:
+        Optional override for the model pool.
     seed:
         RNG seed for reproducibility.
     max_year:
         Optional guard to stop the match after *N* years – useful in tests.
 
     """
+    # ------------------------------------------------------------------
+    # Initial setup -----------------------------------------------------
+    # ------------------------------------------------------------------
+
     random.seed(seed)
+
+    # Pick model pool: caller override > default literal list.
+    if candidate_models is None:
+        candidate_models = MODEL_NAMES
+
+    # Prepare power → model mapping *once* at the start of the game.
+    power_to_model: dict[Power, KnownModelName] = {
+        p: random.choice(candidate_models)
+        for p in Power.__args__  # type: ignore[attr-defined]
+    }
+
+    logger.info(
+        "Power–model assignment: %s",
+        ", ".join(f"{p}->{m}" for p, m in power_to_model.items()),
+    )
+
+    # ------------------------------------------------------------------
+    # Engine initialisation ---------------------------------------------
+    # ------------------------------------------------------------------
 
     # Initialise engine with rules that remove time-outs and CD handling – the
     # conductor decides when to process a phase.
@@ -225,6 +284,11 @@ async def run_match(
 
         phase_no += 1
 
+        # Log timing information for this phase tick
+        clock_time = datetime.now().strftime("%H:%M:%S")
+        game_phase = game.get_current_phase()
+        logger.info("=== PHASE TICK %d === Clock: %s | Game: %s ===", phase_no, clock_time, game_phase)
+
         # Snapshot collected inside prompt builder; external serialisation not needed here
 
         # Kick off concurrent queries for every power
@@ -236,7 +300,7 @@ async def run_match(
             legal_map: dict[str, list[str]] = {str(k): v for k, v in raw_legal_map.items()}
 
             # Cast coroutine to Awaitable with explicit result type for Pyright.
-            awaitable: Awaitable[object] = _query_power(game, p, model_name, legal_map)
+            awaitable: Awaitable[object] = _query_power(game, p, power_to_model[p], legal_map)
             coros.append(awaitable)
 
         results_raw = await asyncio.gather(*coros)
@@ -306,5 +370,8 @@ def _response_instruction(game: Game, power: Power) -> str:
             return f"You may build up to {n} unit(s). Respond with a JSON object containing {n} key-value pairs (build location → index). "
         return "You have no adjustments to make. Respond with an empty JSON object {}."
 
-    # Movement / Retreat default
-    return "Respond with a JSON object where each key is the location token and each value is the INTEGER index of the chosen order for that location."
+    # Movement / Retreat default – list[int] contract
+    return (
+        "Respond with a JSON array of INTEGER indices, e.g. [0,2,1]. "
+        "The array length must equal the number of units you currently control, and the order of the numbers must match the order in which the units are listed in the <legal-orders> section."
+    )

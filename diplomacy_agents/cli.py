@@ -28,13 +28,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger("cli")
 
 # ---------------------------------------------------------------------------
-# Internal helpers -----------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-# Local default model identifier
-DEFAULT_MODEL: str = "openai:gpt-4.1"
-
-# ---------------------------------------------------------------------------
 # Click commands -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
@@ -57,7 +50,6 @@ def conductor_cmd(seed: int, max_year: int) -> None:  # noqa: D401
     coro = cast(
         Coroutine[Any, Any, None],
         run_match(
-            model_name=DEFAULT_MODEL,
             seed=seed,
             max_year=max_year,
         ),

@@ -2,15 +2,17 @@
 
 import asyncio
 
+from pydantic_ai.models import KnownModelName
+
 from diplomacy_agents.conductor import run_match
 
-# Default model identifier for tests
-DEFAULT_MODEL: str = "openai:gpt-4.1-nano-2025-04-14"
+# Use a single deterministic model for reproducible tests
+TEST_MODELS: tuple[KnownModelName, ...] = ("openai:gpt-4.1-nano-2025-04-14",)
 
 
 async def _smoke() -> None:
     """Run one-phase smoke test for the stateless conductor."""
-    await run_match(model_name=DEFAULT_MODEL, max_year=1901)
+    await run_match(max_year=1901, candidate_models=TEST_MODELS)
 
 
 def test_smoke() -> None:
