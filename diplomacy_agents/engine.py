@@ -2,14 +2,57 @@
 
 from __future__ import annotations
 
-from typing import cast
+from collections.abc import Iterable, Mapping
+from typing import Any, Literal, TypeVar, cast
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
 from pydantic import BaseModel, ConfigDict, RootModel, field_validator
+from pydantic_ai.models import KnownModelName
 
 # Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType  # noqa: E402
+
+# Third-party helpers ---------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Generic order list model ---------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class OrdersList(RootModel[list[str]]):
+    """
+    JSON array of DATC order strings.
+
+    This *base* model imposes **no validation** beyond being a list of strings.
+    Phase-/power-specific subclasses can inherit from it to add stricter
+    constraints (see ``create_order_model``).
+    """
+
+
+# ---------------------------------------------------------------------------
+# Simple data helpers --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+T_co = TypeVar("T_co", covariant=True)
+
+
+def flatten_values[T_co](mapping: Mapping[Any, Iterable[T_co]]) -> list[T_co]:  # noqa: D401
+    """
+    Return a flat list containing every element from *mapping*'s values.
+
+    Example:
+    -------
+    >>> flatten_values({"a": [1, 2], "b": [3]})
+    [1, 2, 3]
+
+    """
+    flattened: list[T_co] = []
+    for iterable in mapping.values():
+        flattened.extend(iterable)
+    return flattened
+
 
 # ---------------------------------------------------------------------------
 # Data-transfer objects (DTOs) -----------------------------------------------
@@ -28,12 +71,9 @@ class GameStateDTO(BaseModel):
     supply_centers: dict[Power, int]
     phase_type: PhaseType
 
-    # --- New: board-wide unit overview ----------------------------------
-    # Mapping from location token to unit type ("A" / "F") for every unit
-    # currently on the board – regardless of owner.  Useful for quick,
-    # impartial inspection (e.g. snapshot tests, UI summaries) without
-    # having to pull seven individual PowerViewDTOs.
-    units: dict[Location, UnitType]
+    # Mapping each power to its own {location: unit_type} view – useful for
+    # human-readable dumps where grouping by owner adds clarity.
+    units_by_power: dict[Power, dict[Location, UnitType]]
 
     # Locations of units that were dislodged in the last movement phase and
     # must now retreat or be disbanded.  The information is aggregated for
@@ -53,14 +93,13 @@ class PowerViewDTO(BaseModel):
     units: dict[Location, UnitType]
     supply_centers: tuple[Location, ...]
     orders_by_location: dict[Location, tuple[str, ...]]
-    all_orders: tuple[str, ...]
 
     def create_order_model(self) -> type[BaseModel]:
         """Return a RootModel validating that each entry is a legal order string."""
-        allowed: set[str] = set(self.all_orders)
+        allowed: set[str] = set(flatten_values(self.orders_by_location))
 
-        class _OrdersRoot(RootModel[list[str]]):
-            """Pydantic root model ensuring all orders are legal for the phase."""
+        class _OrdersRoot(OrdersList):
+            """Phase-specific order list ensuring only legal orders are used."""
 
             @field_validator("root")
             @classmethod
@@ -71,11 +110,8 @@ class PowerViewDTO(BaseModel):
                 return v
 
         _OrdersRoot.__name__ = f"OrdersList_{self.power}"
-        # Provide a helpful, power- and phase-specific docstring so that higher-level
-        # tooling such as *pydantic-ai* can surface the constraint set to an LLM.
-        # Keep it short – we don't want to flood the prompt with dozens of orders on
-        # large boards but enough to give context.
-        max_show = 25  # arbitrary cut-off to avoid huge strings
+        # Docstring includes at most 25 sample orders for context.
+        max_show = 25
         sample = ", ".join(sorted(allowed)[:max_show])
         more = " …" if len(allowed) > max_show else ""
         _OrdersRoot.__doc__ = (
@@ -84,6 +120,35 @@ class PowerViewDTO(BaseModel):
             f"Example subset: {sample}{more}."
         )
         return _OrdersRoot
+
+
+# ---------------------------------------------------------------------------
+# Power→Model mapping --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+# Accept both LLM identifiers and baseline specifiers
+AgentSpecName = KnownModelName | Literal["hold", "random"]
+
+
+class PowerModelMap(BaseModel):
+    """
+    Validated mapping from each power to its LLM identifier.
+
+    Each attribute corresponds to one of the seven standard powers and must be
+    populated with a valid *pydantic-ai* ``KnownModelName`` **or** one of the
+    built-in baseline specifiers ("hold" / "random").
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    AUSTRIA: AgentSpecName
+    ENGLAND: AgentSpecName
+    FRANCE: AgentSpecName
+    GERMANY: AgentSpecName
+    ITALY: AgentSpecName
+    RUSSIA: AgentSpecName
+    TURKEY: AgentSpecName
 
 
 # ---------------------------------------------------------------------------
@@ -114,8 +179,7 @@ class DiplomacyEngine:
             powers=tuple(self._game.powers),  # type: ignore[attr-defined]
             supply_centers={p: len(self._game.get_centers(p)) for p in self._game.powers},  # type: ignore[attr-defined]
             phase_type=self._get_phase_type(),
-            # Board-wide unit map -------------------------------------------------
-            units=self._get_units_overview(),  # type: ignore[arg-type]
+            units_by_power=self._get_units_by_power(),  # type: ignore[arg-type]
             dislodged_units=tuple(self._get_dislodged_locations()),
         )
 
@@ -144,7 +208,6 @@ class DiplomacyEngine:
             units=units_map,  # type: ignore[arg-type]
             supply_centers=tuple(self._game.get_centers(power)),  # type: ignore[attr-defined]
             orders_by_location=valid,  # type: ignore[arg-type]
-            all_orders=tuple({o for opts in valid.values() for o in opts}),
         )
 
     def submit_orders(self, power: Power, orders: list[str]) -> None:  # noqa: D401
@@ -154,6 +217,24 @@ class DiplomacyEngine:
     def process_turn(self) -> None:  # noqa: D401
         """Advance the game one phase."""
         self._game.process()  # type: ignore[attr-defined]
+
+    # ------------------------------------------------------------------
+    # Rendering helpers --------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def svg_string(self, *, show_orders: bool = True) -> str:  # noqa: D401
+        """
+        Return an SVG snapshot of the current board state.
+
+        Thin wrapper around ``diplomacy.utils.export.render_board_svg``.
+        ``diplomacy>=1.1.2`` ships a pure-Python renderer so no system Cairo is required.
+        """
+        # Import lazily to avoid hard dependency during module import time; some
+        # older diplomacy builds expose the helper only at runtime.
+        from diplomacy.utils import export as _exp  # type: ignore
+
+        renderer = cast(Any, _exp).render_board_svg  # type: ignore[attr-defined]
+        return cast(str, renderer(self._game, show_orders=show_orders))
 
     # ------------------------------------------------------------------
     # Internals ---------------------------------------------------------
@@ -180,17 +261,19 @@ class DiplomacyEngine:
     # Board-wide helpers -------------------------------------------------
     # ------------------------------------------------------------------
 
-    def _get_units_overview(self) -> dict[Location, UnitType]:
-        """Return {loc: unit_type} for every unit currently on the board."""
-        overview: dict[Location, UnitType] = {}
+    def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
+        """Return {power: {loc: unit_type}} nested mapping for all units."""
+        mp: dict[Power, dict[Location, UnitType]] = {}
         for power in self._game.powers:  # type: ignore[attr-defined]
             unit_strings = cast(list[str], self._game.get_units(power))  # type: ignore[arg-type]
+            per_power: dict[Location, UnitType] = {}
             for unit_str in unit_strings:
                 unit_type_str, loc_str = unit_str.split(" ", 1)
                 unit_type_clean = unit_type_str.lstrip("*?")
-                loc = cast(Location, loc_str)  # explicit cast for type checker
-                overview[loc] = cast(UnitType, unit_type_clean)
-        return overview
+                loc = cast(Location, loc_str)
+                per_power[loc] = cast(UnitType, unit_type_clean)
+            mp[cast(Power, power)] = per_power  # type: ignore[arg-type]
+        return mp
 
     def _get_dislodged_locations(self) -> list[Location]:
         """Return locations of units that are currently dislodged."""
@@ -212,4 +295,7 @@ __all__ = [
     "Location",
     "UnitType",
     "PhaseType",
+    "OrdersList",
+    "flatten_values",
+    "PowerModelMap",
 ]

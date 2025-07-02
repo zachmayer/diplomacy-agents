@@ -1,65 +1,83 @@
-"""Asynchronous self-play driver for seven AI powers."""
+"""Asynchronous self-play driver orchestrating seven agents (LLMs or baselines)."""
 
 from __future__ import annotations
 
 import asyncio
 import random
-from typing import cast
+from typing import Any, cast
 
-from pydantic_ai import Agent
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Power, PowerViewDTO
-from diplomacy_agents.literals import MODEL_NAMES  # candidate model list
-from diplomacy_agents.prompts import build_orders_prompt
+from diplomacy_agents.agents import HoldAgent, LLMAgent, RandomAgent
+from diplomacy_agents.engine import AgentSpecName, DiplomacyEngine, Power, PowerModelMap, flatten_values
+
+# Available LLM model identifiers considered for random assignment.
+LOCAL_MODEL_NAMES: list[AgentSpecName] = [
+    "openai:o3",
+    "openai:o4-mini",
+    "openai:gpt-4.1",
+    "openai:gpt-4.1-mini",
+    "openai:gpt-4.1-nano",
+    "openai:gpt-4o",
+    "anthropic:claude-opus-4-0",
+    "anthropic:claude-sonnet-4-0",
+    "google-gla:gemini-2.5-pro",
+    "google-gla:gemini-2.5-flash",
+    # Baseline agents --------------------------------------------------
+    "hold",
+    "random",
+]
 
 __all__ = ["GameOrchestrator", "run_game"]
 
 
-class OrderAgent:
-    """Thin wrapper around *pydantic-ai* for a single power."""
-
-    def __init__(self, power: Power, model_name: KnownModelName) -> None:
-        self.power = power
-        self.model_name = model_name
-
-    async def get_orders(self, game_state: GameStateDTO, view: PowerViewDTO) -> list[str]:  # noqa: D401
-        """Request one order per unit from the underlying LLM."""
-        order_model = view.create_order_model()
-
-        agent = Agent(
-            model=self.model_name,
-            system_prompt=f"You are playing diplomacy as {self.power}.",
-            output_type=order_model,
-            retries=1,
-            model_settings={"temperature": 0.7},
-        )
-
-        prompt = build_orders_prompt(game_state, view)
-
-        result = await agent.run(prompt)
-
-        # Cast the output to the proper RootModel subclass so the type checker
-        # recognises the "root" attribute. This avoids pyright's unknown-attribute
-        # diagnostics while still keeping the runtime lookup straightforward.
-        from pydantic import RootModel  # local import to prevent global dependency
-
-        data = cast(RootModel[list[str]], result.output)
-
-        return list(data.root)
+# ---------------------------------------------------------------------------
+# High-level orchestrator -----------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class GameOrchestrator:
     """High-level game loop coordinating engine and agents."""
 
-    def __init__(self, model_pool: tuple[KnownModelName, ...] | None = None, *, seed: int | None = None) -> None:
-        """Initialise orchestrator and assign random models."""
+    def __init__(
+        self,
+        *,
+        model_map: PowerModelMap | None = None,
+        seed: int | None = None,
+    ) -> None:
+        """
+        Initialise orchestrator and freeze *power* → *model* assignment.
+
+        Parameters
+        ----------
+        model_map
+            Explicit mapping from each of the seven powers to a concrete
+            ``KnownModelName``.  When given the orchestrator will **not** pick
+            models randomly.  The mapping must cover *exactly* the standard
+            seven powers; otherwise a ``ValueError`` is raised.
+        seed
+            Optional random seed to make random assignments deterministic –
+            useful for repeatable tests.
+
+        """
         self.engine = DiplomacyEngine()
+
         if seed is not None:
             random.seed(seed)
 
-        self.model_pool: tuple[KnownModelName, ...] = model_pool or MODEL_NAMES
-        self.agents: dict[Power, OrderAgent] = self._init_agents()
+        # Build or validate the power → spec mapping.
+        if model_map is None:
+            # Randomly assign an LLM model to each power.
+            rnd_map_untyped = {p: random.choice(LOCAL_MODEL_NAMES) for p in self.engine.get_game_state().powers}
+            rnd_map = cast(dict[str, AgentSpecName], rnd_map_untyped)
+            self.model_map = PowerModelMap(**rnd_map)
+        else:
+            self.model_map = model_map
+
+        # Freeze the assignment at instantiation time so subsequent phases keep
+        # using the same underlying model for each power regardless of board
+        # changes or eliminations.
+        self.agents: dict[Power, Any] = self._init_agents()
 
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
@@ -75,9 +93,22 @@ class GameOrchestrator:
     # Internals ---------------------------------------------------------
     # ------------------------------------------------------------------
 
-    def _init_agents(self) -> dict[Power, OrderAgent]:
+    def _init_agents(self) -> dict[Power, Any]:
+        """Create and return the immutable power → agent mapping."""
         state = self.engine.get_game_state()
-        return {p: OrderAgent(p, random.choice(self.model_pool)) for p in state.powers}
+
+        mapping = self.model_map.model_dump()
+        agents: dict[Power, Any] = {}
+        for p in state.powers:
+            spec = cast(str, mapping[p])
+            low = spec.lower()
+            if low == "hold":
+                agents[p] = HoldAgent(p)
+            elif low == "random":
+                agents[p] = RandomAgent(p)
+            else:
+                agents[p] = LLMAgent(p, cast(KnownModelName, spec))
+        return agents
 
     async def _run_single_phase(self) -> None:
         # Build power-specific tasks only for powers that still own units.
@@ -86,7 +117,7 @@ class GameOrchestrator:
         tasks: dict[Power, asyncio.Task[list[str]]] = {}
         for power in state.powers:
             view = self.engine.get_power_view(power)
-            if not view.units:
+            if not flatten_values(view.orders_by_location):  # no units/orders
                 continue  # eliminated powers – skip
             task = asyncio.create_task(self.agents[power].get_orders(state, view))
             tasks[power] = task
@@ -104,11 +135,23 @@ class GameOrchestrator:
 # Convenience wrapper --------------------------------------------------------
 
 
-def run_game(seed: int | None = None) -> dict[Power, int]:  # noqa: D401
-    """Blocking helper for synchronous callers (e.g. CLI)."""
+def run_game(
+    *,
+    model_map: PowerModelMap | None = None,
+    seed: int | None = None,
+) -> dict[Power, int]:  # noqa: D401
+    """
+    Blocking helper for synchronous callers (e.g. CLI).
+
+    This thin wrapper mirrors ``GameOrchestrator``'s keyword parameters so it
+    can be used interchangeably in simple scripts.
+    """
 
     async def _runner() -> dict[Power, int]:
-        orch = GameOrchestrator(seed=seed)
+        orch = GameOrchestrator(model_map=model_map, seed=seed)
         return await orch.run()
 
     return asyncio.run(_runner())
+
+
+# No BaseAgent import needed here.

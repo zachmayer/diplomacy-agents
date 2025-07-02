@@ -30,29 +30,43 @@ You are power RUSSIA in phase W1901A.
     "RUSSIA": 5,
     "TURKEY": 3
   },
-  "units": {
-    "ANK": "F",
-    "BER": "A",
-    "BRE": "F",
-    "BUD": "A",
-    "CON": "A",
-    "EDI": "F",
-    "KIE": "F",
-    "LON": "F",
-    "LVP": "A",
-    "MAR": "A",
-    "MOS": "A",
-    "MUN": "A",
-    "NAP": "F",
-    "PAR": "A",
-    "ROM": "A",
-    "RUM": "F",
-    "SMY": "A",
-    "STP/SC": "F",
-    "TRI": "F",
-    "VEN": "A",
-    "VIE": "A",
-    "WAR": "A"
+  "units_by_power": {
+    "AUSTRIA": {
+      "BUD": "A",
+      "TRI": "F",
+      "VIE": "A"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "PAR": "A"
+    },
+    "GERMANY": {
+      "BER": "A",
+      "KIE": "F",
+      "MUN": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "MOS": "A",
+      "RUM": "F",
+      "STP/SC": "F",
+      "WAR": "A"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    }
   },
   "year": 1901
 }
@@ -60,16 +74,11 @@ You are power RUSSIA in phase W1901A.
 
 <your-view>
 {
-  "all_orders": [
-    "WAIVE",
-    "A SEV B",
-    "F SEV B"
-  ],
   "orders_by_location": {
     "SEV": [
       "WAIVE",
-      "A SEV B",
-      "F SEV B"
+      "F SEV B",
+      "A SEV B"
     ]
   },
   "phase": "W1901A",

@@ -30,29 +30,43 @@ You are power FRANCE in phase S1901M.
     "RUSSIA": 4,
     "TURKEY": 3
   },
-  "units": {
-    "ANK": "F",
-    "BER": "A",
-    "BRE": "F",
-    "BUD": "A",
-    "CON": "A",
-    "EDI": "F",
-    "KIE": "F",
-    "LON": "F",
-    "LVP": "A",
-    "MAR": "A",
-    "MOS": "A",
-    "MUN": "A",
-    "NAP": "F",
-    "PAR": "A",
-    "ROM": "A",
-    "SEV": "F",
-    "SMY": "A",
-    "STP/SC": "F",
-    "TRI": "F",
-    "VEN": "A",
-    "VIE": "A",
-    "WAR": "A"
+  "units_by_power": {
+    "AUSTRIA": {
+      "BUD": "A",
+      "TRI": "F",
+      "VIE": "A"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "PAR": "A"
+    },
+    "GERMANY": {
+      "BER": "A",
+      "KIE": "F",
+      "MUN": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "MOS": "A",
+      "SEV": "F",
+      "STP/SC": "F",
+      "WAR": "A"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    }
   },
   "year": 1901
 }
@@ -60,74 +74,42 @@ You are power FRANCE in phase S1901M.
 
 <your-view>
 {
-  "all_orders": [
-    "F BRE - MAO",
-    "F BRE S A PAR - PIC",
-    "A MAR S A MUN - BUR",
-    "F BRE - PIC",
-    "A MAR H",
-    "A PAR - GAS",
-    "F BRE S A PAR - GAS",
-    "A MAR S A VEN - PIE",
-    "A PAR S A MAR - GAS",
-    "A PAR S F BRE",
-    "A MAR - PIE",
-    "F BRE S A MAR - GAS",
-    "A PAR S A MAR - BUR",
-    "A MAR - BUR",
-    "F BRE - ENG",
-    "A PAR - BUR",
-    "F BRE S F LON - ENG",
-    "A PAR H",
-    "A MAR - GAS",
-    "A MAR S F BRE - GAS",
-    "A PAR S F BRE - PIC",
-    "A MAR - SPA",
-    "F BRE H",
-    "F BRE - GAS",
-    "A MAR S A PAR - GAS",
-    "A PAR S F BRE - GAS",
-    "A MAR S A PAR - BUR",
-    "A PAR - PIC",
-    "A PAR - BRE",
-    "A PAR S A MUN - BUR"
-  ],
   "orders_by_location": {
     "BRE": [
-      "F BRE H",
-      "F BRE - GAS",
-      "F BRE - ENG",
-      "F BRE S A PAR - GAS",
-      "F BRE - MAO",
       "F BRE S A PAR - PIC",
       "F BRE S F LON - ENG",
       "F BRE S A MAR - GAS",
-      "F BRE - PIC"
+      "F BRE - PIC",
+      "F BRE - ENG",
+      "F BRE - GAS",
+      "F BRE H",
+      "F BRE S A PAR - GAS",
+      "F BRE - MAO"
     ],
     "MAR": [
-      "A MAR - SPA",
-      "A MAR S A PAR - GAS",
-      "A MAR S A VEN - PIE",
       "A MAR S A PAR - BUR",
-      "A MAR S F BRE - GAS",
-      "A MAR S A MUN - BUR",
+      "A MAR S A PAR - GAS",
       "A MAR - PIE",
-      "A MAR - GAS",
+      "A MAR S A VEN - PIE",
+      "A MAR S F BRE - GAS",
+      "A MAR - BUR",
+      "A MAR S A MUN - BUR",
+      "A MAR - SPA",
       "A MAR H",
-      "A MAR - BUR"
+      "A MAR - GAS"
     ],
     "PAR": [
-      "A PAR - GAS",
-      "A PAR S F BRE - GAS",
-      "A PAR S A MAR - GAS",
-      "A PAR - PIC",
-      "A PAR - BRE",
-      "A PAR S F BRE",
-      "A PAR - BUR",
-      "A PAR S A MUN - BUR",
       "A PAR H",
+      "A PAR S A MAR - GAS",
+      "A PAR S A MUN - BUR",
+      "A PAR - BRE",
+      "A PAR S F BRE - GAS",
+      "A PAR - PIC",
       "A PAR S A MAR - BUR",
-      "A PAR S F BRE - PIC"
+      "A PAR S F BRE - PIC",
+      "A PAR S F BRE",
+      "A PAR - GAS",
+      "A PAR - BUR"
     ]
   },
   "phase": "S1901M",

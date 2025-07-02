@@ -8,7 +8,7 @@ carefully crafted board positions.
 
 from __future__ import annotations
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO, flatten_values
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +50,7 @@ def test_retreat_options_include_retreat_or_disband() -> None:  # noqa: D401
     assert germany.phase.endswith("R"), "Expected retreat phase"
 
     # At least one retreat (" R ") or disband (" D") order should be legal.
-    flat = " ".join(germany.all_orders)
+    flat = " ".join(flatten_values(germany.orders_by_location))
     assert " R " in flat or " D" in flat
 
 
@@ -75,7 +75,8 @@ def test_build_phase_has_build_orders() -> None:  # noqa: D401
     rus: PowerViewDTO = eng.get_power_view("RUSSIA")
 
     assert rus.phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
-    assert "build" in " ".join(rus.all_orders).lower() or any(o.endswith(" B") for o in rus.all_orders)
+    all_orders_flat = flatten_values(rus.orders_by_location)
+    assert "build" in " ".join(all_orders_flat).lower() or any(o.endswith(" B") for o in all_orders_flat)
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +109,7 @@ def test_disband_phase_has_disband_orders() -> None:  # noqa: D401
 
     assert ger.phase.startswith("W1901A")
     # Germany should have more units than centers and therefore disband options.
-    flat = " ".join(ger.all_orders)
+    flat = " ".join(flatten_values(ger.orders_by_location))
     assert " D" in flat or "disband" in flat.lower()
 
 

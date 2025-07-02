@@ -1,16 +1,10 @@
 {
-  "all_orders": [
-    "A MUN R TYR",
-    "A MUN D",
-    "A MUN R RUH",
-    "A MUN R SIL"
-  ],
   "orders_by_location": {
     "MUN": [
+      "A MUN R SIL",
       "A MUN R TYR",
       "A MUN D",
-      "A MUN R RUH",
-      "A MUN R SIL"
+      "A MUN R RUH"
     ]
   },
   "phase": "F1901R",

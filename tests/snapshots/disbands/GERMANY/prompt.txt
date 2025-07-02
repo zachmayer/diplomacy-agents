@@ -30,29 +30,43 @@ You are power GERMANY in phase W1901A.
     "RUSSIA": 4,
     "TURKEY": 3
   },
-  "units": {
-    "ANK": "F",
-    "BER": "A",
-    "BOH": "A",
-    "BRE": "F",
-    "BUD": "A",
-    "CON": "A",
-    "EDI": "F",
-    "KIE": "F",
-    "LON": "F",
-    "LVP": "A",
-    "MAR": "A",
-    "MOS": "A",
-    "MUN": "A",
-    "NAP": "F",
-    "ROM": "A",
-    "RUH": "A",
-    "SEV": "F",
-    "SMY": "A",
-    "STP/SC": "F",
-    "TRI": "F",
-    "VEN": "A",
-    "WAR": "A"
+  "units_by_power": {
+    "AUSTRIA": {
+      "BOH": "A",
+      "BUD": "A",
+      "TRI": "F"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "MUN": "A"
+    },
+    "GERMANY": {
+      "BER": "A",
+      "KIE": "F",
+      "RUH": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "MOS": "A",
+      "SEV": "F",
+      "STP/SC": "F",
+      "WAR": "A"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    }
   },
   "year": 1901
 }
@@ -60,11 +74,6 @@ You are power GERMANY in phase W1901A.
 
 <your-view>
 {
-  "all_orders": [
-    "A RUH D",
-    "A BER D",
-    "F KIE D"
-  ],
   "orders_by_location": {
     "BER": [
       "A BER D"

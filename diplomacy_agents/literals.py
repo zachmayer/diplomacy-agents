@@ -128,27 +128,6 @@ Location = Literal[
 # LLM model identifiers ------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-# Mapping the **todo list** models to concrete Pydantic-AI identifiers that are
-# present in `KnownModelName`.  We purposefully use provider-prefixed names
-# where available to avoid ambiguity (e.g. `openai:gpt-4o`).
-
-MODEL_NAMES: tuple[KnownModelName, ...] = (
-    # OpenAI family -------------------------------------------------------
-    "openai:o3",  # maps original "o3-pro-mode" & "o3" wishlist entries
-    "openai:o4-mini",
-    "openai:gpt-4.1",
-    "openai:gpt-4.1-mini",
-    "openai:gpt-4.1-nano",
-    "openai:gpt-4o",
-    # Anthropic family ----------------------------------------------------
-    "anthropic:claude-opus-4-0",  # opus 4
-    "anthropic:claude-sonnet-4-0",  # sonnet 4
-    # Google Gemini ------------------------------------------------------
-    "google-gla:gemini-2.5-pro",  # gemini 2.5 pro
-    "google-gla:gemini-2.5-flash",  # gemini 2.5 flash
-    # DeepSeek skipped for now (not yet in KnownModelName)
-)
-
 # Re-export for convenience --------------------------------------------------
 __all__ = [
     "Power",
@@ -156,5 +135,4 @@ __all__ = [
     "UnitType",
     "Location",
     "PhaseType",
-    "MODEL_NAMES",
 ]
