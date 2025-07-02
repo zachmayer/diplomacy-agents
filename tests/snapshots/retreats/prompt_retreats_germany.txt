@@ -1,3 +1,12 @@
+<main-goal>
+You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+</main-goal>
+
+<who-am-i>
+You are power GERMANY in phase F1901R.
+</who-am-i>
+
+<game-state>
 {
   "all_powers": [
     "AUSTRIA",
@@ -57,9 +66,9 @@
   },
   "all_unit_locations": {
     "AUSTRIA": {
+      "BOH": "A",
       "BUD": "A",
-      "TRI": "F",
-      "VIE": "A"
+      "TRI": "F"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -69,7 +78,7 @@
     "FRANCE": {
       "BRE": "F",
       "MAR": "A",
-      "PAR": "A"
+      "MUN": "A"
     },
     "GERMANY": {
       "BER": "A",
@@ -94,7 +103,37 @@
     }
   },
   "is_game_done": false,
-  "phase": "S1901M",
-  "phase_type": "M",
+  "phase": "F1901R",
+  "phase_type": "R",
   "year": 1901
 }
+</game-state>
+
+<your-view>
+{
+  "my_orders_by_location": {
+    "MUN": [
+      "A MUN D",
+      "A MUN R RUH",
+      "A MUN R SIL",
+      "A MUN R TYR"
+    ]
+  },
+  "my_supply_center_count": 3,
+  "my_supply_center_locations": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "my_unit_locations": {
+    "BER": "A",
+    "KIE": "F",
+    "MUN": "A"
+  },
+  "power": "GERMANY"
+}
+</your-view>
+
+<instructions>
+Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+</instructions>

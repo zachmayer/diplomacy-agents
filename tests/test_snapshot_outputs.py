@@ -13,14 +13,12 @@ committed and diffed.
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from pathlib import Path
 
-# fmt: off
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+import pytest
 
-# fmt: on
+from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
 from diplomacy_agents.prompts import build_orders_prompt
 
 # type: ignore[reportPrivateUsage]
@@ -30,63 +28,33 @@ from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
     _setup_retreat_germany,
 )
 
-# ---------------------------------------------------------------------------
-# Helpers -------------------------------------------------------------------
-# ---------------------------------------------------------------------------
 
-
-def _write_json(path: Path, data: object) -> None:  # noqa: D401
-    """Serialise *data* as indented JSON to *path*, creating parent dirs."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, sort_keys=True))
-
-
-# ---------------------------------------------------------------------------
-# Parametrised snapshots -----------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-_SNAP_CASES: list[tuple[str, str, Callable[[], DiplomacyEngine]]] = [
-    ("moves", "FRANCE", DiplomacyEngine),
-    ("retreats", "GERMANY", _setup_retreat_germany),
-    ("builds", "RUSSIA", _setup_build_russia),
-    ("disbands", "GERMANY", _setup_disband_germany),
-]
-
-
-def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> None:  # noqa: D401
-    """Generate disk snapshot artefacts for one (case, power) tuple."""
+def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> Path:  # noqa: D401
+    """Generate disk snapshot artefacts and return written path."""
     engine = factory()
 
     game_state = engine.get_game_state()
     pov: PowerViewDTO = engine.get_power_view(power)  # type: ignore[arg-type]
 
-    orders_model = pov.create_order_model()
+    base_dir = Path(__file__).parent / "snapshots" / tag
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-    base_dir = Path(__file__).parent / "snapshots" / tag / power
-
-    _write_json(base_dir / "game_state.json", game_state.model_dump(mode="json"))
-    _write_json(base_dir / "power_view.json", pov.model_dump(mode="json"))
-    _write_json(base_dir / "orders_schema.json", orders_model.model_json_schema())
-
-    (base_dir / "prompt.txt").write_text(build_orders_prompt(game_state, pov))
+    prompt_filename = f"prompt_{tag}_{power.lower()}.txt"
+    prompt_path = base_dir / prompt_filename
+    prompt_path.write_text(build_orders_prompt(game_state, pov))
+    return prompt_path
 
 
-# Dynamically generate a pytest test for each snapshot case so test names are
-# descriptive in the output without relying on pytest.mark.parametrize (keeps
-# extra dependencies out of the tree).
-
-
-def _make_test(case_tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> Callable[[], None]:  # noqa: D401
-    def _test() -> None:  # noqa: D401
-        _generate_snapshot(case_tag, power, factory)
-        base_path = Path(__file__).parent / "snapshots" / case_tag / power / "orders_schema.json"
-        assert base_path.exists()
-
-    _test.__name__ = f"test_snapshot_{case_tag}_{power.lower()}"
-    _test.__doc__ = f"Generate snapshot artefacts for {power} during {case_tag}."
-    return _test
-
-
-for _tag, _pow, _factory in _SNAP_CASES:
-    globals()[f"test_snapshot_{_tag}_{_pow.lower()}"] = _make_test(_tag, _pow, _factory)
+@pytest.mark.parametrize(
+    ("case_tag", "power", "factory"),
+    [
+        ("moves", "FRANCE", DiplomacyEngine),
+        ("retreats", "GERMANY", _setup_retreat_germany),
+        ("builds", "RUSSIA", _setup_build_russia),
+        ("disbands", "GERMANY", _setup_disband_germany),
+    ],
+)
+def test_snapshot_prompt(case_tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> None:
+    """Generate the prompt snapshot for *(case, power)* and assert it exists."""
+    path = _generate_snapshot(case_tag, power, factory)
+    assert path.exists()

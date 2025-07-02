@@ -19,23 +19,17 @@ from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 
 class Orders(list[str]):
-    """
-    Business-logic list of DATC order strings.
-
-    Subclassing :class:`list` gives downstream code first-class list semantics
-    (indexing, slicing, mutating, ``isinstance(x, list)``, …) while still
-    letting us wrap the value in a Pydantic ``RootModel`` for I/O boundaries.
-    """
+    """Array of DATC order strings for diplomacy."""
 
 
 class OrdersModel(RootModel[list[str]]):
-    """Pydantic wrapper providing validation / JSON-schema for :class:`Orders`."""
+    """Array of DATC order strings for diplomacy."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(strict=True, frozen=True)
 
 
 # ---------------------------------------------------------------------------
-# Typing for``diplomacy.Game`
+# Typing for `diplomacy.Game`
 # ---------------------------------------------------------------------------
 
 

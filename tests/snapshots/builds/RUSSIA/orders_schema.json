@@ -1,8 +1,0 @@
-{
-  "description": "JSON array of DATC order strings for RUSSIA. Each element must be one of the legal orders in the current phase. Example subset: A SEV B, F SEV B, WAIVE.",
-  "items": {
-    "type": "string"
-  },
-  "title": "OrdersList_RUSSIA",
-  "type": "array"
-}
