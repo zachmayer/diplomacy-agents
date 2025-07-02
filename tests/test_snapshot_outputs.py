@@ -39,7 +39,7 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt_filename = f"prompt_{tag}_{power.lower()}.txt"
+    prompt_filename = f"prompt_{tag}_{power.lower()}.xml"
     prompt_path = base_dir / prompt_filename
     prompt_path.write_text(build_orders_prompt(game_state, pov))
     return prompt_path

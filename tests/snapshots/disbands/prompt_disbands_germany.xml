@@ -1,3 +1,4 @@
+
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
@@ -6,8 +7,13 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 You are power GERMANY in phase W1901A.
 </who-am-i>
 
-<game-state>
+<full-game-state>
 {
+  "is_game_done": false,
+  "phase": "W1901A",
+  "phase_long": "WINTER 1901 ADJUSTMENTS",
+  "phase_type": "A",
+  "year": 1901,
   "all_powers": [
     "AUSTRIA",
     "ENGLAND",
@@ -66,9 +72,9 @@ You are power GERMANY in phase W1901A.
   },
   "all_unit_locations": {
     "AUSTRIA": {
-      "BOH": "A",
       "BUD": "A",
-      "TRI": "F"
+      "TRI": "F",
+      "BOH": "A"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -81,8 +87,8 @@ You are power GERMANY in phase W1901A.
       "MUN": "A"
     },
     "GERMANY": {
-      "BER": "A",
       "KIE": "F",
+      "BER": "A",
       "RUH": "A"
     },
     "ITALY": {
@@ -91,26 +97,38 @@ You are power GERMANY in phase W1901A.
       "VEN": "A"
     },
     "RUSSIA": {
+      "WAR": "A",
       "MOS": "A",
       "SEV": "F",
-      "STP/SC": "F",
-      "WAR": "A"
+      "STP/SC": "F"
     },
     "TURKEY": {
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
     }
-  },
-  "is_game_done": false,
-  "phase": "W1901A",
-  "phase_type": "A",
-  "year": 1901
+  }
 }
-</game-state>
+</full-game-state>
 
-<your-view>
+<your-power-view>
 {
+  "power": "GERMANY",
+  "my_supply_center_count": 2,
+  "my_unit_locations": {
+    "KIE": "F",
+    "BER": "A",
+    "RUH": "A"
+  },
+  "my_home_supply_center_locations": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "my_supply_center_locations": [
+    "BER",
+    "KIE"
+  ],
   "my_orders_by_location": {
     "BER": [
       "A BER D"
@@ -121,20 +139,9 @@ You are power GERMANY in phase W1901A.
     "RUH": [
       "A RUH D"
     ]
-  },
-  "my_supply_center_count": 2,
-  "my_supply_center_locations": [
-    "BER",
-    "KIE"
-  ],
-  "my_unit_locations": {
-    "BER": "A",
-    "KIE": "F",
-    "RUH": "A"
-  },
-  "power": "GERMANY"
+  }
 }
-</your-view>
+</your-power-view>
 
 <instructions>
 Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).

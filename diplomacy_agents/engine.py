@@ -33,13 +33,20 @@ class OrdersModel(RootModel[list[str]]):
 # ---------------------------------------------------------------------------
 
 
+# Note: ``diplomacy.Game`` exposes ``powers`` as a mapping from power name to
+# ``diplomacy.engine.power.Power`` instances.  We only rely on the keys here
+# but expose the value type loosely as ``Any`` since we don't access the full
+# third-party attributes beyond the few needed below.
+
+
 @runtime_checkable
 class _GameProtocol(Protocol):
     """Subset of the ``diplomacy.Game`` interface required by this wrapper."""
 
     # Public attributes -----------------------------------------------------
-    powers: list[Power]
+    powers: dict[Power, Any]
     phase_type: PhaseType
+    phase: str  # long phase name, e.g. "SPRING 1901 MOVEMENT"
     is_game_done: bool
 
     # Public methods --------------------------------------------------------
@@ -70,7 +77,8 @@ class GameStateDTO(BaseModel):
 
     # Scalars -----------------------------------------------------------------
     is_game_done: bool
-    phase: str
+    phase: str  # compact phase token, e.g. "S1901M"
+    phase_long: str  # human‐friendly phase string, e.g. "SPRING 1901 MOVEMENT"
     phase_type: PhaseType
     year: int
 
@@ -90,8 +98,9 @@ class PowerViewDTO(BaseModel):
 
     # Collections are prefixed with ``my_`` to clarify they're for this power.
     my_supply_center_count: int
-    my_supply_center_locations: tuple[Location, ...]
     my_unit_locations: dict[Location, UnitType]
+    my_home_supply_center_locations: tuple[Location, ...]
+    my_supply_center_locations: tuple[Location, ...]
     my_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
@@ -149,6 +158,7 @@ class DiplomacyEngine:
         return GameStateDTO(
             is_game_done=self._game.is_game_done,
             phase=phase_token,
+            phase_long=str(self._game.phase),
             phase_type=self._get_phase_type(),
             year=int(phase_token[1:5]),
             all_powers=tuple(self._game.powers),
@@ -171,15 +181,19 @@ class DiplomacyEngine:
         unit_strings = self._game.get_units(power)
         for unit_str in unit_strings:
             unit_type_str, loc_str = unit_str.split(" ", 1)
-            # Dislodged units are prefixed with '*', e.g. "*A MUN". Strip such markers.  # TODO: REMOVE THIS?
-            unit_type_clean = unit_type_str.lstrip("*?")  # '?' appears in some variants.
-            unit_type = cast(UnitType, unit_type_clean)
+            unit_type = cast(UnitType, unit_type_str)
             loc = cast(Location, loc_str)
             units_map[loc] = unit_type
+
+        # Home supply centres where *power* can build.
+        # The underlying diplomacy engine stores them on the per-power object
+        # under the ``homes`` attribute.
+        homes_raw: tuple[Location, ...] = tuple(cast(list[Location], self._game.powers[power].homes))
 
         return PowerViewDTO(
             power=power,
             my_supply_center_count=len(self._game.get_centers(power)),
+            my_home_supply_center_locations=homes_raw,
             my_supply_center_locations=tuple(self._game.get_centers(power)),
             my_unit_locations=units_map,
             my_orders_by_location=valid,

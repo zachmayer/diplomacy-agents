@@ -1,13 +1,19 @@
+
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
 <who-am-i>
-You are power RUSSIA in phase W1901A.
+You are power GERMANY in phase F1901R.
 </who-am-i>
 
-<game-state>
+<full-game-state>
 {
+  "is_game_done": false,
+  "phase": "F1901R",
+  "phase_long": "FALL 1901 RETREATS",
+  "phase_type": "R",
+  "year": 1901,
   "all_powers": [
     "AUSTRIA",
     "ENGLAND",
@@ -23,7 +29,7 @@ You are power RUSSIA in phase W1901A.
     "FRANCE": 3,
     "GERMANY": 3,
     "ITALY": 3,
-    "RUSSIA": 5,
+    "RUSSIA": 4,
     "TURKEY": 3
   },
   "all_supply_center_locations": {
@@ -56,8 +62,7 @@ You are power RUSSIA in phase W1901A.
       "MOS",
       "SEV",
       "STP",
-      "WAR",
-      "RUM"
+      "WAR"
     ],
     "TURKEY": [
       "ANK",
@@ -69,7 +74,7 @@ You are power RUSSIA in phase W1901A.
     "AUSTRIA": {
       "BUD": "A",
       "TRI": "F",
-      "VIE": "A"
+      "BOH": "A"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -79,11 +84,11 @@ You are power RUSSIA in phase W1901A.
     "FRANCE": {
       "BRE": "F",
       "MAR": "A",
-      "PAR": "A"
+      "MUN": "A"
     },
     "GERMANY": {
-      "BER": "A",
       "KIE": "F",
+      "BER": "A",
       "MUN": "A"
     },
     "ITALY": {
@@ -92,50 +97,49 @@ You are power RUSSIA in phase W1901A.
       "VEN": "A"
     },
     "RUSSIA": {
+      "WAR": "A",
       "MOS": "A",
-      "RUM": "F",
-      "STP/SC": "F",
-      "WAR": "A"
+      "SEV": "F",
+      "STP/SC": "F"
     },
     "TURKEY": {
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
     }
-  },
-  "is_game_done": false,
-  "phase": "W1901A",
-  "phase_type": "A",
-  "year": 1901
+  }
 }
-</game-state>
+</full-game-state>
 
-<your-view>
+<your-power-view>
 {
-  "my_orders_by_location": {
-    "SEV": [
-      "F SEV B",
-      "WAIVE",
-      "A SEV B"
-    ]
-  },
-  "my_supply_center_count": 5,
-  "my_supply_center_locations": [
-    "MOS",
-    "SEV",
-    "STP",
-    "WAR",
-    "RUM"
-  ],
+  "power": "GERMANY",
+  "my_supply_center_count": 3,
   "my_unit_locations": {
-    "MOS": "A",
-    "RUM": "F",
-    "STP/SC": "F",
-    "WAR": "A"
+    "KIE": "F",
+    "BER": "A",
+    "MUN": "*A"
   },
-  "power": "RUSSIA"
+  "my_home_supply_center_locations": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "my_supply_center_locations": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "my_orders_by_location": {
+    "MUN": [
+      "A MUN R RUH",
+      "A MUN R TYR",
+      "A MUN R SIL",
+      "A MUN D"
+    ]
+  }
 }
-</your-view>
+</your-power-view>
 
 <instructions>
 Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
