@@ -8,10 +8,7 @@ You are power GERMANY in phase F1901R.
 
 <game-state>
 {
-  "is_game_done": false,
-  "phase": "F1901R",
-  "phase_type": "R",
-  "powers": [
+  "all_powers": [
     "AUSTRIA",
     "ENGLAND",
     "FRANCE",
@@ -20,7 +17,7 @@ You are power GERMANY in phase F1901R.
     "RUSSIA",
     "TURKEY"
   ],
-  "supply_centers": {
+  "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
@@ -29,7 +26,45 @@ You are power GERMANY in phase F1901R.
     "RUSSIA": 4,
     "TURKEY": 3
   },
-  "units_by_power": {
+  "all_supply_center_locations": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "PAR"
+    ],
+    "GERMANY": [
+      "BER",
+      "KIE",
+      "MUN"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ]
+  },
+  "all_unit_locations": {
     "AUSTRIA": {
       "BOH": "A",
       "BUD": "A",
@@ -67,33 +102,35 @@ You are power GERMANY in phase F1901R.
       "SMY": "A"
     }
   },
+  "is_game_done": false,
+  "phase": "F1901R",
+  "phase_type": "R",
   "year": 1901
 }
 </game-state>
 
 <your-view>
 {
-  "orders_by_location": {
+  "my_orders_by_location": {
     "MUN": [
-      "A MUN R SIL",
+      "A MUN D",
       "A MUN R TYR",
       "A MUN R RUH",
-      "A MUN D"
+      "A MUN R SIL"
     ]
   },
-  "phase": "F1901R",
-  "phase_type": "R",
-  "power": "GERMANY",
-  "supply_centers": [
+  "my_supply_center_count": 3,
+  "my_supply_center_locations": [
     "BER",
     "KIE",
     "MUN"
   ],
-  "units": {
+  "my_unit_locations": {
     "BER": "A",
     "KIE": "F",
     "MUN": "A"
-  }
+  },
+  "power": "GERMANY"
 }
 </your-view>
 

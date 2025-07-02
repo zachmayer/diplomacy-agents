@@ -1,8 +1,5 @@
 {
-  "is_game_done": false,
-  "phase": "F1901R",
-  "phase_type": "R",
-  "powers": [
+  "all_powers": [
     "AUSTRIA",
     "ENGLAND",
     "FRANCE",
@@ -11,7 +8,7 @@
     "RUSSIA",
     "TURKEY"
   ],
-  "supply_centers": {
+  "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
@@ -20,7 +17,45 @@
     "RUSSIA": 4,
     "TURKEY": 3
   },
-  "units_by_power": {
+  "all_supply_center_locations": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "PAR"
+    ],
+    "GERMANY": [
+      "BER",
+      "KIE",
+      "MUN"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ]
+  },
+  "all_unit_locations": {
     "AUSTRIA": {
       "BOH": "A",
       "BUD": "A",
@@ -58,5 +93,8 @@
       "SMY": "A"
     }
   },
+  "is_game_done": false,
+  "phase": "F1901R",
+  "phase_type": "R",
   "year": 1901
 }

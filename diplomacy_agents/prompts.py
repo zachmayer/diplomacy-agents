@@ -49,7 +49,7 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
         "You are playing Diplomacy, a strategy board game. Your objective is to win by controlling "
         "18 or more supply centres.\n"
         "</main-goal>\n\n"
-        f"<who-am-i>\nYou are power {view.power} in phase {view.phase}.\n</who-am-i>\n\n"
+        f"<who-am-i>\nYou are power {view.power} in phase {game_state.phase}.\n</who-am-i>\n\n"
         "<game-state>\n"
         f"{game_state_json}\n"
         "</game-state>\n\n"

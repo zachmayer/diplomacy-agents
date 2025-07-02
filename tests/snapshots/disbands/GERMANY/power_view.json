@@ -1,5 +1,5 @@
 {
-  "orders_by_location": {
+  "my_orders_by_location": {
     "BER": [
       "A BER D"
     ],
@@ -10,16 +10,15 @@
       "A RUH D"
     ]
   },
-  "phase": "W1901A",
-  "phase_type": "A",
-  "power": "GERMANY",
-  "supply_centers": [
+  "my_supply_center_count": 2,
+  "my_supply_center_locations": [
     "BER",
     "KIE"
   ],
-  "units": {
+  "my_unit_locations": {
     "BER": "A",
     "KIE": "F",
     "RUH": "A"
-  }
+  },
+  "power": "GERMANY"
 }

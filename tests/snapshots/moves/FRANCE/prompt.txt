@@ -8,10 +8,7 @@ You are power FRANCE in phase S1901M.
 
 <game-state>
 {
-  "is_game_done": false,
-  "phase": "S1901M",
-  "phase_type": "M",
-  "powers": [
+  "all_powers": [
     "AUSTRIA",
     "ENGLAND",
     "FRANCE",
@@ -20,7 +17,7 @@ You are power FRANCE in phase S1901M.
     "RUSSIA",
     "TURKEY"
   ],
-  "supply_centers": {
+  "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
@@ -29,7 +26,45 @@ You are power FRANCE in phase S1901M.
     "RUSSIA": 4,
     "TURKEY": 3
   },
-  "units_by_power": {
+  "all_supply_center_locations": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "PAR"
+    ],
+    "GERMANY": [
+      "BER",
+      "KIE",
+      "MUN"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ]
+  },
+  "all_unit_locations": {
     "AUSTRIA": {
       "BUD": "A",
       "TRI": "F",
@@ -67,63 +102,65 @@ You are power FRANCE in phase S1901M.
       "SMY": "A"
     }
   },
+  "is_game_done": false,
+  "phase": "S1901M",
+  "phase_type": "M",
   "year": 1901
 }
 </game-state>
 
 <your-view>
 {
-  "orders_by_location": {
+  "my_orders_by_location": {
     "BRE": [
+      "F BRE S A MAR - GAS",
+      "F BRE - PIC",
       "F BRE S A PAR - PIC",
       "F BRE S A PAR - GAS",
       "F BRE S F LON - ENG",
-      "F BRE - GAS",
+      "F BRE - MAO",
       "F BRE H",
-      "F BRE S A MAR - GAS",
-      "F BRE - PIC",
-      "F BRE - ENG",
-      "F BRE - MAO"
+      "F BRE - GAS",
+      "F BRE - ENG"
     ],
     "MAR": [
-      "A MAR S A VEN - PIE",
-      "A MAR - GAS",
-      "A MAR S A PAR - GAS",
-      "A MAR - SPA",
-      "A MAR H",
       "A MAR S A MUN - BUR",
-      "A MAR S A PAR - BUR",
+      "A MAR S A PAR - GAS",
       "A MAR S F BRE - GAS",
+      "A MAR - SPA",
+      "A MAR S A VEN - PIE",
+      "A MAR S A PAR - BUR",
+      "A MAR - GAS",
       "A MAR - BUR",
-      "A MAR - PIE"
+      "A MAR - PIE",
+      "A MAR H"
     ],
     "PAR": [
-      "A PAR H",
-      "A PAR - BRE",
-      "A PAR S F BRE",
-      "A PAR S F BRE - GAS",
-      "A PAR S A MUN - BUR",
+      "A PAR - GAS",
+      "A PAR - BUR",
       "A PAR - PIC",
+      "A PAR S F BRE",
+      "A PAR S A MUN - BUR",
       "A PAR S F BRE - PIC",
       "A PAR S A MAR - GAS",
+      "A PAR - BRE",
       "A PAR S A MAR - BUR",
-      "A PAR - BUR",
-      "A PAR - GAS"
+      "A PAR S F BRE - GAS",
+      "A PAR H"
     ]
   },
-  "phase": "S1901M",
-  "phase_type": "M",
-  "power": "FRANCE",
-  "supply_centers": [
+  "my_supply_center_count": 3,
+  "my_supply_center_locations": [
     "BRE",
     "MAR",
     "PAR"
   ],
-  "units": {
+  "my_unit_locations": {
     "BRE": "F",
     "MAR": "A",
     "PAR": "A"
-  }
+  },
+  "power": "FRANCE"
 }
 </your-view>
 

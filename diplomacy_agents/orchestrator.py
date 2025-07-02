@@ -111,7 +111,7 @@ class GameOrchestrator:
             await self._run_single_phase()
         # Capture final board state after the game concludes.
         self.svg_frames.append(self.engine.svg_string())
-        return self.engine.get_game_state().supply_centers
+        return self.engine.get_game_state().all_supply_center_counts
 
     # ------------------------------------------------------------------
     # Internals ---------------------------------------------------------
@@ -122,7 +122,7 @@ class GameOrchestrator:
         state = self.engine.get_game_state()
 
         agents: dict[Power, BaseAgent] = {}
-        for p in state.powers:
+        for p in state.all_powers:
             spec = self.model_map[p]
             if spec == "hold":
                 agents[p] = HoldAgent(p)
@@ -140,7 +140,7 @@ class GameOrchestrator:
         state = self.engine.get_game_state()
 
         tasks: dict[Power, asyncio.Task[Orders]] = {}
-        for power in state.powers:
+        for power in state.all_powers:
             view = self.engine.get_power_view(power)
             if not view.orders_list:  # no units/orders
                 continue  # eliminated powers – skip

@@ -63,7 +63,7 @@ class RandomAgent(BaseAgent):
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Pick **one** random legal order per controlled unit."""
         orders: Orders = Orders([])
-        for opts in _view.orders_by_location.values():
+        for opts in _view.my_orders_by_location.values():
             orders.append(random.choice(opts))
         return orders
 

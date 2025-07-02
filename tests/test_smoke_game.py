@@ -18,7 +18,7 @@ def test_20_turns_smoke() -> None:  # noqa: D401
     # Submit empty order lists for each power and progress a few years – the
     # underlying engine should tolerate holds / no orders gracefully.
     for _ in range(20):  # 20 phases ~ 10 game‐years
-        for p in eng.get_game_state().powers:
+        for p in eng.get_game_state().all_powers:
             eng.submit_orders(p, Orders([]))  # everyone holds / waits
         eng.process_turn()
 

@@ -1,23 +1,22 @@
 {
-  "orders_by_location": {
+  "my_orders_by_location": {
     "MUN": [
-      "A MUN R SIL",
+      "A MUN D",
       "A MUN R TYR",
       "A MUN R RUH",
-      "A MUN D"
+      "A MUN R SIL"
     ]
   },
-  "phase": "F1901R",
-  "phase_type": "R",
-  "power": "GERMANY",
-  "supply_centers": [
+  "my_supply_center_count": 3,
+  "my_supply_center_locations": [
     "BER",
     "KIE",
     "MUN"
   ],
-  "units": {
+  "my_unit_locations": {
     "BER": "A",
     "KIE": "F",
     "MUN": "A"
-  }
+  },
+  "power": "GERMANY"
 }

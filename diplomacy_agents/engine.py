@@ -70,35 +70,40 @@ class _GameProtocol(Protocol):
 
 
 class GameStateDTO(BaseModel):
-    """Immutable container with coarse game information."""
+    """Immutable container with coarse, *global* game information."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True)
 
-    phase: str
-    year: int
+    # Scalars -----------------------------------------------------------------
     is_game_done: bool
-    powers: tuple[Power, ...]
-    supply_centers: dict[Power, int]
+    phase: str
     phase_type: PhaseType
-    units_by_power: dict[Power, dict[Location, UnitType]]
+    year: int
+
+    # Collections prefixed with ``all_`` to emphasise board‐wide scope --------
+    all_powers: tuple[Power, ...]
+    all_supply_center_counts: dict[Power, int]
+    all_supply_center_locations: dict[Power, tuple[Location, ...]]
+    all_unit_locations: dict[Power, dict[Location, UnitType]]
 
 
 class PowerViewDTO(BaseModel):
-    """Perspective-specific snapshot for a single power."""
+    """Perspective-specific snapshot for *one* power."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True)
 
-    power: Power
-    phase: str
-    phase_type: PhaseType
-    units: dict[Location, UnitType]
-    supply_centers: tuple[Location, ...]
-    orders_by_location: dict[Location, tuple[str, ...]]
+    power: Power  # owning power token (scalar – no prefix)
+
+    # Collections are prefixed with ``my_`` to clarify they're for this power.
+    my_supply_center_count: int
+    my_supply_center_locations: tuple[Location, ...]
+    my_unit_locations: dict[Location, UnitType]
+    my_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
     def orders_list(self) -> list[str]:
         """Return a single flat ``list`` containing all legal order strings."""
-        return [order for opts in self.orders_by_location.values() for order in opts]
+        return [order for opts in self.my_orders_by_location.values() for order in opts]
 
     def create_order_model(self) -> type[BaseModel]:
         """Return a RootModel validating that each entry is a legal order string."""
@@ -146,14 +151,16 @@ class DiplomacyEngine:
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
         phase_token = self._game.get_current_phase()  # e.g. "S1901M"
+
         return GameStateDTO(
-            phase=phase_token,
-            year=int(phase_token[1:5]),
             is_game_done=self._game.is_game_done,
-            powers=tuple(self._game.powers),
-            supply_centers={p: len(self._game.get_centers(p)) for p in self._game.powers},
+            phase=phase_token,
             phase_type=self._get_phase_type(),
-            units_by_power=self._get_units_by_power(),
+            year=int(phase_token[1:5]),
+            all_powers=tuple(self._game.powers),
+            all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
+            all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
+            all_unit_locations=self._get_units_by_power(),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -178,11 +185,10 @@ class DiplomacyEngine:
 
         return PowerViewDTO(
             power=power,
-            phase=self._game.get_current_phase(),
-            phase_type=self._get_phase_type(),
-            units=units_map,
-            supply_centers=tuple(self._game.get_centers(power)),
-            orders_by_location=valid,
+            my_supply_center_count=len(self._game.get_centers(power)),
+            my_supply_center_locations=tuple(self._game.get_centers(power)),
+            my_unit_locations=units_map,
+            my_orders_by_location=valid,
         )
 
     def submit_orders(self, power: Power, orders: Orders) -> None:
