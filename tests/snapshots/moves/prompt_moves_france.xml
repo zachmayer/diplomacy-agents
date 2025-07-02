@@ -4,7 +4,7 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power FRANCE in phase S1901M.
+You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
 </who-am-i>
 
 <full-game-state>
@@ -132,39 +132,39 @@ You are power FRANCE in phase S1901M.
   ],
   "my_orders_by_location": {
     "BRE": [
+      "F BRE - PIC",
+      "F BRE S A PAR - GAS",
+      "F BRE S F LON - ENG",
+      "F BRE - MAO",
+      "F BRE - GAS",
       "F BRE S A MAR - GAS",
       "F BRE S A PAR - PIC",
-      "F BRE S F LON - ENG",
-      "F BRE - PIC",
       "F BRE - ENG",
-      "F BRE - GAS",
-      "F BRE H",
-      "F BRE S A PAR - GAS",
-      "F BRE - MAO"
+      "F BRE H"
     ],
     "MAR": [
-      "A MAR S A PAR - GAS",
-      "A MAR S F BRE - GAS",
-      "A MAR S A PAR - BUR",
-      "A MAR - BUR",
-      "A MAR H",
-      "A MAR - PIE",
       "A MAR S A MUN - BUR",
-      "A MAR - GAS",
+      "A MAR S A PAR - BUR",
+      "A MAR S F BRE - GAS",
       "A MAR - SPA",
-      "A MAR S A VEN - PIE"
+      "A MAR - BUR",
+      "A MAR S A VEN - PIE",
+      "A MAR - GAS",
+      "A MAR S A PAR - GAS",
+      "A MAR H",
+      "A MAR - PIE"
     ],
     "PAR": [
-      "A PAR S A MAR - BUR",
-      "A PAR S F BRE - PIC",
-      "A PAR S F BRE - GAS",
-      "A PAR S A MAR - GAS",
-      "A PAR - BUR",
-      "A PAR S F BRE",
-      "A PAR - GAS",
-      "A PAR - PIC",
       "A PAR - BRE",
+      "A PAR S F BRE",
+      "A PAR S F BRE - PIC",
       "A PAR S A MUN - BUR",
+      "A PAR S A MAR - BUR",
+      "A PAR S A MAR - GAS",
+      "A PAR - PIC",
+      "A PAR S F BRE - GAS",
+      "A PAR - BUR",
+      "A PAR - GAS",
       "A PAR H"
     ]
   }
@@ -172,5 +172,6 @@ You are power FRANCE in phase S1901M.
 </your-power-view>
 
 <instructions>
-Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+Submit exactly one legal DATC order for each of *your* units.Units without orders will hold.You may support or convoy other powers' units, but consider your strategic goals first.
 </instructions>

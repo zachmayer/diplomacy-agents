@@ -36,13 +36,37 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
     game_state_json = json.dumps(game_state.model_dump(mode="json"), indent=2, sort_keys=False)
     view_json = json.dumps(view.model_dump(mode="json"), indent=2, sort_keys=False)
 
+    # ------------------------------------------------------------------
+    # Dynamic phase-specific guidance -----------------------------------
+    # ------------------------------------------------------------------
+    extra_guidance: list[str] = []
+
+    if game_state.phase_type == "A":  # Adjustment – builds or disbands
+        diff = view.my_supply_center_count - len(view.my_unit_locations)
+        if diff > 0:
+            extra_guidance.append(
+                f"\nYou have {diff} build(s) available. Return an array of exactly {diff} DATC build order(s)."
+            )
+        elif diff < 0:
+            extra_guidance.append(
+                f"\nYou must remove {-diff} unit(s). Return an array of exactly {-diff} DATC disband order(s)."
+            )
+    elif game_state.phase_type == "M":  # Movement – support / convoy note
+        extra_guidance.append(
+            "\nReturn an array of exactly DATC order(s) for each of *your* units."
+            "\nUnits without orders will hold."
+            "\nYou may support or convoy other powers' units, but consider your strategic goals first."
+        )
+
+    guidance_block = "\n".join(extra_guidance)
+
     prompt = f"""
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
 <who-am-i>
-You are power {view.power} in phase {game_state.phase}.
+You are power {view.power} in phase {game_state.phase_long} ({game_state.phase}).
 </who-am-i>
 
 <full-game-state>
@@ -54,7 +78,7 @@ You are power {view.power} in phase {game_state.phase}.
 </your-power-view>
 
 <instructions>
-Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.{guidance_block}
 </instructions>"""
 
     return prompt

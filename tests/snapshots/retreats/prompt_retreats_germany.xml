@@ -4,7 +4,7 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power GERMANY in phase F1901R.
+You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 </who-am-i>
 
 <full-game-state>
@@ -133,14 +133,14 @@ You are power GERMANY in phase F1901R.
   "my_orders_by_location": {
     "MUN": [
       "A MUN R RUH",
-      "A MUN R TYR",
+      "A MUN D",
       "A MUN R SIL",
-      "A MUN D"
+      "A MUN R TYR"
     ]
   }
 }
 </your-power-view>
 
 <instructions>
-Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
 </instructions>

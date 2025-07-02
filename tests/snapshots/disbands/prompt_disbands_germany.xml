@@ -4,7 +4,7 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power GERMANY in phase W1901A.
+You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 </who-am-i>
 
 <full-game-state>
@@ -144,5 +144,6 @@ You are power GERMANY in phase W1901A.
 </your-power-view>
 
 <instructions>
-Choose exactly one legal DATC order for each of *your* units. Respond **only** with a JSON array of order strings (one per unit).
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+You must remove 1 unit(s). Include exactly 1 disband order(s).
 </instructions>
