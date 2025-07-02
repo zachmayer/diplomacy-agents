@@ -1,40 +1,40 @@
 {
   "orders_by_location": {
     "BRE": [
-      "F BRE S A PAR - PIC",
-      "F BRE S F LON - ENG",
-      "F BRE S A MAR - GAS",
-      "F BRE - PIC",
       "F BRE - ENG",
-      "F BRE - GAS",
-      "F BRE H",
+      "F BRE S A PAR - PIC",
       "F BRE S A PAR - GAS",
-      "F BRE - MAO"
+      "F BRE - PIC",
+      "F BRE - MAO",
+      "F BRE S A MAR - GAS",
+      "F BRE H",
+      "F BRE S F LON - ENG",
+      "F BRE - GAS"
     ],
     "MAR": [
-      "A MAR S A PAR - BUR",
-      "A MAR S A PAR - GAS",
-      "A MAR - PIE",
-      "A MAR S A VEN - PIE",
-      "A MAR S F BRE - GAS",
-      "A MAR - BUR",
       "A MAR S A MUN - BUR",
+      "A MAR - GAS",
+      "A MAR S A VEN - PIE",
       "A MAR - SPA",
-      "A MAR H",
-      "A MAR - GAS"
+      "A MAR S A PAR - GAS",
+      "A MAR S A PAR - BUR",
+      "A MAR S F BRE - GAS",
+      "A MAR - PIE",
+      "A MAR - BUR",
+      "A MAR H"
     ],
     "PAR": [
-      "A PAR H",
-      "A PAR S A MAR - GAS",
-      "A PAR S A MUN - BUR",
-      "A PAR - BRE",
       "A PAR S F BRE - GAS",
+      "A PAR H",
+      "A PAR - BRE",
       "A PAR - PIC",
-      "A PAR S A MAR - BUR",
       "A PAR S F BRE - PIC",
-      "A PAR S F BRE",
+      "A PAR S A MAR - BUR",
       "A PAR - GAS",
-      "A PAR - BUR"
+      "A PAR S A MAR - GAS",
+      "A PAR S F BRE",
+      "A PAR - BUR",
+      "A PAR S A MUN - BUR"
     ]
   },
   "phase": "S1901M",

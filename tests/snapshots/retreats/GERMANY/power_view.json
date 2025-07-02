@@ -1,10 +1,10 @@
 {
   "orders_by_location": {
     "MUN": [
-      "A MUN R SIL",
       "A MUN R TYR",
+      "A MUN R RUH",
       "A MUN D",
-      "A MUN R RUH"
+      "A MUN R SIL"
     ]
   },
   "phase": "F1901R",
