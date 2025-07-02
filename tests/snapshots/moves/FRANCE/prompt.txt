@@ -75,40 +75,40 @@ You are power FRANCE in phase S1901M.
 {
   "orders_by_location": {
     "BRE": [
-      "F BRE H",
-      "F BRE S F LON - ENG",
       "F BRE S A PAR - PIC",
-      "F BRE - ENG",
-      "F BRE - MAO",
-      "F BRE - PIC",
-      "F BRE S A MAR - GAS",
+      "F BRE S A PAR - GAS",
+      "F BRE S F LON - ENG",
       "F BRE - GAS",
-      "F BRE S A PAR - GAS"
+      "F BRE H",
+      "F BRE S A MAR - GAS",
+      "F BRE - PIC",
+      "F BRE - ENG",
+      "F BRE - MAO"
     ],
     "MAR": [
-      "A MAR - SPA",
-      "A MAR S F BRE - GAS",
       "A MAR S A VEN - PIE",
-      "A MAR - PIE",
       "A MAR - GAS",
+      "A MAR S A PAR - GAS",
+      "A MAR - SPA",
       "A MAR H",
       "A MAR S A MUN - BUR",
-      "A MAR - BUR",
       "A MAR S A PAR - BUR",
-      "A MAR S A PAR - GAS"
+      "A MAR S F BRE - GAS",
+      "A MAR - BUR",
+      "A MAR - PIE"
     ],
     "PAR": [
+      "A PAR H",
+      "A PAR - BRE",
       "A PAR S F BRE",
       "A PAR S F BRE - GAS",
-      "A PAR - BUR",
-      "A PAR S A MAR - GAS",
-      "A PAR H",
-      "A PAR S A MAR - BUR",
-      "A PAR S F BRE - PIC",
       "A PAR S A MUN - BUR",
-      "A PAR - GAS",
-      "A PAR - BRE",
-      "A PAR - PIC"
+      "A PAR - PIC",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MAR - GAS",
+      "A PAR S A MAR - BUR",
+      "A PAR - BUR",
+      "A PAR - GAS"
     ]
   },
   "phase": "S1901M",

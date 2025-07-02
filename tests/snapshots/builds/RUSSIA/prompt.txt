@@ -75,9 +75,9 @@ You are power RUSSIA in phase W1901A.
 {
   "orders_by_location": {
     "SEV": [
+      "WAIVE",
       "F SEV B",
-      "A SEV B",
-      "WAIVE"
+      "A SEV B"
     ]
   },
   "phase": "W1901A",

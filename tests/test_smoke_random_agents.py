@@ -9,8 +9,7 @@ from __future__ import annotations
 import asyncio
 import xml.etree.ElementTree as ET
 
-from diplomacy_agents.engine import PowerModelMap
-from diplomacy_agents.orchestrator import GameOrchestrator
+from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
 
 
 def test_random_agents_smoke() -> None:  # noqa: D401

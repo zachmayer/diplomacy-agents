@@ -1,5 +1,5 @@
 {
-  "description": "JSON array of DATC order strings for FRANCE. Each element must be one of the legal orders in the current phase. Example subset: A MAR - BUR, A MAR - GAS, A MAR - PIE, A MAR - SPA, A MAR H, A MAR S A MUN - BUR, A MAR S A PAR - BUR, A MAR S A PAR - GAS, A MAR S A VEN - PIE, A MAR S F BRE - GAS, A PAR - BRE, A PAR - BUR, A PAR - GAS, A PAR - PIC, A PAR H, A PAR S A MAR - BUR, A PAR S A MAR - GAS, A PAR S A MUN - BUR, A PAR S F BRE, A PAR S F BRE - GAS, A PAR S F BRE - PIC, F BRE - ENG, F BRE - GAS, F BRE - MAO, F BRE - PIC \u2026.",
+  "description": "JSON array of DATC order strings for FRANCE. Each element must be one of the legal orders in the current phase. Example subset: A MAR - BUR, A MAR - GAS, A MAR - PIE, A MAR - SPA, A MAR H, A MAR S A MUN - BUR, A MAR S A PAR - BUR, A MAR S A PAR - GAS, A MAR S A VEN - PIE, A MAR S F BRE - GAS, A PAR - BRE, A PAR - BUR, A PAR - GAS, A PAR - PIC, A PAR H, A PAR S A MAR - BUR, A PAR S A MAR - GAS, A PAR S A MUN - BUR, A PAR S F BRE, A PAR S F BRE - GAS, A PAR S F BRE - PIC, F BRE - ENG, F BRE - GAS, F BRE - MAO, F BRE - PIC ....",
   "items": {
     "type": "string"
   },

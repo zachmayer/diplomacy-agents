@@ -8,7 +8,7 @@ carefully crafted board positions.
 
 from __future__ import annotations
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, Orders, PowerViewDTO
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,13 +30,13 @@ def _setup_retreat_germany() -> DiplomacyEngine:
     """Create an F1901R retreat scenario for Germany (A MUN dislodged)."""
     eng = DiplomacyEngine()
     # Spring 1901 movement
-    eng.submit_orders("FRANCE", ["A PAR - BUR"])
-    eng.submit_orders("AUSTRIA", ["A VIE - BOH"])
+    eng.submit_orders("FRANCE", Orders(["A PAR - BUR"]))
+    eng.submit_orders("AUSTRIA", Orders(["A VIE - BOH"]))
     _advance_until(eng, "F1901M")  # progress through S1901R to F1901M
 
     # Fall 1901 movement: BUR supported into MUN
-    eng.submit_orders("FRANCE", ["A BUR - MUN"])
-    eng.submit_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    eng.submit_orders("FRANCE", Orders(["A BUR - MUN"]))
+    eng.submit_orders("AUSTRIA", Orders(["A BOH S A BUR - MUN"]))
     _advance_until(eng, "F1901R")
     return eng
 
@@ -64,7 +64,7 @@ def _setup_build_russia() -> DiplomacyEngine:
     eng = DiplomacyEngine()
     _advance_until(eng, "F1901M")  # advance to Fall movement
 
-    eng.submit_orders("RUSSIA", ["F SEV - RUM"])
+    eng.submit_orders("RUSSIA", Orders(["F SEV - RUM"]))
     _advance_until(eng, "W1901A")
     return eng
 
@@ -88,16 +88,16 @@ def _setup_disband_germany() -> DiplomacyEngine:
     """Germany loses MUN and must remove one unit in W1901A."""
     eng = DiplomacyEngine()
     # Same opening as retreat scenario
-    eng.submit_orders("FRANCE", ["A PAR - BUR"])
-    eng.submit_orders("AUSTRIA", ["A VIE - BOH"])
+    eng.submit_orders("FRANCE", Orders(["A PAR - BUR"]))
+    eng.submit_orders("AUSTRIA", Orders(["A VIE - BOH"]))
     _advance_until(eng, "F1901M")
 
-    eng.submit_orders("FRANCE", ["A BUR - MUN"])
-    eng.submit_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    eng.submit_orders("FRANCE", Orders(["A BUR - MUN"]))
+    eng.submit_orders("AUSTRIA", Orders(["A BOH S A BUR - MUN"]))
     _advance_until(eng, "F1901R")
 
     # Retreat Germany to RUH so it still has unit count mismatch later
-    eng.submit_orders("GERMANY", ["A MUN R RUH"])
+    eng.submit_orders("GERMANY", Orders(["A MUN R RUH"]))
     _advance_until(eng, "W1901A")
     return eng
 

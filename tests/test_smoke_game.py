@@ -8,7 +8,7 @@ transitions, etc.).
 
 from __future__ import annotations
 
-from diplomacy_agents.engine import DiplomacyEngine
+from diplomacy_agents.engine import DiplomacyEngine, Orders
 
 
 def test_20_turns_smoke() -> None:  # noqa: D401
@@ -19,7 +19,7 @@ def test_20_turns_smoke() -> None:  # noqa: D401
     # underlying engine should tolerate holds / no orders gracefully.
     for _ in range(20):  # 20 phases ~ 10 game‐years
         for p in eng.get_game_state().powers:
-            eng.submit_orders(p, [])  # everyone holds / waits
+            eng.submit_orders(p, Orders([]))  # everyone holds / waits
         eng.process_turn()
 
     # Ensure the year advanced and the game hasn't crashed.
