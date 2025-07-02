@@ -1,17 +1,6 @@
 """Canonical token literals used throughout the project (PEP 695 type aliases)."""
 
-from typing import TYPE_CHECKING, Literal
-
-# Import full set of model identifiers recognised by pydantic-ai with graceful
-# fallback when the package is unavailable in the current environment (e.g. during
-# static analysis in isolation).
-
-if TYPE_CHECKING:  # pragma: no cover – only for type checkers
-    from pydantic_ai.models import KnownModelName as _KnownModelName
-else:  # pragma: no cover – runtime fallback
-    _KnownModelName = str  # noqa: ANN001 – simple alias for runtime
-
-type KnownModelName = _KnownModelName
+from typing import Literal
 
 Power = Literal[
     "AUSTRIA",
@@ -111,11 +100,6 @@ Location = Literal[
     "YOR",
 ]
 
-# ---------------------------------------------------------------------------
-# LLM model identifiers ------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-# Re-export for convenience --------------------------------------------------
 __all__ = [
     "Power",
     "UnitType",

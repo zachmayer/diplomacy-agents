@@ -4,14 +4,28 @@ from __future__ import annotations
 
 import asyncio
 import random
-from typing import Any, cast
+from typing import Literal
 
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.agents import HoldAgent, LLMAgent, RandomAgent
-from diplomacy_agents.engine import AgentSpecName, DiplomacyEngine, Power, PowerModelMap, flatten_values
+from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
+from diplomacy_agents.engine import DiplomacyEngine, Orders, Power
 
-# Available LLM model identifiers considered for random assignment.
+AgentSpecName = KnownModelName | Literal["hold", "random"]
+
+
+class PowerModelMap(dict[Power, AgentSpecName]):
+    """Mapping from each power to its agent specification."""
+
+    ENGLAND: AgentSpecName
+    FRANCE: AgentSpecName
+    GERMANY: AgentSpecName
+    ITALY: AgentSpecName
+    RUSSIA: AgentSpecName
+    TURKEY: AgentSpecName
+    AUSTRIA: AgentSpecName
+
+
 LOCAL_MODEL_NAMES: list[AgentSpecName] = [
     "openai:o3",
     "openai:o4-mini",
@@ -28,7 +42,7 @@ LOCAL_MODEL_NAMES: list[AgentSpecName] = [
     "random",
 ]
 
-__all__ = ["GameOrchestrator", "run_game"]
+__all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
 
 
 # ---------------------------------------------------------------------------
@@ -61,7 +75,6 @@ class GameOrchestrator:
 
         """
         self.engine = DiplomacyEngine()
-        # Sequence of SVG strings captured throughout the game for animation.
         self.svg_frames: list[str] = []
 
         if seed is not None:
@@ -69,23 +82,30 @@ class GameOrchestrator:
 
         # Build or validate the power → spec mapping.
         if model_map is None:
-            # Randomly assign an LLM model to each power.
-            rnd_map_untyped = {p: random.choice(LOCAL_MODEL_NAMES) for p in self.engine.get_game_state().powers}
-            rnd_map = cast(dict[str, AgentSpecName], rnd_map_untyped)
-            self.model_map = PowerModelMap(**rnd_map)
+            self.model_map: PowerModelMap = PowerModelMap(
+                {
+                    "ENGLAND": random.choice(LOCAL_MODEL_NAMES),
+                    "FRANCE": random.choice(LOCAL_MODEL_NAMES),
+                    "GERMANY": random.choice(LOCAL_MODEL_NAMES),
+                    "ITALY": random.choice(LOCAL_MODEL_NAMES),
+                    "RUSSIA": random.choice(LOCAL_MODEL_NAMES),
+                    "TURKEY": random.choice(LOCAL_MODEL_NAMES),
+                    "AUSTRIA": random.choice(LOCAL_MODEL_NAMES),
+                }
+            )
         else:
             self.model_map = model_map
 
         # Freeze the assignment at instantiation time so subsequent phases keep
         # using the same underlying model for each power regardless of board
         # changes or eliminations.
-        self.agents: dict[Power, Any] = self._init_agents()
+        self.agents: dict[Power, BaseAgent] = self._init_agents()
 
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
     # ------------------------------------------------------------------
 
-    async def run(self) -> dict[Power, int]:  # noqa: D401
+    async def run(self) -> dict[Power, int]:
         """Run the match to completion – returns final supply-centre counts."""
         while not self.engine.get_game_state().is_game_done:
             await self._run_single_phase()
@@ -97,21 +117,19 @@ class GameOrchestrator:
     # Internals ---------------------------------------------------------
     # ------------------------------------------------------------------
 
-    def _init_agents(self) -> dict[Power, Any]:
+    def _init_agents(self) -> dict[Power, BaseAgent]:
         """Create and return the immutable power → agent mapping."""
         state = self.engine.get_game_state()
 
-        mapping = self.model_map.model_dump()
-        agents: dict[Power, Any] = {}
+        agents: dict[Power, BaseAgent] = {}
         for p in state.powers:
-            spec = cast(str, mapping[p])
-            low = spec.lower()
-            if low == "hold":
+            spec = self.model_map[p]
+            if spec == "hold":
                 agents[p] = HoldAgent(p)
-            elif low == "random":
+            elif spec == "random":
                 agents[p] = RandomAgent(p)
             else:
-                agents[p] = LLMAgent(p, cast(KnownModelName, spec))
+                agents[p] = LLMAgent(p, spec)
         return agents
 
     async def _run_single_phase(self) -> None:
@@ -121,10 +139,10 @@ class GameOrchestrator:
         # Build power-specific tasks only for powers that still own units.
         state = self.engine.get_game_state()
 
-        tasks: dict[Power, asyncio.Task[list[str]]] = {}
+        tasks: dict[Power, asyncio.Task[Orders]] = {}
         for power in state.powers:
             view = self.engine.get_power_view(power)
-            if not flatten_values(view.orders_by_location):  # no units/orders
+            if not view.orders_list:  # no units/orders
                 continue  # eliminated powers – skip
             task = asyncio.create_task(self.agents[power].get_orders(state, view))
             tasks[power] = task
@@ -132,9 +150,9 @@ class GameOrchestrator:
         if not tasks:  # all powers eliminated? – should be game over
             return
 
-        results: list[list[str]] = await asyncio.gather(*tasks.values())
-        for p, orders in zip(tasks.keys(), results, strict=False):
-            self.engine.submit_orders(p, orders)
+        await asyncio.gather(*tasks.values())
+        for power, task in tasks.items():
+            self.engine.submit_orders(power, task.result())
 
         self.engine.process_turn()
 
@@ -146,7 +164,7 @@ def run_game(
     *,
     model_map: PowerModelMap | None = None,
     seed: int | None = None,
-) -> dict[Power, int]:  # noqa: D401
+) -> dict[Power, int]:
     """
     Blocking helper for synchronous callers (e.g. CLI).
 
@@ -159,6 +177,3 @@ def run_game(
         return await orch.run()
 
     return asyncio.run(_runner())
-
-
-# No BaseAgent import needed here.

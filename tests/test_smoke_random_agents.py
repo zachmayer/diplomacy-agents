@@ -17,13 +17,15 @@ def test_random_agents_smoke() -> None:  # noqa: D401
     """Process 5 phases using random agents – should complete without error."""
     orch = GameOrchestrator(
         model_map=PowerModelMap(
-            AUSTRIA="random",
-            ENGLAND="random",
-            FRANCE="random",
-            GERMANY="random",
-            ITALY="random",
-            RUSSIA="random",
-            TURKEY="random",
+            {
+                "AUSTRIA": "random",
+                "ENGLAND": "random",
+                "FRANCE": "random",
+                "GERMANY": "random",
+                "ITALY": "random",
+                "RUSSIA": "random",
+                "TURKEY": "random",
+            }
         )
     )
 

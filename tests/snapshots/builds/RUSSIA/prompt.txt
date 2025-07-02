@@ -8,7 +8,6 @@ You are power RUSSIA in phase W1901A.
 
 <game-state>
 {
-  "dislodged_units": [],
   "is_game_done": false,
   "phase": "W1901A",
   "phase_type": "A",
@@ -76,9 +75,9 @@ You are power RUSSIA in phase W1901A.
 {
   "orders_by_location": {
     "SEV": [
-      "WAIVE",
       "F SEV B",
-      "A SEV B"
+      "A SEV B",
+      "WAIVE"
     ]
   },
   "phase": "W1901A",

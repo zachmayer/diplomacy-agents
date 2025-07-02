@@ -8,7 +8,6 @@ You are power FRANCE in phase S1901M.
 
 <game-state>
 {
-  "dislodged_units": [],
   "is_game_done": false,
   "phase": "S1901M",
   "phase_type": "M",
@@ -76,40 +75,40 @@ You are power FRANCE in phase S1901M.
 {
   "orders_by_location": {
     "BRE": [
-      "F BRE - MAO",
-      "F BRE S A PAR - GAS",
+      "F BRE H",
       "F BRE S F LON - ENG",
-      "F BRE - GAS",
-      "F BRE - PIC",
       "F BRE S A PAR - PIC",
       "F BRE - ENG",
-      "F BRE H",
-      "F BRE S A MAR - GAS"
+      "F BRE - MAO",
+      "F BRE - PIC",
+      "F BRE S A MAR - GAS",
+      "F BRE - GAS",
+      "F BRE S A PAR - GAS"
     ],
     "MAR": [
+      "A MAR - SPA",
+      "A MAR S F BRE - GAS",
       "A MAR S A VEN - PIE",
-      "A MAR S A MUN - BUR",
       "A MAR - PIE",
       "A MAR - GAS",
-      "A MAR - SPA",
-      "A MAR - BUR",
       "A MAR H",
-      "A MAR S A PAR - GAS",
+      "A MAR S A MUN - BUR",
+      "A MAR - BUR",
       "A MAR S A PAR - BUR",
-      "A MAR S F BRE - GAS"
+      "A MAR S A PAR - GAS"
     ],
     "PAR": [
-      "A PAR S F BRE - PIC",
-      "A PAR S F BRE - GAS",
       "A PAR S F BRE",
-      "A PAR S A MAR - BUR",
+      "A PAR S F BRE - GAS",
       "A PAR - BUR",
-      "A PAR - BRE",
-      "A PAR - PIC",
-      "A PAR S A MUN - BUR",
+      "A PAR S A MAR - GAS",
       "A PAR H",
+      "A PAR S A MAR - BUR",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MUN - BUR",
       "A PAR - GAS",
-      "A PAR S A MAR - GAS"
+      "A PAR - BRE",
+      "A PAR - PIC"
     ]
   },
   "phase": "S1901M",

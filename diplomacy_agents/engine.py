@@ -2,57 +2,36 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Literal, TypeVar, cast
+from collections.abc import Callable
+from typing import cast
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
-from diplomacy.engine.renderer import Renderer  # type: ignore
+from diplomacy.engine.renderer import Renderer  # type: ignore[reportMissingTypeStubs]
 from pydantic import BaseModel, ConfigDict, RootModel, field_validator
-from pydantic_ai.models import KnownModelName
 
 # Canonical token literals ---------------------------------------------------
-from diplomacy_agents.literals import Location, PhaseType, Power, UnitType  # noqa: E402
-
-# Third-party helpers ---------------------------------------------------------
+from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 # ---------------------------------------------------------------------------
 # Generic order list model ---------------------------------------------------
 # ---------------------------------------------------------------------------
 
 
-class OrdersList(RootModel[list[str]]):
+class Orders(list[str]):
     """
-    JSON array of DATC order strings.
+    Business-logic list of DATC order strings.
 
-    This *base* model imposes **no validation** beyond being a list of strings.
-    Phase-/power-specific subclasses can inherit from it to add stricter
-    constraints (see ``create_order_model``).
+    Subclassing :class:`list` gives downstream code first-class list semantics
+    (indexing, slicing, mutating, ``isinstance(x, list)``, …) while still
+    letting us wrap the value in a Pydantic ``RootModel`` for I/O boundaries.
     """
 
 
-# ---------------------------------------------------------------------------
-# Simple data helpers --------------------------------------------------------
-# ---------------------------------------------------------------------------
+class OrdersModel(RootModel[list[str]]):
+    """Pydantic wrapper providing validation / JSON-schema for :class:`Orders`."""
 
-
-T_co = TypeVar("T_co", covariant=True)
-
-
-def flatten_values[T_co](mapping: Mapping[Any, Iterable[T_co]]) -> list[T_co]:  # noqa: D401
-    """
-    Return a flat list containing every element from *mapping*'s values.
-
-    Example:
-    -------
-    >>> flatten_values({"a": [1, 2], "b": [3]})
-    [1, 2, 3]
-
-    """
-    flattened: list[T_co] = []
-    for iterable in mapping.values():
-        flattened.extend(iterable)
-    return flattened
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 # ---------------------------------------------------------------------------
@@ -71,16 +50,7 @@ class GameStateDTO(BaseModel):
     powers: tuple[Power, ...]
     supply_centers: dict[Power, int]
     phase_type: PhaseType
-
-    # Mapping each power to its own {location: unit_type} view – useful for
-    # human-readable dumps where grouping by owner adds clarity.
     units_by_power: dict[Power, dict[Location, UnitType]]
-
-    # Locations of units that were dislodged in the last movement phase and
-    # must now retreat or be disbanded.  The information is aggregated for
-    # convenience; ownership can be inferred by consulting the per-power
-    # views if needed.
-    dislodged_units: tuple[Location, ...]
 
 
 class PowerViewDTO(BaseModel):
@@ -95,16 +65,27 @@ class PowerViewDTO(BaseModel):
     supply_centers: tuple[Location, ...]
     orders_by_location: dict[Location, tuple[str, ...]]
 
+    @property
+    def orders_list(self) -> list[str]:  # noqa: D401
+        """
+        Return a single flat ``list`` containing all legal order strings.
+
+        The flattened representation is often handy for downstream checks
+        (e.g. *any* retreat order available?).  Hosting the logic close to the
+        data keeps call-sites tidy and avoids repeated comprehension clutter.
+        """
+        return [order for opts in self.orders_by_location.values() for order in opts]
+
     def create_order_model(self) -> type[BaseModel]:
         """Return a RootModel validating that each entry is a legal order string."""
-        allowed: set[str] = set(flatten_values(self.orders_by_location))
+        allowed: set[str] = set(self.orders_list)
 
-        class _OrdersRoot(OrdersList):
+        class _OrdersRoot(OrdersModel):
             """Phase-specific order list ensuring only legal orders are used."""
 
             @field_validator("root")
             @classmethod
-            def _check_orders(cls, v: list[str]) -> list[str]:
+            def _check_orders(cls, v: Orders) -> Orders:
                 illegal = [o for o in v if o not in allowed]
                 if illegal:
                     raise ValueError(f"Illegal order(s) for {self.power}: {', '.join(illegal)}")
@@ -124,35 +105,6 @@ class PowerViewDTO(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Power→Model mapping --------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-# Accept both LLM identifiers and baseline specifiers
-AgentSpecName = KnownModelName | Literal["hold", "random"]
-
-
-class PowerModelMap(BaseModel):
-    """
-    Validated mapping from each power to its LLM identifier.
-
-    Each attribute corresponds to one of the seven standard powers and must be
-    populated with a valid *pydantic-ai* ``KnownModelName`` **or** one of the
-    built-in baseline specifiers ("hold" / "random").
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    AUSTRIA: AgentSpecName
-    ENGLAND: AgentSpecName
-    FRANCE: AgentSpecName
-    GERMANY: AgentSpecName
-    ITALY: AgentSpecName
-    RUSSIA: AgentSpecName
-    TURKEY: AgentSpecName
-
-
-# ---------------------------------------------------------------------------
 # Engine façade --------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
@@ -166,10 +118,6 @@ class DiplomacyEngine:
         default_rules: set[str] = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"}
         self._game: _RawGame = _RawGame(rules=rules or default_rules)  # type: ignore[arg-type]
 
-    # ------------------------------------------------------------------
-    # Public helpers ----------------------------------------------------
-    # ------------------------------------------------------------------
-
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
         phase_token = self._game.get_current_phase()  # e.g. "S1901M"
@@ -181,7 +129,6 @@ class DiplomacyEngine:
             supply_centers={p: len(self._game.get_centers(p)) for p in self._game.powers},  # type: ignore[attr-defined]
             phase_type=self._get_phase_type(),
             units_by_power=self._get_units_by_power(),  # type: ignore[arg-type]
-            dislodged_units=tuple(self._get_dislodged_locations()),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -294,7 +241,21 @@ __all__ = [
     "Location",
     "UnitType",
     "PhaseType",
-    "OrdersList",
-    "flatten_values",
-    "PowerModelMap",
+    "Orders",
+    "OrdersModel",
 ]
+
+# ---------------------------------------------------------------------------
+# Re-export PowerModelMap here to avoid juggling import paths in tests. -------
+# ---------------------------------------------------------------------------
+
+# Import placed at the *end* of the module to sidestep circular-import issues –
+# `orchestrator` itself depends on the engine earlier in *its* import chain.
+
+from diplomacy_agents.orchestrator import PowerModelMap as _PowerModelMap  # noqa: E402
+
+# Alias for public use.
+PowerModelMap = _PowerModelMap  # type: ignore[invalid-name]
+
+# Add to public namespace.
+__all__.append("PowerModelMap")
