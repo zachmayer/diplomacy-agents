@@ -1,9 +1,9 @@
 {
   "orders_by_location": {
     "SEV": [
-      "A SEV B",
       "WAIVE",
-      "F SEV B"
+      "F SEV B",
+      "A SEV B"
     ]
   },
   "phase": "W1901A",

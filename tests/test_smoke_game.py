@@ -11,7 +11,7 @@ from __future__ import annotations
 from diplomacy_agents.engine import DiplomacyEngine
 
 
-def test_full_game_smoke() -> None:  # noqa: D401
+def test_20_turns_smoke() -> None:  # noqa: D401
     """Process 10 full turns with no orders (civil disorder)."""
     eng = DiplomacyEngine()
 

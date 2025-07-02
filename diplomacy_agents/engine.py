@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Literal, TypeVar, cast
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame  # type: ignore[reportMissingTypeStubs]
+from diplomacy.engine.renderer import Renderer  # type: ignore
 from pydantic import BaseModel, ConfigDict, RootModel, field_validator
 from pydantic_ai.models import KnownModelName
 
@@ -227,14 +228,12 @@ class DiplomacyEngine:
         Return an SVG snapshot of the current board state.
 
         Thin wrapper around ``diplomacy.utils.export.render_board_svg``.
-        ``diplomacy>=1.1.2`` ships a pure-Python renderer so no system Cairo is required.
+        The upstream helper returns a plain SVG string generated entirely in
+        Python – no external Cairo or other native libraries are needed.
         """
-        # Import lazily to avoid hard dependency during module import time; some
-        # older diplomacy builds expose the helper only at runtime.
-        from diplomacy.utils import export as _exp  # type: ignore
-
-        renderer = cast(Any, _exp).render_board_svg  # type: ignore[attr-defined]
-        return cast(str, renderer(self._game, show_orders=show_orders))
+        renderer: Callable[..., str] = Renderer(self._game).render  # type: ignore[attr-defined]
+        svg_xml: str = renderer(incl_orders=show_orders, output_format="svg")
+        return svg_xml
 
     # ------------------------------------------------------------------
     # Internals ---------------------------------------------------------

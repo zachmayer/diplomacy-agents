@@ -61,6 +61,8 @@ class GameOrchestrator:
 
         """
         self.engine = DiplomacyEngine()
+        # Sequence of SVG strings captured throughout the game for animation.
+        self.svg_frames: list[str] = []
 
         if seed is not None:
             random.seed(seed)
@@ -87,6 +89,8 @@ class GameOrchestrator:
         """Run the match to completion – returns final supply-centre counts."""
         while not self.engine.get_game_state().is_game_done:
             await self._run_single_phase()
+        # Capture final board state after the game concludes.
+        self.svg_frames.append(self.engine.svg_string())
         return self.engine.get_game_state().supply_centers
 
     # ------------------------------------------------------------------
@@ -111,6 +115,9 @@ class GameOrchestrator:
         return agents
 
     async def _run_single_phase(self) -> None:
+        # Save frame before processing the current phase, ignore if SVG not available.
+        self.svg_frames.append(self.engine.svg_string())
+
         # Build power-specific tasks only for powers that still own units.
         state = self.engine.get_game_state()
 

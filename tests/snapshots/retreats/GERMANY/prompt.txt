@@ -78,10 +78,10 @@ You are power GERMANY in phase F1901R.
 {
   "orders_by_location": {
     "MUN": [
-      "A MUN R TYR",
+      "A MUN R SIL",
       "A MUN R RUH",
-      "A MUN D",
-      "A MUN R SIL"
+      "A MUN R TYR",
+      "A MUN D"
     ]
   },
   "phase": "F1901R",

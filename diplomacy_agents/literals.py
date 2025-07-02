@@ -22,22 +22,9 @@ Power = Literal[
     "RUSSIA",
     "TURKEY",
 ]
-
-PressRecipient = Literal[
-    "ALL",
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY",
-]  # reuse Power tokens plus ALL
-
 UnitType = Literal["A", "F", "*A", "*F"]
 
-# Short phase type code used throughout the engine and DTOs -----------------
-PhaseType = Literal["M", "R", "A"]  # Movement, Retreats, Adjustments
+PhaseType = Literal["M", "R", "A"]
 
 Location = Literal[
     "ADR",
@@ -131,7 +118,6 @@ Location = Literal[
 # Re-export for convenience --------------------------------------------------
 __all__ = [
     "Power",
-    "PressRecipient",
     "UnitType",
     "Location",
     "PhaseType",
