@@ -57,6 +57,16 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
             "\nUnits without orders will hold."
             "\nYou may support or convoy other powers' units, but consider your strategic goals first."
         )
+    elif game_state.phase_type == "R":
+        pending_units = len(view.my_orders_by_location)
+        if pending_units > 0:
+            extra_guidance.append(
+                f"\nYou have {pending_units} dislodged unit(s) that require orders. "
+                f"Return an array of exactly {pending_units} DATC retreat ('R …') or disband ('D') order(s)."
+            )
+        else:
+            # Rare edge case: no dislodged units during a retreat phase.
+            extra_guidance.append("\nYou have no dislodged units. Return an empty JSON array [].")
 
     guidance_block = "\n".join(extra_guidance)
 

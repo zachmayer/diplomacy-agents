@@ -132,40 +132,40 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   ],
   "my_orders_by_location": {
     "BRE": [
+      "F BRE S A PAR - PIC",
+      "F BRE - GAS",
+      "F BRE - MAO",
+      "F BRE H",
       "F BRE - PIC",
       "F BRE S A PAR - GAS",
       "F BRE S F LON - ENG",
-      "F BRE - MAO",
-      "F BRE - GAS",
-      "F BRE S A MAR - GAS",
-      "F BRE S A PAR - PIC",
       "F BRE - ENG",
-      "F BRE H"
+      "F BRE S A MAR - GAS"
     ],
     "MAR": [
-      "A MAR S A MUN - BUR",
-      "A MAR S A PAR - BUR",
-      "A MAR S F BRE - GAS",
-      "A MAR - SPA",
       "A MAR - BUR",
-      "A MAR S A VEN - PIE",
-      "A MAR - GAS",
-      "A MAR S A PAR - GAS",
+      "A MAR - PIE",
       "A MAR H",
-      "A MAR - PIE"
+      "A MAR - SPA",
+      "A MAR - GAS",
+      "A MAR S F BRE - GAS",
+      "A MAR S A PAR - BUR",
+      "A MAR S A MUN - BUR",
+      "A MAR S A PAR - GAS",
+      "A MAR S A VEN - PIE"
     ],
     "PAR": [
-      "A PAR - BRE",
-      "A PAR S F BRE",
-      "A PAR S F BRE - PIC",
       "A PAR S A MUN - BUR",
-      "A PAR S A MAR - BUR",
-      "A PAR S A MAR - GAS",
-      "A PAR - PIC",
-      "A PAR S F BRE - GAS",
       "A PAR - BUR",
+      "A PAR S F BRE - GAS",
+      "A PAR S A MAR - BUR",
+      "A PAR - PIC",
       "A PAR - GAS",
-      "A PAR H"
+      "A PAR - BRE",
+      "A PAR H",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MAR - GAS",
+      "A PAR S F BRE"
     ]
   }
 }
@@ -173,5 +173,7 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-Submit exactly one legal DATC order for each of *your* units.Units without orders will hold.You may support or convoy other powers' units, but consider your strategic goals first.
+Return an array of exactly DATC order(s) for each of *your* units.
+Units without orders will hold.
+You may support or convoy other powers' units, but consider your strategic goals first.
 </instructions>
