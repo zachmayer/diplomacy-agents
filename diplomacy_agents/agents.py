@@ -13,7 +13,7 @@ import re
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
@@ -104,11 +104,15 @@ class LLMAgent(BaseAgent):
         """Delegate order creation to the configured LLM via *pydantic-ai*."""
         allowed_orders = create_dynamic_enum_model(_view.orders_list)
 
-        # Configure the LLM agent to output a *plain* list of order strings.
         agent = Agent(
             model=self.model_name,
             system_prompt=f"You are playing diplomacy as {self.power}.",
-            output_type=list[allowed_orders],
+            output_type=NativeOutput(
+                list[allowed_orders],
+                name="valid_orders",
+                description="Return a list of valid orders for your power in the current phase.",
+                strict=len(allowed_orders) <= 500,
+            ),
             retries=1,
             output_retries=3,
         )

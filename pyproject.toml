@@ -6,10 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "diplomacy>=1.1.2",
-    "pydantic-ai>=0.3.1",
-    # Image / SVG rendering libraries were previously included for board visualisation
-    # but are not used by the current codebase.  Dropped to avoid native build
-    # dependencies that slow down CI.
+    "pydantic-ai>=0.3.5",
     "click>=8.1.7",
     "drawsvg>=2.4.0",
 ]

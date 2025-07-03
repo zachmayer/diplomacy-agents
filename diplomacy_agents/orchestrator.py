@@ -5,10 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
-from pathlib import Path
 from typing import Literal
 
-import drawsvg as draw  # third-party SVG helper – global import per guideline
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
@@ -85,7 +83,6 @@ class GameOrchestrator:
 
         """
         self.engine = DiplomacyEngine()
-        self.svg_frames: list[str] = []
 
         if seed is not None:
             random.seed(seed)
@@ -124,11 +121,11 @@ class GameOrchestrator:
             await self._run_single_phase()
 
         # Capture final board state after the game concludes.
-        self.svg_frames.append(self.engine.svg_string())
+        self.engine.capture_frame()
 
         # Persist full game data and board animation.
         self.engine.save("game_saves/game_state.datc")
-        self._save_animation("board_svg/board_animation.svg")
+        self.engine.save_animation("board_svg/board_animation.svg")
 
         return self.engine.get_game_state().all_supply_center_counts
 
@@ -152,16 +149,11 @@ class GameOrchestrator:
         return agents
 
     async def _run_single_phase(self) -> None:
-        # Save frame before processing the current phase
-        self.svg_frames.append(self.engine.svg_string())
+        # The engine now records frames internally; capturing happens there.
 
         # Log current supply-centre distribution for easier debugging/analysis.
         state = self.engine.get_game_state()
         logger.info("Supply centres per power at phase %s: %s", state.phase, state.all_supply_center_counts)
-
-        # Re-fetch updated state after logging (cheap call, but ensures consistency
-        # if the engine mutated between SVG rendering and tasks build).
-        state = self.engine.get_game_state()
 
         # Build power-specific tasks only for powers that still own units.
         tasks: dict[Power, asyncio.Task[Orders]] = {}
@@ -180,43 +172,6 @@ class GameOrchestrator:
             self.engine.submit_orders(power, task.result())
 
         self.engine.process_turn()
-
-    def _save_animation(self, output_path: str, frame_duration: float = 0.75) -> None:
-        """
-        Persist the collected SVG *frames* as a simple SMIL flipbook.
-
-        The implementation keeps **all** frames as-is; it only adds two minimal
-        `<set>` animations per frame to toggle its visibility at the right time.
-        This avoids any base64 encoding/decoding and relies on the fact that
-        every call to ``self.engine.svg_string()`` already returns a full `<svg>`
-        snippet ready for embedding.
-        """
-        if not self.svg_frames:
-            return  # nothing to write
-
-        # We assume every snapshot has identical dimensions, so we don't parse
-        # width/height – drawsvg will automatically use the first frame's viewBox.
-        dwg = draw.Drawing(1000, 1000)
-
-        for idx, svg_xml in enumerate(self.svg_frames):
-            # Each frame lives in its own <g> so we can flip its visibility.
-            begin_time = idx * frame_duration
-            end_time = (idx + 1) * frame_duration
-
-            # The <set> elements are injected as raw XML for simplicity.
-            frame_group = draw.Raw(f"""
-            <g visibility='{"visible" if idx == 0 else "hidden"}'>
-                {svg_xml}
-                <set attributeName='visibility' to='visible' begin='{begin_time}s' dur='0.001s' fill='freeze'/>
-                <set attributeName='visibility' to='hidden'  begin='{end_time}s'   dur='0.001s' fill='freeze'/>
-            </g>
-            """)
-
-            dwg.append(frame_group)  # type: ignore[reportUnknownMemberType]
-
-        svg_text = dwg.as_svg()  # type: ignore[reportUnknownMemberType]
-        # drawsvg returns ``None`` if it wrote directly to a file‐like object.
-        Path(output_path).write_text(svg_text or "")
 
 
 # Convenience wrapper --------------------------------------------------------

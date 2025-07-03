@@ -33,9 +33,9 @@ def test_random_agents_smoke() -> None:  # noqa: D401
 
     assert orch.engine.get_game_state().year >= 1901
     # Should have captured 5 frames: one before each of the 5 processed phases
-    assert len(orch.svg_frames) == 5
+    assert len(orch.engine.svg_frames) == 5
 
     # Basic XML validity check for each SVG frame.
-    for svg in orch.svg_frames:
+    for svg in orch.engine.svg_frames:
         root = ET.fromstring(svg)
         assert root.tag.endswith("svg"), "Root element should be <svg>"

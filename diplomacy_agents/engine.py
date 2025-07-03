@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
-from pydantic import BaseModel, ConfigDict, RootModel, field_validator
+from diplomacy.utils import export as _export  # type: ignore[import-not-found]
+from pydantic import BaseModel, ConfigDict
 
 # Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
@@ -57,8 +59,6 @@ class _GameProtocol(Protocol):
 
     def process(self) -> None: ...
 
-    def save(self, file_path: str) -> None: ...
-
 
 # ---------------------------------------------------------------------------
 # Data-transfer objects (DTOs)
@@ -103,39 +103,6 @@ class PowerViewDTO(BaseModel):
         """Return a single flat ``list`` containing all legal order strings."""
         return [order for opts in self.my_orders_by_location.values() for order in opts]
 
-    def create_order_model(self) -> type[BaseModel]:
-        """
-        Return a *pydantic* ``RootModel`` validating the list of order strings.
-
-        Each element must be a legal order for the current power/phase – we reuse
-        the same membership check that previously lived on the ``orders`` attribute
-        of the wrapper class.
-        """
-        allowed_set: set[str] = set(self.orders_list)
-        power_name: str = str(self.power)
-
-        class _OrdersRoot(RootModel[Orders]):
-            """JSON array of DATC order strings for the given power."""
-
-            @field_validator("root")
-            @classmethod
-            def _validate_orders(cls, v: Orders) -> Orders:  # noqa: D401 (pydantic signature)
-                illegal = [o for o in v if o not in allowed_set]
-                if illegal:
-                    raise ValueError(f"Illegal order(s) for {power_name}: {', '.join(illegal)}")
-                return v
-
-        # Improve readability of the generated schema/model.
-        _OrdersRoot.__name__ = f"OrdersRoot_{power_name}"
-        max_show = 25
-        sample = ", ".join(sorted(allowed_set)[:max_show])
-        more = " ..." if len(allowed_set) > max_show else ""
-        _OrdersRoot.__doc__ = (
-            f"Root model (list) of DATC order strings. Example subset for {power_name}: {sample}{more}."
-        )
-
-        return _OrdersRoot
-
 
 # ---------------------------------------------------------------------------
 # Engine façade
@@ -152,6 +119,9 @@ class DiplomacyEngine:
         raw_game = _RawGame(rules=rules or default_rules)
         # Narrow the untyped third-party object to the subset we officially rely on.
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
+
+        # Collect SVG snapshots for later animation export.
+        self.svg_frames: list[str] = []
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
@@ -206,12 +176,42 @@ class DiplomacyEngine:
         self._game.set_orders(power, orders)
 
     def process_turn(self) -> None:
-        """Advance the game one phase."""
+        """Advance the game one phase while recording a snapshot *before* the move."""
+        # Capture the board state *before* orders are resolved so the animation shows
+        # the pre‐resolution position for every phase – mirroring the previous
+        # behaviour implemented in the orchestrator.
+        self.capture_frame()
+
+        # Resolve the phase in the underlying engine.
         self._game.process()
 
+    def capture_frame(self) -> None:
+        """Append the current board SVG to the internal frame buffer."""
+        self.svg_frames.append(self.svg_string())
+
     def save(self, file_path: str) -> None:
-        """Persist current game state to *file_path* using Diplomacy's built-in serializer."""
-        self._game.save(file_path)
+        """Write the current game to *file_path* in DATC JSON format."""
+        # Cast the third‐party helper to ``Any`` *before* attribute access so
+        # static analysis tools don't attempt to inspect its (untyped) internals.
+        _save_game: Callable[[Any, str | None, str], dict[str, Any]] = cast(Any, _export).to_saved_game_format
+        _save_game(self._game, file_path, "w")
+
+    def save_animation(self, output_path: str, frame_duration: float = 0.75) -> None:
+        """
+        Write collected SVG snapshots to *output_path*.
+
+        The *frame_duration* parameter is accepted for backward compatibility
+        but is currently ignored.  Callers can pass the argument without
+        affecting behaviour, keeping the public interface stable.
+        """
+        _ = frame_duration  # Preserve signature while silencing unused‐arg linters.
+
+        # Persist the *final* captured frame.  A more sophisticated animation
+        # export can be implemented later using the in-memory buffer.
+        if self.svg_frames:
+            path_obj = Path(output_path)
+            path_obj.parent.mkdir(parents=True, exist_ok=True)
+            path_obj.write_text(self.svg_frames[-1])
 
     # ------------------------------------------------------------------
     # Rendering helpers
