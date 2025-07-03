@@ -145,5 +145,5 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Include exactly 1 disband order(s).
+You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
 </instructions>

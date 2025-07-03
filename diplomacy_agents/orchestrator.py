@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import random
+from collections import defaultdict
 from typing import Literal
 
 from pydantic_ai.models import KnownModelName
@@ -27,15 +29,15 @@ class PowerModelMap(dict[Power, AgentSpecName]):
 
 
 LOCAL_MODEL_NAMES: list[AgentSpecName] = [
-    "openai:o3",
-    "openai:o4-mini",
+    # "openai:o3",
+    # "openai:o4-mini",
     "openai:gpt-4.1",
     "openai:gpt-4.1-mini",
     "openai:gpt-4.1-nano",
-    "openai:gpt-4o",
-    "anthropic:claude-opus-4-0",
-    "anthropic:claude-sonnet-4-0",
-    "google-gla:gemini-2.5-pro",
+    # "openai:gpt-4o",
+    # "anthropic:claude-opus-4-0",
+    # "anthropic:claude-sonnet-4-0",
+    # "google-gla:gemini-2.5-pro",
     "google-gla:gemini-2.5-flash",
     # Baseline agents --------------------------------------------------
     "hold",
@@ -43,6 +45,13 @@ LOCAL_MODEL_NAMES: list[AgentSpecName] = [
 ]
 
 __all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
+
+
+# ---------------------------------------------------------------------------
+# Module-level logger --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +84,6 @@ class GameOrchestrator:
 
         """
         self.engine = DiplomacyEngine()
-        self.svg_frames: list[str] = []
 
         if seed is not None:
             random.seed(seed)
@@ -96,10 +104,16 @@ class GameOrchestrator:
         else:
             self.model_map = model_map
 
+        # Log the frozen power assignments at game start for easier debugging.
+        logger.info("Initial: %s", self.model_map)
+
         # Freeze the assignment at instantiation time so subsequent phases keep
         # using the same underlying model for each power regardless of board
         # changes or eliminations.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
+
+        # Running tally of USD cost per power.
+        self._cost_usd_by_power: dict[Power, float] = defaultdict(float)
 
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
@@ -109,8 +123,18 @@ class GameOrchestrator:
         """Run the match to completion – returns final supply-centre counts."""
         while not self.engine.get_game_state().is_game_done:
             await self._run_single_phase()
+
         # Capture final board state after the game concludes.
-        self.svg_frames.append(self.engine.svg_string())
+        self.engine.capture_frame()
+
+        # Persist full game data and board animation.
+        self.engine.save("game_saves/game_state.datc")
+        self.engine.save_animation("board_svg/board_animation.svg")
+
+        total_cost = sum(self._cost_usd_by_power.values())
+        logger.info("Total LLM cost: $%.4f", total_cost)
+        logger.info(f"Total LLM cost across all powers: ${total_cost:.5f}")
+
         return self.engine.get_game_state().all_supply_center_counts
 
     # ------------------------------------------------------------------
@@ -133,12 +157,13 @@ class GameOrchestrator:
         return agents
 
     async def _run_single_phase(self) -> None:
-        # Save frame before processing the current phase, ignore if SVG not available.
-        self.svg_frames.append(self.engine.svg_string())
+        # The engine now records frames internally; capturing happens there.
+
+        # Log current supply-centre distribution for easier debugging/analysis.
+        state = self.engine.get_game_state()
+        logger.info("Phase %s: %s", state.phase, state.all_supply_center_counts)
 
         # Build power-specific tasks only for powers that still own units.
-        state = self.engine.get_game_state()
-
         tasks: dict[Power, asyncio.Task[Orders]] = {}
         for power in state.all_powers:
             view = self.engine.get_power_view(power)
@@ -153,6 +178,15 @@ class GameOrchestrator:
         await asyncio.gather(*tasks.values())
         for power, task in tasks.items():
             self.engine.submit_orders(power, task.result())
+
+            # After each power's orders are generated, if it's an LLMAgent, record cost.
+            agent = self.agents[power]
+            if isinstance(agent, LLMAgent):
+                # Store the running cumulative total for each power.
+                self._cost_usd_by_power[power] = agent.total_cost_usd
+
+        # Debug: print cumulative cost after processing this phase.
+        # logger.info("Cost so far (USD): %s", dict(self._cost_usd_by_power))
 
         self.engine.process_turn()
 

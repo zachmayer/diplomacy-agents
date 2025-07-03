@@ -1,14 +1,19 @@
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false
 """Minimal typed wrapper around the diplomacy package."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
+
+import drawsvg as draw  # type: ignore[reportUnknownVariableType]
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
-from pydantic import BaseModel, ConfigDict, RootModel, field_validator
+from diplomacy.utils import export as _export  # type: ignore[import-not-found]
+from pydantic import BaseModel, ConfigDict
 
 # Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
@@ -18,14 +23,7 @@ from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 # ---------------------------------------------------------------------------
 
 
-class Orders(list[str]):
-    """Array of DATC order strings for diplomacy."""
-
-
-class OrdersModel(RootModel[list[str]]):
-    """Array of DATC order strings for diplomacy."""
-
-    model_config = ConfigDict(strict=True, frozen=True)
+type Orders = list[str]
 
 
 # ---------------------------------------------------------------------------
@@ -108,32 +106,6 @@ class PowerViewDTO(BaseModel):
         """Return a single flat ``list`` containing all legal order strings."""
         return [order for opts in self.my_orders_by_location.values() for order in opts]
 
-    def create_order_model(self) -> type[BaseModel]:
-        """Return a RootModel validating that each entry is a legal order string."""
-        allowed: set[str] = set(self.orders_list)
-
-        class _OrdersRoot(OrdersModel):
-            """Phase-specific order list ensuring only legal orders are used."""
-
-            @field_validator("root")
-            @classmethod
-            def _check_orders(cls, v: Orders) -> Orders:
-                illegal = [o for o in v if o not in allowed]
-                if illegal:
-                    raise ValueError(f"Illegal order(s) for {self.power}: {', '.join(illegal)}")
-                return v
-
-        _OrdersRoot.__name__ = f"OrdersList_{self.power}"
-        max_show = 25
-        sample = ", ".join(sorted(allowed)[:max_show])
-        more = " ..." if len(allowed) > max_show else ""
-        _OrdersRoot.__doc__ = (
-            f"JSON array of DATC order strings for {self.power}. "
-            f"Each element must be one of the legal orders in the current phase. "
-            f"Example subset: {sample}{more}."
-        )
-        return _OrdersRoot
-
 
 # ---------------------------------------------------------------------------
 # Engine façade
@@ -151,6 +123,9 @@ class DiplomacyEngine:
         # Narrow the untyped third-party object to the subset we officially rely on.
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
 
+        # Collect SVG snapshots for later animation export.
+        self.svg_frames: list[str] = []
+
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
         phase_token = self._game.get_current_phase()  # e.g. "S1901M"
@@ -160,7 +135,7 @@ class DiplomacyEngine:
             phase=phase_token,
             phase_long=str(self._game.phase),
             phase_type=self._get_phase_type(),
-            year=int(phase_token[1:5]),
+            year=int(phase_token[1:5]) if len(phase_token) >= 5 and phase_token[1:5].isdigit() else 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
@@ -204,24 +179,48 @@ class DiplomacyEngine:
         self._game.set_orders(power, orders)
 
     def process_turn(self) -> None:
-        """Advance the game one phase."""
+        """Advance the game one phase while recording a snapshot *before* the move."""
+        # Capture the board state *before* orders are resolved so the animation shows
+        # the pre‐resolution position for every phase – mirroring the previous
+        # behaviour implemented in the orchestrator.
+        self.capture_frame()
+
+        # Resolve the phase in the underlying engine.
         self._game.process()
 
-    # ------------------------------------------------------------------
-    # Rendering helpers
-    # ------------------------------------------------------------------
+    def capture_frame(self) -> None:
+        """Append the current board SVG to the internal frame buffer."""
+        renderer: Callable[..., str] = Renderer(self._game).render
+        svg_xml: str = renderer(incl_orders=True, incl_abbrev=True)
+        self.svg_frames.append(svg_xml)
 
-    def svg_string(self, *, show_orders: bool = True) -> str:
-        """
-        Return an SVG snapshot of the current board state.
+    def save(self, file_path: str) -> None:
+        """Write the current game to *file_path* in DATC JSON format."""
+        _export.to_saved_game_format(self._game, file_path, "w")
 
-        Thin wrapper around ``diplomacy.utils.export.render_board_svg``.
-        The upstream helper returns a plain SVG string generated entirely in
-        Python – no external Cairo or other native libraries are needed.
-        """
-        renderer: Callable[..., str] = cast(Any, Renderer(self._game)).render
-        svg_xml: str = renderer(incl_orders=show_orders, output_format="svg")
-        return svg_xml
+    def save_animation(self, output_path: str) -> None:
+        """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
+        if not self.svg_frames:
+            return
+
+        fps = 2
+        duration = len(self.svg_frames) / fps
+        config = draw.types.SyncedAnimationConfig(
+            duration=duration,  # Seconds
+            show_playback_progress=True,
+            show_playback_controls=True,
+        )
+
+        d = draw.Drawing(1200, 850, animation_config=config)
+        for i, svg in enumerate(self.svg_frames):
+            img_any: Any = draw.Image(0, 0, 1200, 850, data=svg.encode("utf-8"), mime_type="image/svg+xml")
+            img_any.add_key_frame(i / fps, opacity=0)
+            img_any.add_key_frame(i / fps + 0.01, opacity=1)
+            img_any.add_key_frame(i / fps + 1, opacity=1)
+            img_any.add_key_frame(i / fps + 1.01, opacity=0)
+            d.append(img_any)
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        d.save_svg(output_path)
 
     # ------------------------------------------------------------------
     # Internals
@@ -230,7 +229,6 @@ class DiplomacyEngine:
     def _get_phase_type(self) -> PhaseType:
         """Map diplomacy engine phase constant to single-letter code."""
         pt_raw: str = self._game.phase_type
-        # The underlying library uses either single letters *or* long words depending on context.
         mapping: dict[str, PhaseType] = {
             "M": "M",
             "MOVEMENT": "M",
@@ -240,9 +238,10 @@ class DiplomacyEngine:
             "ADJUSTMENT": "A",
             "ADJUSTMENTS": "A",
         }
-        if pt_raw not in mapping:
-            raise RuntimeError(f"Unknown phase type from engine: {pt_raw!r}")
-        return mapping[pt_raw]
+        # Default to "M" (movement) for unrecognised or terminal tokens such
+        # as "-" or "COMPLETE" – phase‐type is irrelevant once the game ends
+        # but we still need a valid single‐letter value to satisfy the alias.
+        return mapping.get(pt_raw, "M")
 
     # ------------------------------------------------------------------
     # Board-wide helpers
@@ -283,5 +282,4 @@ __all__ = [
     "UnitType",
     "PhaseType",
     "Orders",
-    "OrdersModel",
 ]
