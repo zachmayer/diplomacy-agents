@@ -53,7 +53,7 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
             )
     elif game_state.phase_type == "M":  # Movement – support / convoy note
         extra_guidance.append(
-            "\nReturn an array of exactly DATC order(s) for each of *your* units."
+            "\nReturn an array of DATC order(s) for each of *your* units."
             "\nUnits without orders will hold."
             "\nYou may support or convoy other powers' units, but consider your strategic goals first."
         )
