@@ -20,6 +20,8 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
+# Surface informational messages from the underlying diplomacy engine.
+logging.getLogger("diplomacy").setLevel(logging.INFO)
 logger = logging.getLogger("cli")
 
 # ---------------------------------------------------------------------------
@@ -35,11 +37,8 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
 @cli.command("play", help="Run a complete self-play match with random models.")
 @click.option("--seed", type=int, default=42, help="RNG seed for reproducibility.")
 def play_cmd(seed: int) -> None:  # noqa: D401
-    """Run the simplified orchestrator and print final SC counts."""
-    final_sc = run_game(seed=seed)
-    ordered = sorted(final_sc.items(), key=lambda x: x[1], reverse=True)
-    for _power, _count in ordered:
-        pass
+    """Run the orchestrator and print final SC counts."""
+    run_game(seed=seed)
 
 
 if __name__ == "__main__":

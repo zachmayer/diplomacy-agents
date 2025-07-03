@@ -11,6 +11,7 @@ dependencies = [
     # but are not used by the current codebase.  Dropped to avoid native build
     # dependencies that slow down CI.
     "click>=8.1.7",
+    "drawsvg>=2.4.0",
 ]
 
 [dependency-groups]

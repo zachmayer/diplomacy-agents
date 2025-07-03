@@ -5,7 +5,6 @@ from diplomacy_agents.engine import (
     GameStateDTO,
     Location,
     Orders,
-    OrdersModel,
     Power,
     PowerViewDTO,
     UnitType,
@@ -19,5 +18,4 @@ __all__: list[str] = [
     "Location",
     "UnitType",
     "Orders",
-    "OrdersModel",
 ]

@@ -18,14 +18,7 @@ from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 # ---------------------------------------------------------------------------
 
 
-class Orders(list[str]):
-    """Array of DATC order strings for diplomacy."""
-
-
-class OrdersModel(RootModel[list[str]]):
-    """Array of DATC order strings for diplomacy."""
-
-    model_config = ConfigDict(strict=True, frozen=True)
+type Orders = list[str]
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +56,8 @@ class _GameProtocol(Protocol):
     def set_orders(self, power: Power, orders: Orders) -> None: ...
 
     def process(self) -> None: ...
+
+    def save(self, file_path: str) -> None: ...
 
 
 # ---------------------------------------------------------------------------
@@ -109,29 +104,36 @@ class PowerViewDTO(BaseModel):
         return [order for opts in self.my_orders_by_location.values() for order in opts]
 
     def create_order_model(self) -> type[BaseModel]:
-        """Return a RootModel validating that each entry is a legal order string."""
-        allowed: set[str] = set(self.orders_list)
+        """
+        Return a *pydantic* ``RootModel`` validating the list of order strings.
 
-        class _OrdersRoot(OrdersModel):
-            """Phase-specific order list ensuring only legal orders are used."""
+        Each element must be a legal order for the current power/phase – we reuse
+        the same membership check that previously lived on the ``orders`` attribute
+        of the wrapper class.
+        """
+        allowed_set: set[str] = set(self.orders_list)
+        power_name: str = str(self.power)
+
+        class _OrdersRoot(RootModel[Orders]):
+            """JSON array of DATC order strings for the given power."""
 
             @field_validator("root")
             @classmethod
-            def _check_orders(cls, v: Orders) -> Orders:
-                illegal = [o for o in v if o not in allowed]
+            def _validate_orders(cls, v: Orders) -> Orders:  # noqa: D401 (pydantic signature)
+                illegal = [o for o in v if o not in allowed_set]
                 if illegal:
-                    raise ValueError(f"Illegal order(s) for {self.power}: {', '.join(illegal)}")
+                    raise ValueError(f"Illegal order(s) for {power_name}: {', '.join(illegal)}")
                 return v
 
-        _OrdersRoot.__name__ = f"OrdersList_{self.power}"
+        # Improve readability of the generated schema/model.
+        _OrdersRoot.__name__ = f"OrdersRoot_{power_name}"
         max_show = 25
-        sample = ", ".join(sorted(allowed)[:max_show])
-        more = " ..." if len(allowed) > max_show else ""
+        sample = ", ".join(sorted(allowed_set)[:max_show])
+        more = " ..." if len(allowed_set) > max_show else ""
         _OrdersRoot.__doc__ = (
-            f"JSON array of DATC order strings for {self.power}. "
-            f"Each element must be one of the legal orders in the current phase. "
-            f"Example subset: {sample}{more}."
+            f"Root model (list) of DATC order strings. Example subset for {power_name}: {sample}{more}."
         )
+
         return _OrdersRoot
 
 
@@ -160,7 +162,7 @@ class DiplomacyEngine:
             phase=phase_token,
             phase_long=str(self._game.phase),
             phase_type=self._get_phase_type(),
-            year=int(phase_token[1:5]),
+            year=int(phase_token[1:5]) if len(phase_token) >= 5 and phase_token[1:5].isdigit() else 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
@@ -207,6 +209,10 @@ class DiplomacyEngine:
         """Advance the game one phase."""
         self._game.process()
 
+    def save(self, file_path: str) -> None:
+        """Persist current game state to *file_path* using Diplomacy's built-in serializer."""
+        self._game.save(file_path)
+
     # ------------------------------------------------------------------
     # Rendering helpers
     # ------------------------------------------------------------------
@@ -230,7 +236,6 @@ class DiplomacyEngine:
     def _get_phase_type(self) -> PhaseType:
         """Map diplomacy engine phase constant to single-letter code."""
         pt_raw: str = self._game.phase_type
-        # The underlying library uses either single letters *or* long words depending on context.
         mapping: dict[str, PhaseType] = {
             "M": "M",
             "MOVEMENT": "M",
@@ -240,9 +245,10 @@ class DiplomacyEngine:
             "ADJUSTMENT": "A",
             "ADJUSTMENTS": "A",
         }
-        if pt_raw not in mapping:
-            raise RuntimeError(f"Unknown phase type from engine: {pt_raw!r}")
-        return mapping[pt_raw]
+        # Default to "M" (movement) for unrecognised or terminal tokens such
+        # as "-" or "COMPLETE" – phase‐type is irrelevant once the game ends
+        # but we still need a valid single‐letter value to satisfy the alias.
+        return mapping.get(pt_raw, "M")
 
     # ------------------------------------------------------------------
     # Board-wide helpers
@@ -283,5 +289,4 @@ __all__ = [
     "UnitType",
     "PhaseType",
     "Orders",
-    "OrdersModel",
 ]

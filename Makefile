@@ -49,5 +49,5 @@ install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
 .PHONY: run
-run:  ## Run event-driven self-play match (seed 42)
-	uv run -m diplomacy_agents.cli conductor
+run: ## Run self-play match with seed 42 via the CLI
+	uv run -m diplomacy_agents.cli play --seed 42
