@@ -85,6 +85,10 @@ class GameOrchestrator:
         """
         self.engine = DiplomacyEngine()
 
+        # Store the seed and derive a shared filename suffix for reproducibility.
+        self.seed = seed
+        self._file_suffix = f"_{seed}" if seed is not None else ""
+
         if seed is not None:
             random.seed(seed)
 
@@ -128,8 +132,8 @@ class GameOrchestrator:
         self.engine.capture_frame()
 
         # Persist full game data and board animation.
-        self.engine.save("game_saves/game_state.datc")
-        self.engine.save_animation("board_svg/board_animation.svg")
+        self.engine.save(f"game_saves/game_state{self._file_suffix}.datc")
+        self.engine.save_animation(f"board_svg/board_animation{self._file_suffix}.svg")
 
         total_cost = sum(self._cost_usd_by_power.values())
         logger.info("Total LLM cost: $%.4f", total_cost)
@@ -157,8 +161,6 @@ class GameOrchestrator:
         return agents
 
     async def _run_single_phase(self) -> None:
-        # The engine now records frames internally; capturing happens there.
-
         # Log current supply-centre distribution for easier debugging/analysis.
         state = self.engine.get_game_state()
         logger.info("Phase %s: %s", state.phase, state.all_supply_center_counts)
@@ -182,11 +184,11 @@ class GameOrchestrator:
             # After each power's orders are generated, if it's an LLMAgent, record cost.
             agent = self.agents[power]
             if isinstance(agent, LLMAgent):
-                # Store the running cumulative total for each power.
                 self._cost_usd_by_power[power] = agent.total_cost_usd
 
-        # Debug: print cumulative cost after processing this phase.
-        # logger.info("Cost so far (USD): %s", dict(self._cost_usd_by_power))
+        cost_by_power = dict(self._cost_usd_by_power)
+        total_cost = sum(cost_by_power.values())
+        logger.debug(f"Running Cost (USD): {total_cost:.2f} ({cost_by_power})")
 
         self.engine.process_turn()
 

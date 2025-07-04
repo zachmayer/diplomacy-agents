@@ -79,7 +79,7 @@ class RandomAgent(BaseAgent):
 # ---------------------------------------------------------------------------
 
 
-def create_dynamic_enum_model(allowed_values: list[str]) -> type[Enum]:
+def create_dynamic_enum_model(allowed_values: Orders) -> type[Enum]:
     """
     Build an Enum whose *values* are the exact order strings we pass in.
 
@@ -105,7 +105,7 @@ class LLMAgent(BaseAgent):
         super().__init__(power)
         self.model_name = model_name
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> list[str]:
+    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Delegate order creation to the configured LLM via *pydantic-ai*."""
         allowed_orders = create_dynamic_enum_model(_view.orders_list)
 
