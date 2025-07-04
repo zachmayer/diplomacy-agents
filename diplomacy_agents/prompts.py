@@ -46,6 +46,7 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
         if diff > 0:
             extra_guidance.append(
                 f"\nYou have {diff} build(s) available. Return an array of exactly {diff} DATC build order(s)."
+                f"\nYou may only build one unit per supply center."
             )
         elif diff < 0:
             extra_guidance.append(
@@ -61,8 +62,9 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
         pending_units = len(view.my_orders_by_location)
         if pending_units > 0:
             extra_guidance.append(
-                f"\nYou have {pending_units} dislodged unit(s) that require orders. "
-                f"Return an array of exactly {pending_units} DATC retreat ('R …') or disband ('D') order(s)."
+                f"\nYou have {pending_units} dislodged unit(s) that require orders."
+                f"\nReturn an array of exactly {pending_units} DATC retreat or disband order(s)."
+                f"\nYou must submit exactly one order per dislodged unit."
             )
         else:
             # Rare edge case: no dislodged units during a retreat phase.

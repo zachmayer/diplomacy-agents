@@ -104,7 +104,7 @@ class GameOrchestrator:
             self.model_map = model_map
 
         # Log the frozen power assignments at game start for easier debugging.
-        logger.info("Initial power assignments: %s", self.model_map)
+        logger.info("Initial: %s", self.model_map)
 
         # Freeze the assignment at instantiation time so subsequent phases keep
         # using the same underlying model for each power regardless of board
@@ -153,7 +153,7 @@ class GameOrchestrator:
 
         # Log current supply-centre distribution for easier debugging/analysis.
         state = self.engine.get_game_state()
-        logger.info("Supply centres per power at phase %s: %s", state.phase, state.all_supply_center_counts)
+        logger.info("Phase %s: %s", state.phase, state.all_supply_center_counts)
 
         # Build power-specific tasks only for powers that still own units.
         tasks: dict[Power, asyncio.Task[Orders]] = {}

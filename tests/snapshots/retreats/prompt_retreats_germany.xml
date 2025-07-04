@@ -132,9 +132,9 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   ],
   "my_orders_by_location": {
     "MUN": [
-      "A MUN R RUH",
-      "A MUN R SIL",
       "A MUN D",
+      "A MUN R SIL",
+      "A MUN R RUH",
       "A MUN R TYR"
     ]
   }

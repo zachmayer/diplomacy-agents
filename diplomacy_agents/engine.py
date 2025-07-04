@@ -1,3 +1,4 @@
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false
 """Minimal typed wrapper around the diplomacy package."""
 
 from __future__ import annotations
@@ -189,45 +190,37 @@ class DiplomacyEngine:
 
     def capture_frame(self) -> None:
         """Append the current board SVG to the internal frame buffer."""
-        self.svg_frames.append(self.svg_string())
+        renderer: Callable[..., str] = Renderer(self._game).render
+        svg_xml: str = renderer(incl_orders=True, incl_abbrev=True)
+        self.svg_frames.append(svg_xml)
 
     def save(self, file_path: str) -> None:
         """Write the current game to *file_path* in DATC JSON format."""
-        # Cast the third‐party helper to ``Any`` *before* attribute access so
-        # static analysis tools don't attempt to inspect its (untyped) internals.
-        _save_game: Callable[[Any, str | None, str], dict[str, Any]] = cast(Any, _export).to_saved_game_format
-        _save_game(self._game, file_path, "w")
+        _export.to_saved_game_format(self._game, file_path, "w")
 
-    def save_animation(self, output_path: str, frame_duration: float = 0.75) -> None:
+    def save_animation(self, output_path: str) -> None:
         """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
         if not self.svg_frames:
             return
-        d = draw.Drawing(1200, 850, animation_config=draw.types.SyncedAnimationConfig(duration=len(self.svg_frames)))  # type: ignore[attr-defined]
+
+        fps = 2
+        duration = len(self.svg_frames) / fps
+        config = draw.types.SyncedAnimationConfig(
+            duration=duration,  # Seconds
+            show_playback_progress=True,
+            show_playback_controls=True,
+        )
+
+        d = draw.Drawing(1200, 850, animation_config=config)
         for i, svg in enumerate(self.svg_frames):
-            img_any: Any = draw.Image(0, 0, 1200, 850, data=svg.encode(), mime_type="image/svg+xml")  # type: ignore[no-any-call]
-            img_any.add_key_frame(i, opacity=0)
-            img_any.add_key_frame(i + 0.01, opacity=1)
-            img_any.add_key_frame(i + frame_duration, opacity=1)
-            img_any.add_key_frame(i + frame_duration + 0.01, opacity=0)
-            cast(Any, d).append(img_any)
+            img_any: Any = draw.Image(0, 0, 1200, 850, data=svg.encode("utf-8"), mime_type="image/svg+xml")
+            img_any.add_key_frame(i / fps, opacity=0)
+            img_any.add_key_frame(i / fps + 0.01, opacity=1)
+            img_any.add_key_frame(i / fps + 1, opacity=1)
+            img_any.add_key_frame(i / fps + 1.01, opacity=0)
+            d.append(img_any)
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        cast(Any, d).save_svg(output_path)
-
-    # ------------------------------------------------------------------
-    # Rendering helpers
-    # ------------------------------------------------------------------
-
-    def svg_string(self, *, show_orders: bool = True) -> str:
-        """
-        Return an SVG snapshot of the current board state.
-
-        Thin wrapper around ``diplomacy.utils.export.render_board_svg``.
-        The upstream helper returns a plain SVG string generated entirely in
-        Python – no external Cairo or other native libraries are needed.
-        """
-        renderer: Callable[..., str] = cast(Any, Renderer(self._game)).render
-        svg_xml: str = renderer(incl_orders=show_orders, output_format="svg")
-        return svg_xml
+        d.save_svg(output_path)
 
     # ------------------------------------------------------------------
     # Internals
