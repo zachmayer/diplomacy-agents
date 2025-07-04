@@ -138,8 +138,8 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "my_orders_by_location": {
     "SEV": [
       "F SEV B",
-      "A SEV B",
-      "WAIVE"
+      "WAIVE",
+      "A SEV B"
     ]
   }
 }
@@ -148,4 +148,5 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
 You have 1 build(s) available. Return an array of exactly 1 DATC build order(s).
+You may only build one unit per supply center.
 </instructions>

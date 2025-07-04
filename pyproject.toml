@@ -9,6 +9,8 @@ dependencies = [
     "pydantic-ai>=0.3.5",
     "click>=8.1.7",
     "drawsvg>=2.4.0",
+    "tokencost>=0.1.24",
+    "tokonomics>=0.3.14",
 ]
 
 [dependency-groups]

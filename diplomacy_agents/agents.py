@@ -12,9 +12,13 @@ import random
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any, cast
 
 from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models import KnownModelName
+
+# Straightforward cost helper – globally imported for reuse.
+from tokonomics import calculate_pydantic_cost
 
 from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
 from diplomacy_agents.prompts import build_orders_prompt
@@ -36,8 +40,9 @@ class BaseAgent(ABC):
     """Common async interface shared by all power controllers."""
 
     def __init__(self, power: Power) -> None:
-        """Store the owning *power* token for later reference."""
+        """Store the owning *power* token for later reference and initialise cost tracking."""
         self.power = power
+        self.total_cost_usd: float = 0.0
 
     @abstractmethod
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
@@ -120,5 +125,9 @@ class LLMAgent(BaseAgent):
         prompt = build_orders_prompt(_game_state, _view)
         result = await agent.run(prompt)
 
+        usage_obj = result.usage()
+        cost = cast(Any, await calculate_pydantic_cost(self.model_name, usage_obj))  # type: ignore[call-arg]
+        self.total_cost_usd += float(cost.total_cost)
+
         # Convert Enum members back to their underlying order strings
-        return list({order.value for order in result.output})
+        return [o.value for o in result.output]

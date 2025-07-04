@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from collections import defaultdict
 from typing import Literal
 
 from pydantic_ai.models import KnownModelName
@@ -111,6 +112,9 @@ class GameOrchestrator:
         # changes or eliminations.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
+        # Running tally of USD cost per power.
+        self._cost_usd_by_power: dict[Power, float] = defaultdict(float)
+
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
     # ------------------------------------------------------------------
@@ -126,6 +130,10 @@ class GameOrchestrator:
         # Persist full game data and board animation.
         self.engine.save("game_saves/game_state.datc")
         self.engine.save_animation("board_svg/board_animation.svg")
+
+        total_cost = sum(self._cost_usd_by_power.values())
+        logger.info("Total LLM cost: $%.4f", total_cost)
+        logger.info(f"Total LLM cost across all powers: ${total_cost:.5f}")
 
         return self.engine.get_game_state().all_supply_center_counts
 
@@ -170,6 +178,15 @@ class GameOrchestrator:
         await asyncio.gather(*tasks.values())
         for power, task in tasks.items():
             self.engine.submit_orders(power, task.result())
+
+            # After each power's orders are generated, if it's an LLMAgent, record cost.
+            agent = self.agents[power]
+            if isinstance(agent, LLMAgent):
+                # Store the running cumulative total for each power.
+                self._cost_usd_by_power[power] = agent.total_cost_usd
+
+        # Debug: print cumulative cost after processing this phase.
+        # logger.info("Cost so far (USD): %s", dict(self._cost_usd_by_power))
 
         self.engine.process_turn()
 
