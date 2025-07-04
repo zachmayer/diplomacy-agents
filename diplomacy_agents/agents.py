@@ -121,4 +121,4 @@ class LLMAgent(BaseAgent):
         result = await agent.run(prompt)
 
         # Convert Enum members back to their underlying order strings
-        return [order.value for order in result.output]
+        return list({order.value for order in result.output})

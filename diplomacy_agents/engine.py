@@ -6,6 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
+import drawsvg as draw  # type: ignore[reportUnknownVariableType]
+
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
@@ -197,21 +199,19 @@ class DiplomacyEngine:
         _save_game(self._game, file_path, "w")
 
     def save_animation(self, output_path: str, frame_duration: float = 0.75) -> None:
-        """
-        Write collected SVG snapshots to *output_path*.
-
-        The *frame_duration* parameter is accepted for backward compatibility
-        but is currently ignored.  Callers can pass the argument without
-        affecting behaviour, keeping the public interface stable.
-        """
-        _ = frame_duration  # Preserve signature while silencing unused‐arg linters.
-
-        # Persist the *final* captured frame.  A more sophisticated animation
-        # export can be implemented later using the in-memory buffer.
-        if self.svg_frames:
-            path_obj = Path(output_path)
-            path_obj.parent.mkdir(parents=True, exist_ok=True)
-            path_obj.write_text(self.svg_frames[-1])
+        """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
+        if not self.svg_frames:
+            return
+        d = draw.Drawing(1200, 850, animation_config=draw.types.SyncedAnimationConfig(duration=len(self.svg_frames)))  # type: ignore[attr-defined]
+        for i, svg in enumerate(self.svg_frames):
+            img_any: Any = draw.Image(0, 0, 1200, 850, data=svg.encode(), mime_type="image/svg+xml")  # type: ignore[no-any-call]
+            img_any.add_key_frame(i, opacity=0)
+            img_any.add_key_frame(i + 0.01, opacity=1)
+            img_any.add_key_frame(i + frame_duration, opacity=1)
+            img_any.add_key_frame(i + frame_duration + 0.01, opacity=0)
+            cast(Any, d).append(img_any)
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        cast(Any, d).save_svg(output_path)
 
     # ------------------------------------------------------------------
     # Rendering helpers
