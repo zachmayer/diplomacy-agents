@@ -163,10 +163,6 @@ class DiplomacyEngine:
         """Submit list of DATC order strings for *power*."""
         self._game.set_orders(power, orders)
 
-    def save(self, file_path: str) -> None:
-        """Write the current game to *file_path* in DATC JSON format."""
-        export.to_saved_game_format(self._game, file_path, "w")
-
     def process_turn(self) -> None:
         """Advance the game one phase while recording a snapshot *before* the move."""
         # Capture the board state *before* orders are resolved so the animation shows
@@ -205,6 +201,10 @@ class DiplomacyEngine:
             d.append(img_any)
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         d.save_svg(output_path)
+
+    def save(self, file_path: str) -> None:
+        """Write the current game to *file_path* in DATC JSON format."""
+        export.to_saved_game_format(self._game, file_path, "w")
 
     # ------------------------------------------------------------------
     # Internals
