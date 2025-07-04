@@ -4,15 +4,15 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
+You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 </who-am-i>
 
 <full-game-state>
 {
   "is_game_done": false,
-  "phase": "W1901A",
-  "phase_long": "WINTER 1901 ADJUSTMENTS",
-  "phase_type": "A",
+  "phase": "F1901R",
+  "phase_long": "FALL 1901 RETREATS",
+  "phase_type": "R",
   "year": 1901,
   "all_powers": [
     "AUSTRIA",
@@ -26,8 +26,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
-    "FRANCE": 4,
-    "GERMANY": 2,
+    "FRANCE": 3,
+    "GERMANY": 3,
     "ITALY": 3,
     "RUSSIA": 4,
     "TURKEY": 3
@@ -46,12 +46,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "FRANCE": [
       "BRE",
       "MAR",
-      "PAR",
-      "MUN"
+      "PAR"
     ],
     "GERMANY": [
       "BER",
-      "KIE"
+      "KIE",
+      "MUN"
     ],
     "ITALY": [
       "NAP",
@@ -89,7 +89,7 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "GERMANY": {
       "KIE": "F",
       "BER": "A",
-      "RUH": "A"
+      "MUN": "*A"
     },
     "ITALY": {
       "NAP": "F",
@@ -118,11 +118,11 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 <your-power-view>
 {
   "power": "GERMANY",
-  "my_supply_center_count": 2,
+  "my_supply_center_count": 3,
   "my_unit_locations": {
     "KIE": "F",
     "BER": "A",
-    "RUH": "A"
+    "MUN": "*A"
   },
   "my_home_supply_center_locations": [
     "BER",
@@ -131,17 +131,15 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   ],
   "my_supply_center_locations": [
     "BER",
-    "KIE"
+    "KIE",
+    "MUN"
   ],
   "my_orders_by_location": {
-    "BER": [
-      "A BER D"
-    ],
-    "KIE": [
-      "F KIE D"
-    ],
-    "RUH": [
-      "A RUH D"
+    "MUN": [
+      "A MUN D",
+      "A MUN R TYR",
+      "A MUN R RUH",
+      "A MUN R SIL"
     ]
   }
 }
@@ -154,6 +152,5 @@ GERMANY: We shall see, Frankreich.
 
 
 <instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
+Your next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.
 </instructions>

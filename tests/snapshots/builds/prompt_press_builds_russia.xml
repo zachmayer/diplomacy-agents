@@ -4,7 +4,7 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
+You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 </who-am-i>
 
 <full-game-state>
@@ -26,10 +26,10 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
-    "FRANCE": 4,
-    "GERMANY": 2,
+    "FRANCE": 3,
+    "GERMANY": 3,
     "ITALY": 3,
-    "RUSSIA": 4,
+    "RUSSIA": 5,
     "TURKEY": 3
   },
   "all_supply_center_locations": {
@@ -46,12 +46,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "FRANCE": [
       "BRE",
       "MAR",
-      "PAR",
-      "MUN"
+      "PAR"
     ],
     "GERMANY": [
       "BER",
-      "KIE"
+      "KIE",
+      "MUN"
     ],
     "ITALY": [
       "NAP",
@@ -62,7 +62,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "MOS",
       "SEV",
       "STP",
-      "WAR"
+      "WAR",
+      "RUM"
     ],
     "TURKEY": [
       "ANK",
@@ -73,8 +74,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "all_unit_locations": {
     "AUSTRIA": {
       "BUD": "A",
-      "TRI": "F",
-      "BOH": "A"
+      "VIE": "A",
+      "TRI": "F"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -84,12 +85,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "FRANCE": {
       "BRE": "F",
       "MAR": "A",
-      "MUN": "A"
+      "PAR": "A"
     },
     "GERMANY": {
       "KIE": "F",
       "BER": "A",
-      "RUH": "A"
+      "MUN": "A"
     },
     "ITALY": {
       "NAP": "F",
@@ -99,8 +100,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "RUSSIA": {
       "WAR": "A",
       "MOS": "A",
-      "SEV": "F",
-      "STP/SC": "F"
+      "STP/SC": "F",
+      "RUM": "F"
     },
     "TURKEY": {
       "ANK": "F",
@@ -117,31 +118,32 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 
 <your-power-view>
 {
-  "power": "GERMANY",
-  "my_supply_center_count": 2,
+  "power": "RUSSIA",
+  "my_supply_center_count": 5,
   "my_unit_locations": {
-    "KIE": "F",
-    "BER": "A",
-    "RUH": "A"
+    "WAR": "A",
+    "MOS": "A",
+    "STP/SC": "F",
+    "RUM": "F"
   },
   "my_home_supply_center_locations": [
-    "BER",
-    "KIE",
-    "MUN"
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR"
   ],
   "my_supply_center_locations": [
-    "BER",
-    "KIE"
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR",
+    "RUM"
   ],
   "my_orders_by_location": {
-    "BER": [
-      "A BER D"
-    ],
-    "KIE": [
-      "F KIE D"
-    ],
-    "RUH": [
-      "A RUH D"
+    "SEV": [
+      "F SEV B",
+      "A SEV B",
+      "WAIVE"
     ]
   }
 }
@@ -154,6 +156,5 @@ GERMANY: We shall see, Frankreich.
 
 
 <instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
+Your next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.
 </instructions>

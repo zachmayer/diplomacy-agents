@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
-from diplomacy_agents.prompts import build_orders_prompt
+from diplomacy_agents.prompts import build_orders_prompt, build_press_message_prompt
 
 # type: ignore[reportPrivateUsage]
 from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
@@ -33,6 +33,10 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     """Generate disk snapshot artefacts and return written path."""
     engine = factory()
 
+    # Inject a couple of fake public‐press messages for snapshot context.
+    engine.add_public_message("FRANCE", "Greetings all – may we share the spoils?")
+    engine.add_public_message("GERMANY", "We shall see, Frankreich.")
+
     game_state = engine.get_game_state()
     pov: PowerViewDTO = engine.get_power_view(power)  # type: ignore[arg-type]
 
@@ -42,6 +46,12 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     prompt_filename = f"prompt_{tag}_{power.lower()}.xml"
     prompt_path = base_dir / prompt_filename
     prompt_path.write_text(build_orders_prompt(game_state, pov))
+
+    # Also generate the public-press prompt (initially with empty history).
+    press_prompt_filename = f"prompt_press_{tag}_{power.lower()}.xml"
+    press_prompt_path = base_dir / press_prompt_filename
+    press_prompt_path.write_text(build_press_message_prompt(game_state, pov))
+
     return prompt_path
 
 
@@ -58,3 +68,6 @@ def test_snapshot_prompt(case_tag: str, power: str, factory: Callable[[], Diplom
     """Generate the prompt snapshot for *(case, power)* and assert it exists."""
     path = _generate_snapshot(case_tag, power, factory)
     assert path.exists()
+    # Ensure press prompt also exists.
+    press_path = path.parent / f"prompt_press_{case_tag}_{power.lower()}.xml"
+    assert press_path.exists()

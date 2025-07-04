@@ -7,34 +7,21 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
-import drawsvg as draw  # type: ignore[reportUnknownVariableType]
-
-# Third-party diplomacy engine ------------------------------------------------
+import drawsvg as draw
 from diplomacy import Game as _RawGame
+from diplomacy.engine.message import Message
 from diplomacy.engine.renderer import Renderer
-from diplomacy.utils import export as _export  # type: ignore[import-not-found]
+from diplomacy.utils import export
 from pydantic import BaseModel, ConfigDict
 
-# Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 # ---------------------------------------------------------------------------
-# Generic order list model
+# Typings
 # ---------------------------------------------------------------------------
 
 
-type Orders = list[str]
-
-
-# ---------------------------------------------------------------------------
-# Typing for `diplomacy.Game`
-# ---------------------------------------------------------------------------
-
-
-# Note: ``diplomacy.Game`` exposes ``powers`` as a mapping from power name to
-# ``diplomacy.engine.power.Power`` instances.  We only rely on the keys here
-# but expose the value type loosely as ``Any`` since we don't access the full
-# third-party attributes beyond the few needed below.
+type Orders = list[str]  # TODO: should this be a tuple?
 
 
 @runtime_checkable
@@ -42,10 +29,17 @@ class _GameProtocol(Protocol):
     """Subset of the ``diplomacy.Game`` interface required by this wrapper."""
 
     # Public attributes -----------------------------------------------------
+    # Underlying engine maps power name to Power class instance. We don't use the Power class instance.
     powers: dict[Power, Any]
-    phase_type: PhaseType
-    phase: str  # long phase name, e.g. "SPRING 1901 MOVEMENT"
-    is_game_done: bool
+    phase_type: PhaseType  # e.g. "M"
+    phase: str  # Long phase name, e.g. "SPRING 1901 MOVEMENT"
+    is_game_done: bool  # True if the game is over
+
+    # Messaging helpers ---------------------------------------------------
+    def add_message(self, message: Message) -> int: ...
+
+    # Shorthand phase token like "S1901M" (used when creating Message objects)
+    current_short_phase: str  # e.g. "S1901M"
 
     # Public methods --------------------------------------------------------
     def get_current_phase(self) -> str: ...
@@ -80,11 +74,12 @@ class GameStateDTO(BaseModel):
     phase_type: PhaseType
     year: int
 
-    # Collections prefixed with ``all_`` to emphasise board‐wide scope --------
+    # Collections -------------------------------------------------------------
     all_powers: tuple[Power, ...]
     all_supply_center_counts: dict[Power, int]
     all_supply_center_locations: dict[Power, tuple[Location, ...]]
     all_unit_locations: dict[Power, dict[Location, UnitType]]
+    press_history: tuple[str, ...]
 
 
 class PowerViewDTO(BaseModel):
@@ -92,9 +87,11 @@ class PowerViewDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True)
 
-    power: Power  # owning power token (scalar – no prefix)
+    # Scalars -----------------------------------------------------------------
+    power: Power
 
-    # Collections are prefixed with ``my_`` to clarify they're for this power.
+    # Collections -------------------------------------------------------------
+    # TODO: should these be "your" instead of "my"?
     my_supply_center_count: int
     my_unit_locations: dict[Location, UnitType]
     my_home_supply_center_locations: tuple[Location, ...]
@@ -102,7 +99,7 @@ class PowerViewDTO(BaseModel):
     my_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
-    def orders_list(self) -> list[str]:
+    def orders_list(self) -> Orders:
         """Return a single flat ``list`` containing all legal order strings."""
         return [order for opts in self.my_orders_by_location.values() for order in opts]
 
@@ -117,14 +114,12 @@ class DiplomacyEngine:
 
     def __init__(self, *, rules: set[str] | None = None) -> None:
         """Create a new Diplomacy game instance."""
-        # Use deadline-free rules by default so the driver controls phase ticks.
         default_rules: set[str] = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"}
         raw_game = _RawGame(rules=rules or default_rules)
-        # Narrow the untyped third-party object to the subset we officially rely on.
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
-
-        # Collect SVG snapshots for later animation export.
         self.svg_frames: list[str] = []
+        # Cumulative public‐press history (strings formatted as "POWER: message").
+        self._press_history: list[str] = []
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
@@ -134,12 +129,13 @@ class DiplomacyEngine:
             is_game_done=self._game.is_game_done,
             phase=phase_token,
             phase_long=str(self._game.phase),
-            phase_type=self._get_phase_type(),
+            phase_type=self._game.phase_type,
             year=int(phase_token[1:5]) if len(phase_token) >= 5 and phase_token[1:5].isdigit() else 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
             all_unit_locations=self._get_units_by_power(),
+            press_history=tuple(self._press_history),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -153,11 +149,8 @@ class DiplomacyEngine:
 
         # Parse unit list like ["A PAR", "F BRE"] into {"PAR": "A", "BRE": "F"}
         units_map: dict[Location, UnitType] = {}
-        unit_strings = self._game.get_units(power)
-        for unit_str in unit_strings:
-            unit_type_str, loc_str = unit_str.split(" ", 1)
-            unit_type = cast(UnitType, unit_type_str)
-            loc = cast(Location, loc_str)
+        for unit_str in self._game.get_units(power):
+            unit_type, loc = self._split_unit(unit_str)
             units_map[loc] = unit_type
 
         # Home supply centres where *power* can build.
@@ -181,8 +174,7 @@ class DiplomacyEngine:
     def process_turn(self) -> None:
         """Advance the game one phase while recording a snapshot *before* the move."""
         # Capture the board state *before* orders are resolved so the animation shows
-        # the pre‐resolution position for every phase – mirroring the previous
-        # behaviour implemented in the orchestrator.
+        # the pre‐resolution position for every phase
         self.capture_frame()
 
         # Resolve the phase in the underlying engine.
@@ -193,10 +185,6 @@ class DiplomacyEngine:
         renderer: Callable[..., str] = Renderer(self._game).render
         svg_xml: str = renderer(incl_orders=True, incl_abbrev=True)
         self.svg_frames.append(svg_xml)
-
-    def save(self, file_path: str) -> None:
-        """Write the current game to *file_path* in DATC JSON format."""
-        _export.to_saved_game_format(self._game, file_path, "w")
 
     def save_animation(self, output_path: str) -> None:
         """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
@@ -222,42 +210,49 @@ class DiplomacyEngine:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         d.save_svg(output_path)
 
+    def save(self, file_path: str) -> None:
+        """Write the current game to *file_path* in DATC JSON format."""
+        export.to_saved_game_format(self._game, file_path, "w")
+
+    # --------------------------------------------------------------
+    # Public press -------------------------------------------------
+    # --------------------------------------------------------------
+
+    def add_public_message(self, sender: Power, message: str) -> None:  # noqa: D401
+        """Forward a public‐press message to the underlying diplomacy engine."""
+        from diplomacy.engine.message import GLOBAL, Message
+
+        # Build and record a server-side message object.
+        self._game.add_message(
+            Message(
+                phase=self._game.current_short_phase,
+                sender=sender,
+                recipient=GLOBAL,
+                message=message,
+            )
+        )
+
+        # Keep a plain-text copy for easy prompt inclusion.
+        self._press_history.append(f"{sender}: {message}")
+
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 
-    def _get_phase_type(self) -> PhaseType:
-        """Map diplomacy engine phase constant to single-letter code."""
-        pt_raw: str = self._game.phase_type
-        mapping: dict[str, PhaseType] = {
-            "M": "M",
-            "MOVEMENT": "M",
-            "R": "R",
-            "RETREATS": "R",
-            "A": "A",
-            "ADJUSTMENT": "A",
-            "ADJUSTMENTS": "A",
-        }
-        # Default to "M" (movement) for unrecognised or terminal tokens such
-        # as "-" or "COMPLETE" – phase‐type is irrelevant once the game ends
-        # but we still need a valid single‐letter value to satisfy the alias.
-        return mapping.get(pt_raw, "M")
-
-    # ------------------------------------------------------------------
-    # Board-wide helpers
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
+        """Parse a unit string like 'A PAR' into typed components."""
+        unit_type_str, loc_str = unit_str.split(" ", 1)
+        return cast(UnitType, unit_type_str), cast(Location, loc_str)
 
     def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
         """Return {power: {loc: unit_type}} nested mapping for all units."""
         mp: dict[Power, dict[Location, UnitType]] = {}
         for power in self._game.powers:
-            unit_strings = self._game.get_units(power)
             per_power: dict[Location, UnitType] = {}
-            for unit_str in unit_strings:
-                unit_type_str, loc_str = unit_str.split(" ", 1)
-                unit_type_clean = unit_type_str.lstrip("*?")
-                loc = cast(Location, loc_str)
-                per_power[loc] = cast(UnitType, unit_type_clean)
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = self._split_unit(unit_str)
+                per_power[loc] = unit_type
             mp[power] = per_power
         return mp
 
@@ -265,11 +260,10 @@ class DiplomacyEngine:
         """Return locations of units that are currently dislodged."""
         dislodged: list[Location] = []
         for power in self._game.powers:
-            unit_strings = self._game.get_units(power)
-            for unit_str in unit_strings:
-                unit_type_str, loc_str = unit_str.split(" ", 1)
-                if unit_type_str.startswith("*"):
-                    dislodged.append(cast(Location, loc_str))
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = self._split_unit(unit_str)
+                if unit_type.startswith("*"):
+                    dislodged.append(loc)
         return dislodged
 
 
