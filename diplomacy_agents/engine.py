@@ -7,34 +7,23 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
-import drawsvg as draw  # type: ignore[reportUnknownVariableType]
+import drawsvg as draw
 
 # Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
-from diplomacy.utils import export as _export  # type: ignore[import-not-found]
+from diplomacy.utils import export
 from pydantic import BaseModel, ConfigDict
 
 # Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 # ---------------------------------------------------------------------------
-# Generic order list model
+# Typings
 # ---------------------------------------------------------------------------
 
 
-type Orders = list[str]
-
-
-# ---------------------------------------------------------------------------
-# Typing for `diplomacy.Game`
-# ---------------------------------------------------------------------------
-
-
-# Note: ``diplomacy.Game`` exposes ``powers`` as a mapping from power name to
-# ``diplomacy.engine.power.Power`` instances.  We only rely on the keys here
-# but expose the value type loosely as ``Any`` since we don't access the full
-# third-party attributes beyond the few needed below.
+type Orders = list[str]  # TODO: should this be a tuple?
 
 
 @runtime_checkable
@@ -42,10 +31,11 @@ class _GameProtocol(Protocol):
     """Subset of the ``diplomacy.Game`` interface required by this wrapper."""
 
     # Public attributes -----------------------------------------------------
+    # Underlying engine maps power name to Power class instance. We don't use the Power class instance.
     powers: dict[Power, Any]
-    phase_type: PhaseType
-    phase: str  # long phase name, e.g. "SPRING 1901 MOVEMENT"
-    is_game_done: bool
+    phase_type: PhaseType  # e.g. "M"
+    phase: str  # Long phase name, e.g. "SPRING 1901 MOVEMENT"
+    is_game_done: bool  # True if the game is over
 
     # Public methods --------------------------------------------------------
     def get_current_phase(self) -> str: ...
@@ -80,7 +70,7 @@ class GameStateDTO(BaseModel):
     phase_type: PhaseType
     year: int
 
-    # Collections prefixed with ``all_`` to emphasise board‐wide scope --------
+    # Collections -------------------------------------------------------------
     all_powers: tuple[Power, ...]
     all_supply_center_counts: dict[Power, int]
     all_supply_center_locations: dict[Power, tuple[Location, ...]]
@@ -92,9 +82,11 @@ class PowerViewDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, frozen=True)
 
-    power: Power  # owning power token (scalar – no prefix)
+    # Scalars -----------------------------------------------------------------
+    power: Power
 
-    # Collections are prefixed with ``my_`` to clarify they're for this power.
+    # Collections -------------------------------------------------------------
+    # TODO: should these be "your" instead of "my"?
     my_supply_center_count: int
     my_unit_locations: dict[Location, UnitType]
     my_home_supply_center_locations: tuple[Location, ...]
@@ -102,7 +94,7 @@ class PowerViewDTO(BaseModel):
     my_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
-    def orders_list(self) -> list[str]:
+    def orders_list(self) -> Orders:
         """Return a single flat ``list`` containing all legal order strings."""
         return [order for opts in self.my_orders_by_location.values() for order in opts]
 
@@ -117,13 +109,9 @@ class DiplomacyEngine:
 
     def __init__(self, *, rules: set[str] | None = None) -> None:
         """Create a new Diplomacy game instance."""
-        # Use deadline-free rules by default so the driver controls phase ticks.
         default_rules: set[str] = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"}
         raw_game = _RawGame(rules=rules or default_rules)
-        # Narrow the untyped third-party object to the subset we officially rely on.
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
-
-        # Collect SVG snapshots for later animation export.
         self.svg_frames: list[str] = []
 
     def get_game_state(self) -> GameStateDTO:
@@ -178,11 +166,14 @@ class DiplomacyEngine:
         """Submit list of DATC order strings for *power*."""
         self._game.set_orders(power, orders)
 
+    def save(self, file_path: str) -> None:
+        """Write the current game to *file_path* in DATC JSON format."""
+        export.to_saved_game_format(self._game, file_path, "w")
+
     def process_turn(self) -> None:
         """Advance the game one phase while recording a snapshot *before* the move."""
         # Capture the board state *before* orders are resolved so the animation shows
-        # the pre‐resolution position for every phase – mirroring the previous
-        # behaviour implemented in the orchestrator.
+        # the pre‐resolution position for every phase
         self.capture_frame()
 
         # Resolve the phase in the underlying engine.
@@ -193,10 +184,6 @@ class DiplomacyEngine:
         renderer: Callable[..., str] = Renderer(self._game).render
         svg_xml: str = renderer(incl_orders=True, incl_abbrev=True)
         self.svg_frames.append(svg_xml)
-
-    def save(self, file_path: str) -> None:
-        """Write the current game to *file_path* in DATC JSON format."""
-        _export.to_saved_game_format(self._game, file_path, "w")
 
     def save_animation(self, output_path: str) -> None:
         """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
@@ -228,20 +215,8 @@ class DiplomacyEngine:
 
     def _get_phase_type(self) -> PhaseType:
         """Map diplomacy engine phase constant to single-letter code."""
-        pt_raw: str = self._game.phase_type
-        mapping: dict[str, PhaseType] = {
-            "M": "M",
-            "MOVEMENT": "M",
-            "R": "R",
-            "RETREATS": "R",
-            "A": "A",
-            "ADJUSTMENT": "A",
-            "ADJUSTMENTS": "A",
-        }
-        # Default to "M" (movement) for unrecognised or terminal tokens such
-        # as "-" or "COMPLETE" – phase‐type is irrelevant once the game ends
-        # but we still need a valid single‐letter value to satisfy the alias.
-        return mapping.get(pt_raw, "M")
+        pt: PhaseType = self._game.phase_type
+        return pt
 
     # ------------------------------------------------------------------
     # Board-wide helpers
