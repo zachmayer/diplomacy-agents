@@ -122,7 +122,7 @@ class DiplomacyEngine:
             is_game_done=self._game.is_game_done,
             phase=phase_token,
             phase_long=str(self._game.phase),
-            phase_type=self._get_phase_type(),
+            phase_type=self._game.phase_type,
             year=int(phase_token[1:5]) if len(phase_token) >= 5 and phase_token[1:5].isdigit() else 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
@@ -141,11 +141,8 @@ class DiplomacyEngine:
 
         # Parse unit list like ["A PAR", "F BRE"] into {"PAR": "A", "BRE": "F"}
         units_map: dict[Location, UnitType] = {}
-        unit_strings = self._game.get_units(power)
-        for unit_str in unit_strings:
-            unit_type_str, loc_str = unit_str.split(" ", 1)
-            unit_type = cast(UnitType, unit_type_str)
-            loc = cast(Location, loc_str)
+        for unit_str in self._game.get_units(power):
+            unit_type, loc = self._split_unit(unit_str)
             units_map[loc] = unit_type
 
         # Home supply centres where *power* can build.
@@ -213,26 +210,20 @@ class DiplomacyEngine:
     # Internals
     # ------------------------------------------------------------------
 
-    def _get_phase_type(self) -> PhaseType:
-        """Map diplomacy engine phase constant to single-letter code."""
-        pt: PhaseType = self._game.phase_type
-        return pt
-
-    # ------------------------------------------------------------------
-    # Board-wide helpers
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
+        """Parse a unit string like 'A PAR' into typed components."""
+        unit_type_str, loc_str = unit_str.split(" ", 1)
+        return cast(UnitType, unit_type_str), cast(Location, loc_str)
 
     def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
         """Return {power: {loc: unit_type}} nested mapping for all units."""
         mp: dict[Power, dict[Location, UnitType]] = {}
         for power in self._game.powers:
-            unit_strings = self._game.get_units(power)
             per_power: dict[Location, UnitType] = {}
-            for unit_str in unit_strings:
-                unit_type_str, loc_str = unit_str.split(" ", 1)
-                unit_type_clean = unit_type_str.lstrip("*?")
-                loc = cast(Location, loc_str)
-                per_power[loc] = cast(UnitType, unit_type_clean)
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = self._split_unit(unit_str)
+                per_power[loc] = unit_type
             mp[power] = per_power
         return mp
 
@@ -240,11 +231,10 @@ class DiplomacyEngine:
         """Return locations of units that are currently dislodged."""
         dislodged: list[Location] = []
         for power in self._game.powers:
-            unit_strings = self._game.get_units(power)
-            for unit_str in unit_strings:
-                unit_type_str, loc_str = unit_str.split(" ", 1)
-                if unit_type_str.startswith("*"):
-                    dislodged.append(cast(Location, loc_str))
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = self._split_unit(unit_str)
+                if unit_type.startswith("*"):
+                    dislodged.append(loc)
         return dislodged
 
 

@@ -138,8 +138,8 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "my_orders_by_location": {
     "SEV": [
       "F SEV B",
-      "A SEV B",
-      "WAIVE"
+      "WAIVE",
+      "A SEV B"
     ]
   }
 }

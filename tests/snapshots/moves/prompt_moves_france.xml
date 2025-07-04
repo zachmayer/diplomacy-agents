@@ -132,40 +132,40 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   ],
   "my_orders_by_location": {
     "BRE": [
-      "F BRE - ENG",
-      "F BRE - MAO",
-      "F BRE - PIC",
-      "F BRE S A PAR - PIC",
-      "F BRE H",
-      "F BRE - GAS",
       "F BRE S F LON - ENG",
+      "F BRE - ENG",
+      "F BRE - PIC",
+      "F BRE - GAS",
+      "F BRE H",
+      "F BRE - MAO",
+      "F BRE S A PAR - PIC",
       "F BRE S A PAR - GAS",
       "F BRE S A MAR - GAS"
     ],
     "MAR": [
-      "A MAR - SPA",
-      "A MAR - BUR",
-      "A MAR - GAS",
-      "A MAR - PIE",
-      "A MAR S A MUN - BUR",
       "A MAR S A PAR - GAS",
-      "A MAR H",
+      "A MAR - GAS",
+      "A MAR S A MUN - BUR",
+      "A MAR - SPA",
+      "A MAR S F BRE - GAS",
       "A MAR S A VEN - PIE",
+      "A MAR - BUR",
+      "A MAR - PIE",
       "A MAR S A PAR - BUR",
-      "A MAR S F BRE - GAS"
+      "A MAR H"
     ],
     "PAR": [
-      "A PAR S A MAR - GAS",
-      "A PAR S A MAR - BUR",
-      "A PAR - BRE",
-      "A PAR - PIC",
-      "A PAR S F BRE - GAS",
       "A PAR H",
-      "A PAR S A MUN - BUR",
+      "A PAR S A MAR - BUR",
       "A PAR - BUR",
       "A PAR - GAS",
       "A PAR S F BRE",
-      "A PAR S F BRE - PIC"
+      "A PAR S F BRE - PIC",
+      "A PAR S A MUN - BUR",
+      "A PAR - PIC",
+      "A PAR S A MAR - GAS",
+      "A PAR S F BRE - GAS",
+      "A PAR - BRE"
     ]
   }
 }
