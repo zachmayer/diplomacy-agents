@@ -163,7 +163,7 @@ class GameOrchestrator:
     async def _run_single_phase(self) -> None:
         # Log current supply-centre distribution for easier debugging/analysis.
         state = self.engine.get_game_state()
-        logger.info("Phase %s: %s", state.phase, state.all_supply_center_counts)
+        logger.info(f"{state.phase}: {state.all_supply_center_counts}")
 
         # Build power-specific tasks only for powers that still own units.
         tasks: dict[Power, asyncio.Task[Orders]] = {}
