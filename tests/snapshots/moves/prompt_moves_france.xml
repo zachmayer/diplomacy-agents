@@ -132,40 +132,40 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   ],
   "my_orders_by_location": {
     "BRE": [
-      "F BRE - ENG",
       "F BRE S F LON - ENG",
-      "F BRE H",
       "F BRE S A PAR - PIC",
-      "F BRE S A PAR - GAS",
-      "F BRE - PIC",
-      "F BRE - MAO",
+      "F BRE - ENG",
+      "F BRE - GAS",
       "F BRE S A MAR - GAS",
-      "F BRE - GAS"
+      "F BRE - MAO",
+      "F BRE - PIC",
+      "F BRE H",
+      "F BRE S A PAR - GAS"
     ],
     "MAR": [
-      "A MAR S A MUN - BUR",
-      "A MAR S A VEN - PIE",
-      "A MAR H",
-      "A MAR - PIE",
-      "A MAR S F BRE - GAS",
       "A MAR - GAS",
+      "A MAR - BUR",
+      "A MAR - PIE",
       "A MAR - SPA",
-      "A MAR S A PAR - GAS",
       "A MAR S A PAR - BUR",
-      "A MAR - BUR"
+      "A MAR H",
+      "A MAR S A MUN - BUR",
+      "A MAR S A PAR - GAS",
+      "A MAR S F BRE - GAS",
+      "A MAR S A VEN - PIE"
     ],
     "PAR": [
-      "A PAR - PIC",
-      "A PAR S A MAR - GAS",
-      "A PAR - GAS",
-      "A PAR S A MUN - BUR",
-      "A PAR - BRE",
       "A PAR S A MAR - BUR",
       "A PAR H",
-      "A PAR S F BRE",
+      "A PAR S F BRE - GAS",
+      "A PAR S A MUN - BUR",
       "A PAR S F BRE - PIC",
       "A PAR - BUR",
-      "A PAR S F BRE - GAS"
+      "A PAR - PIC",
+      "A PAR - GAS",
+      "A PAR S F BRE",
+      "A PAR S A MAR - GAS",
+      "A PAR - BRE"
     ]
   }
 }
@@ -175,5 +175,5 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
 Return an array of DATC order(s) for each of *your* units.
 Units without orders will hold.
-You may support or convoy other powers' units, but consider your strategic goals first.
+You may support or convoy other powers' units, but first consider your strategic goals.
 </instructions>

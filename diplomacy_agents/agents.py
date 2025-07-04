@@ -59,7 +59,7 @@ class HoldAgent(BaseAgent):
     """Agent that issues no orders (all units hold/wait)."""
 
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
-        """Return an empty order list – interpreted as all units *hold*."""
+        """Return an empty order list: all units hold."""
         return []
 
 

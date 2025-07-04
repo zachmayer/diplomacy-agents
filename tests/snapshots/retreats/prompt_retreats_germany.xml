@@ -132,10 +132,10 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   ],
   "my_orders_by_location": {
     "MUN": [
-      "A MUN R SIL",
-      "A MUN R TYR",
       "A MUN R RUH",
-      "A MUN D"
+      "A MUN R TYR",
+      "A MUN D",
+      "A MUN R SIL"
     ]
   }
 }
@@ -143,7 +143,7 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 dislodged unit(s) that require orders.
+You have 1 dislodged unit(s).
 Return an array of exactly 1 DATC retreat or disband order(s).
 You must submit exactly one order per dislodged unit.
 </instructions>
