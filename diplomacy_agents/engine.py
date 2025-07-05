@@ -8,14 +8,12 @@ from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
 import drawsvg as draw
-
-# Third-party diplomacy engine ------------------------------------------------
 from diplomacy import Game as _RawGame
+from diplomacy.engine.message import Message
 from diplomacy.engine.renderer import Renderer
 from diplomacy.utils import export
 from pydantic import BaseModel, ConfigDict
 
-# Canonical token literals ---------------------------------------------------
 from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 # ---------------------------------------------------------------------------
@@ -36,6 +34,12 @@ class _GameProtocol(Protocol):
     phase_type: PhaseType  # e.g. "M"
     phase: str  # Long phase name, e.g. "SPRING 1901 MOVEMENT"
     is_game_done: bool  # True if the game is over
+
+    # Messaging helpers ---------------------------------------------------
+    def add_message(self, message: Message) -> int: ...
+
+    # Shorthand phase token like "S1901M" (used when creating Message objects)
+    current_short_phase: str  # e.g. "S1901M"
 
     # Public methods --------------------------------------------------------
     def get_current_phase(self) -> str: ...
@@ -75,6 +79,7 @@ class GameStateDTO(BaseModel):
     all_supply_center_counts: dict[Power, int]
     all_supply_center_locations: dict[Power, tuple[Location, ...]]
     all_unit_locations: dict[Power, dict[Location, UnitType]]
+    press_history: tuple[str, ...]
 
 
 class PowerViewDTO(BaseModel):
@@ -113,6 +118,8 @@ class DiplomacyEngine:
         raw_game = _RawGame(rules=rules or default_rules)
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
         self.svg_frames: list[str] = []
+        # Cumulative public‐press history (strings formatted as "POWER: message").
+        self._press_history: list[str] = []
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
@@ -128,6 +135,7 @@ class DiplomacyEngine:
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
             all_unit_locations=self._get_units_by_power(),
+            press_history=tuple(self._press_history),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -205,6 +213,27 @@ class DiplomacyEngine:
     def save(self, file_path: str) -> None:
         """Write the current game to *file_path* in DATC JSON format."""
         export.to_saved_game_format(self._game, file_path, "w")
+
+    # --------------------------------------------------------------
+    # Public press -------------------------------------------------
+    # --------------------------------------------------------------
+
+    def add_public_message(self, sender: Power, message: str) -> None:  # noqa: D401
+        """Forward a public‐press message to the underlying diplomacy engine."""
+        from diplomacy.engine.message import GLOBAL, Message
+
+        # Build and record a server-side message object.
+        self._game.add_message(
+            Message(
+                phase=self._game.current_short_phase,
+                sender=sender,
+                recipient=GLOBAL,
+                message=message,
+            )
+        )
+
+        # Keep a plain-text copy for easy prompt inclusion.
+        self._press_history.append(f"{sender}: {message}")
 
     # ------------------------------------------------------------------
     # Internals

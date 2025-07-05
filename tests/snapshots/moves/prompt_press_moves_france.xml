@@ -4,15 +4,15 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
+You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
 </who-am-i>
 
 <full-game-state>
 {
   "is_game_done": false,
-  "phase": "W1901A",
-  "phase_long": "WINTER 1901 ADJUSTMENTS",
-  "phase_type": "A",
+  "phase": "S1901M",
+  "phase_long": "SPRING 1901 MOVEMENT",
+  "phase_type": "M",
   "year": 1901,
   "all_powers": [
     "AUSTRIA",
@@ -26,8 +26,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
-    "FRANCE": 4,
-    "GERMANY": 2,
+    "FRANCE": 3,
+    "GERMANY": 3,
     "ITALY": 3,
     "RUSSIA": 4,
     "TURKEY": 3
@@ -46,12 +46,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "FRANCE": [
       "BRE",
       "MAR",
-      "PAR",
-      "MUN"
+      "PAR"
     ],
     "GERMANY": [
       "BER",
-      "KIE"
+      "KIE",
+      "MUN"
     ],
     "ITALY": [
       "NAP",
@@ -73,8 +73,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "all_unit_locations": {
     "AUSTRIA": {
       "BUD": "A",
-      "TRI": "F",
-      "BOH": "A"
+      "VIE": "A",
+      "TRI": "F"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -84,12 +84,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "FRANCE": {
       "BRE": "F",
       "MAR": "A",
-      "MUN": "A"
+      "PAR": "A"
     },
     "GERMANY": {
       "KIE": "F",
       "BER": "A",
-      "RUH": "A"
+      "MUN": "A"
     },
     "ITALY": {
       "NAP": "F",
@@ -117,31 +117,59 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 
 <your-power-view>
 {
-  "power": "GERMANY",
-  "my_supply_center_count": 2,
+  "power": "FRANCE",
+  "my_supply_center_count": 3,
   "my_unit_locations": {
-    "KIE": "F",
-    "BER": "A",
-    "RUH": "A"
+    "BRE": "F",
+    "MAR": "A",
+    "PAR": "A"
   },
   "my_home_supply_center_locations": [
-    "BER",
-    "KIE",
-    "MUN"
+    "BRE",
+    "MAR",
+    "PAR"
   ],
   "my_supply_center_locations": [
-    "BER",
-    "KIE"
+    "BRE",
+    "MAR",
+    "PAR"
   ],
   "my_orders_by_location": {
-    "BER": [
-      "A BER D"
+    "BRE": [
+      "F BRE - PIC",
+      "F BRE - ENG",
+      "F BRE S A PAR - PIC",
+      "F BRE S A PAR - GAS",
+      "F BRE - MAO",
+      "F BRE S A MAR - GAS",
+      "F BRE S F LON - ENG",
+      "F BRE H",
+      "F BRE - GAS"
     ],
-    "KIE": [
-      "F KIE D"
+    "MAR": [
+      "A MAR - GAS",
+      "A MAR S F BRE - GAS",
+      "A MAR H",
+      "A MAR S A MUN - BUR",
+      "A MAR - PIE",
+      "A MAR - BUR",
+      "A MAR - SPA",
+      "A MAR S A VEN - PIE",
+      "A MAR S A PAR - BUR",
+      "A MAR S A PAR - GAS"
     ],
-    "RUH": [
-      "A RUH D"
+    "PAR": [
+      "A PAR H",
+      "A PAR S F BRE - GAS",
+      "A PAR S A MUN - BUR",
+      "A PAR - BRE",
+      "A PAR - PIC",
+      "A PAR S F BRE",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MAR - BUR",
+      "A PAR - BUR",
+      "A PAR - GAS",
+      "A PAR S A MAR - GAS"
     ]
   }
 }
@@ -154,6 +182,5 @@ GERMANY: We shall see, Frankreich.
 
 
 <instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
+Your next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.
 </instructions>

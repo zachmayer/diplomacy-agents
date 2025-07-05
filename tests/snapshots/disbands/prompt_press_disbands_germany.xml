@@ -154,6 +154,5 @@ GERMANY: We shall see, Frankreich.
 
 
 <instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
+Your next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.
 </instructions>

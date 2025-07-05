@@ -108,7 +108,11 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "CON": "A",
       "SMY": "A"
     }
-  }
+  },
+  "press_history": [
+    "FRANCE: Greetings all \u2013 may we share the spoils?",
+    "GERMANY: We shall see, Frankreich."
+  ]
 }
 </full-game-state>
 
@@ -137,13 +141,19 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   ],
   "my_orders_by_location": {
     "SEV": [
-      "WAIVE",
       "F SEV B",
-      "A SEV B"
+      "A SEV B",
+      "WAIVE"
     ]
   }
 }
 </your-power-view>
+
+<public-press-history>
+FRANCE: Greetings all – may we share the spoils?
+GERMANY: We shall see, Frankreich.
+</public-press-history>
+
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.

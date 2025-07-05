@@ -8,20 +8,23 @@ caller only needs baseline agents.
 
 from __future__ import annotations
 
+import logging
 import random
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
+from time import perf_counter
 from typing import Any, cast
 
 from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models import KnownModelName
-
-# Straightforward cost helper – globally imported for reuse.
 from tokonomics import calculate_pydantic_cost
 
 from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
-from diplomacy_agents.prompts import build_orders_prompt
+from diplomacy_agents.prompts import build_orders_prompt, build_press_message_prompt
+
+logger = logging.getLogger(__name__)
+
 
 __all__ = [
     "BaseAgent",
@@ -39,15 +42,35 @@ __all__ = [
 class BaseAgent(ABC):
     """Common async interface shared by all power controllers."""
 
+    # All agents carry an evolving public‐press history attached by the orchestrator.
+    press_history: list[str]
+
     def __init__(self, power: Power) -> None:
         """Store the owning *power* token for later reference and initialise cost tracking."""
         self.power = power
         self.total_cost_usd: float = 0.0
+        self.total_runtime_s: float = 0.0
+
+        # Initialise empty press history – orchestrator will mutate this list.
+        self.press_history = []
 
     @abstractmethod
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Return a list of DATC order strings for *power* in the current phase."""
         raise NotImplementedError  # pragma: no cover
+
+    # ------------------------------------------------------------------
+    # Public press ------------------------------------------------------
+    # ------------------------------------------------------------------
+
+    async def get_press_message(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> str:  # noqa: D401
+        """
+        Return a public-press message or an empty string when saying nothing.
+
+        Baseline agents simply remain silent by default.  LLM-backed agents
+        override this method to generate public messages.
+        """
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +146,10 @@ class LLMAgent(BaseAgent):
         )
 
         prompt = build_orders_prompt(_game_state, _view)
+
+        start = perf_counter()
         result = await agent.run(prompt)
+        self.total_runtime_s += perf_counter() - start
 
         usage_obj = result.usage()
         cost = cast(Any, await calculate_pydantic_cost(self.model_name, usage_obj))  # type: ignore[call-arg]
@@ -131,3 +157,34 @@ class LLMAgent(BaseAgent):
 
         # Convert Enum members back to their underlying order strings
         return [o.value for o in result.output]
+
+    # ------------------------------------------------------------------
+    # Press message generation -----------------------------------------
+    # ------------------------------------------------------------------
+
+    async def get_press_message(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> str:  # noqa: D401
+        """Generate a single concise public-press statement (or "" to remain silent)."""
+        # Build the instruction prompt via reusable helper.
+        prompt = build_press_message_prompt(_game_state, _view)
+
+        # pydantic-ai agent returning a simple string.
+        agent = Agent(
+            model=self.model_name,
+            system_prompt=f"You are playing diplomacy as {self.power}. Your goal is to win.",
+            output_type=str,
+            retries=1,
+            output_retries=3,
+        )
+
+        start = perf_counter()
+        result = await agent.run(prompt)
+        self.total_runtime_s += perf_counter() - start
+
+        usage_obj = result.usage()
+        cost = cast(Any, await calculate_pydantic_cost(self.model_name, usage_obj))  # type: ignore[call-arg]
+        self.total_cost_usd += float(cost.total_cost)
+
+        # Normalise – ensure we return a plain string.
+        message = str(result.output).strip()
+        logger.info(f"{self.power} press message: {message}")
+        return message

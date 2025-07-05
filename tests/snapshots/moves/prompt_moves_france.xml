@@ -107,7 +107,11 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
       "CON": "A",
       "SMY": "A"
     }
-  }
+  },
+  "press_history": [
+    "FRANCE: Greetings all \u2013 may we share the spoils?",
+    "GERMANY: We shall see, Frankreich."
+  ]
 }
 </full-game-state>
 
@@ -132,44 +136,50 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   ],
   "my_orders_by_location": {
     "BRE": [
+      "F BRE - PIC",
+      "F BRE - ENG",
       "F BRE S A PAR - PIC",
       "F BRE S A PAR - GAS",
-      "F BRE S F LON - ENG",
-      "F BRE S A MAR - GAS",
       "F BRE - MAO",
-      "F BRE - GAS",
-      "F BRE - ENG",
+      "F BRE S A MAR - GAS",
+      "F BRE S F LON - ENG",
       "F BRE H",
-      "F BRE - PIC"
+      "F BRE - GAS"
     ],
     "MAR": [
       "A MAR - GAS",
-      "A MAR S A PAR - GAS",
-      "A MAR S A PAR - BUR",
-      "A MAR - BUR",
-      "A MAR S A MUN - BUR",
-      "A MAR - SPA",
+      "A MAR S F BRE - GAS",
       "A MAR H",
-      "A MAR S A VEN - PIE",
+      "A MAR S A MUN - BUR",
       "A MAR - PIE",
-      "A MAR S F BRE - GAS"
+      "A MAR - BUR",
+      "A MAR - SPA",
+      "A MAR S A VEN - PIE",
+      "A MAR S A PAR - BUR",
+      "A MAR S A PAR - GAS"
     ],
     "PAR": [
-      "A PAR S F BRE",
-      "A PAR - BUR",
-      "A PAR S A MAR - BUR",
       "A PAR H",
-      "A PAR - PIC",
-      "A PAR - GAS",
-      "A PAR S F BRE - PIC",
-      "A PAR - BRE",
       "A PAR S F BRE - GAS",
       "A PAR S A MUN - BUR",
+      "A PAR - BRE",
+      "A PAR - PIC",
+      "A PAR S F BRE",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MAR - BUR",
+      "A PAR - BUR",
+      "A PAR - GAS",
       "A PAR S A MAR - GAS"
     ]
   }
 }
 </your-power-view>
+
+<public-press-history>
+FRANCE: Greetings all – may we share the spoils?
+GERMANY: We shall see, Frankreich.
+</public-press-history>
+
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
