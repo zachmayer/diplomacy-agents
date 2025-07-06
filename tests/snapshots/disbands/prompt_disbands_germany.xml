@@ -14,23 +14,14 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "phase_long": "WINTER 1901 ADJUSTMENTS",
   "phase_type": "A",
   "year": 1901,
-  "all_powers": [
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY"
-  ],
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 4,
-    "GERMANY": 2,
     "ITALY": 3,
     "RUSSIA": 4,
-    "TURKEY": 3
+    "TURKEY": 3,
+    "GERMANY (YOU)": 2
   },
   "all_supply_center_locations": {
     "AUSTRIA": [
@@ -49,10 +40,6 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "PAR",
       "MUN"
     ],
-    "GERMANY": [
-      "BER",
-      "KIE"
-    ],
     "ITALY": [
       "NAP",
       "ROM",
@@ -68,6 +55,10 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "ANK",
       "CON",
       "SMY"
+    ],
+    "GERMANY (YOU)": [
+      "BER",
+      "KIE"
     ]
   },
   "all_unit_locations": {
@@ -86,11 +77,6 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "MAR": "A",
       "MUN": "A"
     },
-    "GERMANY": {
-      "KIE": "F",
-      "BER": "A",
-      "RUH": "A"
-    },
     "ITALY": {
       "NAP": "F",
       "ROM": "A",
@@ -106,12 +92,13 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
+    },
+    "GERMANY (YOU)": {
+      "KIE": "F",
+      "BER": "A",
+      "RUH": "A"
     }
-  },
-  "press_history": [
-    "FRANCE: Greetings all \u2013 may we share the spoils?",
-    "GERMANY: We shall see, Frankreich."
-  ]
+  }
 }
 </full-game-state>
 
@@ -143,14 +130,13 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "RUH": [
       "A RUH D"
     ]
-  }
+  },
+  "press_messages": [
+    "FRANCE \u2192 ALL: Greetings all \u2013 may we share the spoils?",
+    "GERMANY \u2192 ALL: We shall see, Frankreich."
+  ]
 }
 </your-power-view>
-
-<public-press-history>
-FRANCE: Greetings all – may we share the spoils?
-GERMANY: We shall see, Frankreich.
-</public-press-history>
 
 
 <instructions>

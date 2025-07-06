@@ -52,6 +52,10 @@ install: ## Create virtual-env and install project incl. dev deps using uv
 run: ## Run self-play match with seed 42 via the CLI
 	uv run -m diplomacy_agents.cli play --seed 42
 
+.PHONY: run-full-press
+run-full-press: ## Run self-play match with seed 42 via the CLI
+	uv run -m diplomacy_agents.cli play --seed 42 --message-rounds 3
+
 .PHONY: coverage
 coverage: ## Run tests with coverage reporting (terminal + HTML output)
 	uv run pytest --cov=diplomacy_agents --cov-report=term-missing --cov-report=html

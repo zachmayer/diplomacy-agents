@@ -1,11 +1,4 @@
-"""
-Prompt construction helpers.
-
-Currently only implements a simple builder for the *orders* task.  It embeds a
-JSON serialisation of both the global ``GameStateDTO`` and the power-specific
-``PowerViewDTO`` so that the language model has full context as well as the
-legal orders it may choose from.
-"""
+"""Prompt construction helpers."""
 
 from __future__ import annotations
 
@@ -13,26 +6,32 @@ import json
 
 from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
 
-__all__: list[str] = [
-    "build_orders_prompt",
-    "build_press_message_prompt",
-    "render_press_history",
-    # Internal helper (not exported publicly)
-    "_build_common_prompt",
-]
-
-
-# ---------------------------------------------------------------------------
-# Shared prompt scaffold -----------------------------------------------------
-# ---------------------------------------------------------------------------
+__all__: list[str] = ["build_orders_prompt", "build_message_prompt"]
 
 
 def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
     """Return the common context block used by both orders and press prompts."""
-    game_state_json = json.dumps(game_state.model_dump(mode="json"), indent=2, sort_keys=False)
-    view_json = json.dumps(view.model_dump(mode="json"), indent=2, sort_keys=False)
+    # Convert to plain dict so we can annotate *your* power keys with a suffix.
+    game_state_dict = game_state.model_dump(mode="json")
 
-    history_block = render_press_history(game_state)
+    # Append " (YOU)" to the requesting power's keys in the board‐wide mappings.
+    for field in [
+        "all_supply_center_counts",
+        "all_supply_center_locations",
+        "all_unit_locations",
+    ]:
+        if field in game_state_dict and view.power in game_state_dict[field]:
+            mapping = game_state_dict[field]
+            mapping[f"{view.power} (YOU)"] = mapping.pop(view.power)
+
+    # Remove redundant info not needed for language model context.
+    game_state_dict.pop("all_powers", None)
+
+    game_state_json = json.dumps(game_state_dict, indent=2, sort_keys=False)
+    # The ``press_messages`` list contains third‐party ``Message`` objects that
+    # aren't JSON‐serialisable by default.  Use the ``fallback`` hook so
+    # pydantic converts them to string via ``str(obj)`` during dumping.
+    view_json = json.dumps(view.model_dump(mode="json", fallback=str), indent=2, sort_keys=False)
 
     return f"""
 <main-goal>
@@ -50,30 +49,11 @@ You are power {view.power} in phase {game_state.phase_long} ({game_state.phase})
 <your-power-view>
 {view_json}
 </your-power-view>
-
-<public-press-history>
-{history_block}
-</public-press-history>
 """
 
 
-# ---------------------------------------------------------------------------
-# Orders prompt --------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
-    """
-    Return an instruction prompt for the *orders* agent.
-
-    The prompt contains four parts:
-
-    1. A short *goal* reminding the model of the win condition.
-    2. The current phase and the power the model is playing.
-    3. A JSON dump of the complete public ``GameStateDTO``.
-    4. A JSON dump of the requesting power's ``PowerViewDTO`` including the
-       ``orders_by_location`` mapping which enumerates all legal DATC orders.
-    """
+def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
+    """Return an instruction prompt for the *orders* agent."""
     prompt = _build_common_prompt(game_state, view)
 
     # ------------------------------------------------------------------
@@ -111,23 +91,25 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  #
     return prompt
 
 
-def build_press_message_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
-    """
-    Return an instruction prompt for the *public-press* message generator.
-
-    Uses the same structure as the orders prompt so the model sees identical
-    context; only the final *instructions* section differs.
-    """
+def build_message_prompt(
+    game_state: GameStateDTO,
+    view: PowerViewDTO,
+    rounds_left: int,
+) -> str:
+    """Return the text prompt instructing the LLM to send public/private messages."""
     prompt = _build_common_prompt(game_state, view)
+    prompt += f"""
+<rounds-left>
+You have {rounds_left} rounds left to send messages. Make this round count!
+</rounds-left>
 
-    prompt += "\n\n<instructions>\nYour next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.\n</instructions>"
+<instructions>
+Respond with a JSON object containing at most these keys:
+ALL, ENGLAND, FRANCE, GERMANY, ITALY, RUSSIA, TURKEY, AUSTRIA.
+Omit any key you don't wish to use or set its value to null. Example:
+'{{"ALL": "Hello", "FRANCE": "Salut"}}'
+Each value must be a short plain string (<= 30 tokens).
+</instructions>
+"""
 
     return prompt
-
-
-def render_press_history(game_state: GameStateDTO, limit: int = 50) -> str:  # noqa: D401
-    """Return the last *limit* public-press messages as a newline-separated string (or '<none yet>')."""
-    seq = getattr(game_state, "press_history", ())
-    if not seq:
-        return "<none yet>"
-    return "\n".join(seq[-limit:])

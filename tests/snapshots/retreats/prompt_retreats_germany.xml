@@ -14,23 +14,14 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   "phase_long": "FALL 1901 RETREATS",
   "phase_type": "R",
   "year": 1901,
-  "all_powers": [
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY"
-  ],
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
-    "GERMANY": 3,
     "ITALY": 3,
     "RUSSIA": 4,
-    "TURKEY": 3
+    "TURKEY": 3,
+    "GERMANY (YOU)": 3
   },
   "all_supply_center_locations": {
     "AUSTRIA": [
@@ -48,11 +39,6 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
       "MAR",
       "PAR"
     ],
-    "GERMANY": [
-      "BER",
-      "KIE",
-      "MUN"
-    ],
     "ITALY": [
       "NAP",
       "ROM",
@@ -68,6 +54,11 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
       "ANK",
       "CON",
       "SMY"
+    ],
+    "GERMANY (YOU)": [
+      "BER",
+      "KIE",
+      "MUN"
     ]
   },
   "all_unit_locations": {
@@ -86,11 +77,6 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
       "MAR": "A",
       "MUN": "A"
     },
-    "GERMANY": {
-      "KIE": "F",
-      "BER": "A",
-      "MUN": "*A"
-    },
     "ITALY": {
       "NAP": "F",
       "ROM": "A",
@@ -106,12 +92,13 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
+    },
+    "GERMANY (YOU)": {
+      "KIE": "F",
+      "BER": "A",
+      "MUN": "*A"
     }
-  },
-  "press_history": [
-    "FRANCE: Greetings all \u2013 may we share the spoils?",
-    "GERMANY: We shall see, Frankreich."
-  ]
+  }
 }
 </full-game-state>
 
@@ -136,19 +123,18 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   ],
   "my_orders_by_location": {
     "MUN": [
+      "A MUN R RUH",
       "A MUN D",
       "A MUN R TYR",
-      "A MUN R RUH",
       "A MUN R SIL"
     ]
-  }
+  },
+  "press_messages": [
+    "FRANCE \u2192 ALL: Greetings all \u2013 may we share the spoils?",
+    "GERMANY \u2192 ALL: We shall see, Frankreich."
+  ]
 }
 </your-power-view>
-
-<public-press-history>
-FRANCE: Greetings all – may we share the spoils?
-GERMANY: We shall see, Frankreich.
-</public-press-history>
 
 
 <instructions>

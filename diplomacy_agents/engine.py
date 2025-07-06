@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from pathlib import Path
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, cast, runtime_checkable
 
-import drawsvg as draw
 from diplomacy import Game as _RawGame
-from diplomacy.engine.message import Message
+from diplomacy.engine.message import GLOBAL, Message
 from diplomacy.engine.renderer import Renderer
 from diplomacy.utils import export
 from pydantic import BaseModel, ConfigDict
@@ -23,6 +21,32 @@ from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
 
 type Orders = list[str]  # TODO: should this be a tuple?
 
+# Structural typing stub for the third-party ``Message`` class – we only rely on
+# a handful of public attributes / methods, so a lightweight ``Protocol`` is
+# sufficient and gives full static-type safety without wrapping the object.
+
+
+@runtime_checkable
+class MessageLike(Protocol):
+    """Minimal subset of the third-party ``Message`` interface we consume."""
+
+    sender: Power
+    recipient: Power
+    message: str
+    time_sent: int | None
+
+    def is_global(self) -> bool:  # noqa: D401
+        """Return ``True`` if the message was addressed to everyone."""
+        ...
+
+
+# Covariant containers so we avoid the usual list/dict invariance headaches.
+# Raw engine mapping used internally
+type MessageMap = Mapping[int, MessageLike]
+
+# Public-facing view uses *formatted strings*, not raw Message objects.
+type MessageSeq = Sequence[str]
+
 
 @runtime_checkable
 class _GameProtocol(Protocol):
@@ -34,6 +58,7 @@ class _GameProtocol(Protocol):
     phase_type: PhaseType  # e.g. "M"
     phase: str  # Long phase name, e.g. "SPRING 1901 MOVEMENT"
     is_game_done: bool  # True if the game is over
+    messages: MessageMap
 
     # Messaging helpers ---------------------------------------------------
     def add_message(self, message: Message) -> int: ...
@@ -55,6 +80,15 @@ class _GameProtocol(Protocol):
     def set_orders(self, power: Power, orders: Orders) -> None: ...
 
     def process(self) -> None: ...
+
+    # Helper for visibility filtering of messages.
+    def filter_messages(
+        self,
+        messages: MessageMap,
+        game_role: Power,
+        timestamp_from: int | None = None,
+        timestamp_to: int | None = None,
+    ) -> MessageMap: ...
 
 
 # ---------------------------------------------------------------------------
@@ -79,13 +113,12 @@ class GameStateDTO(BaseModel):
     all_supply_center_counts: dict[Power, int]
     all_supply_center_locations: dict[Power, tuple[Location, ...]]
     all_unit_locations: dict[Power, dict[Location, UnitType]]
-    press_history: tuple[str, ...]
 
 
 class PowerViewDTO(BaseModel):
     """Perspective-specific snapshot for *one* power."""
 
-    model_config = ConfigDict(strict=True, frozen=True)
+    model_config = ConfigDict(strict=True, frozen=True, arbitrary_types_allowed=False)
 
     # Scalars -----------------------------------------------------------------
     power: Power
@@ -97,6 +130,7 @@ class PowerViewDTO(BaseModel):
     my_home_supply_center_locations: tuple[Location, ...]
     my_supply_center_locations: tuple[Location, ...]
     my_orders_by_location: dict[Location, tuple[str, ...]]
+    press_messages: tuple[str, ...]
 
     @property
     def orders_list(self) -> Orders:
@@ -109,6 +143,19 @@ class PowerViewDTO(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def format_message(m: MessageLike) -> str:
+    """Return human-readable ``sender → recipient: text`` string."""
+    recipient = "ALL" if m.is_global() else m.recipient
+    # Use Unicode arrow with surrounding spaces for clarity.
+    return f"{m.sender} → {recipient}: {m.message}"
+
+
+def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
+    """Parse a unit string like 'A PAR' into typed components."""
+    unit_type_str, loc_str = unit_str.split(" ", 1)
+    return cast(UnitType, unit_type_str), cast(Location, loc_str)
+
+
 class DiplomacyEngine:
     """Very thin wrapper exposing just the bits we need."""
 
@@ -117,9 +164,6 @@ class DiplomacyEngine:
         default_rules: set[str] = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"}
         raw_game = _RawGame(rules=rules or default_rules)
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
-        self.svg_frames: list[str] = []
-        # Cumulative public‐press history (strings formatted as "POWER: message").
-        self._press_history: list[str] = []
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
@@ -130,12 +174,11 @@ class DiplomacyEngine:
             phase=phase_token,
             phase_long=str(self._game.phase),
             phase_type=self._game.phase_type,
-            year=int(phase_token[1:5]) if len(phase_token) >= 5 and phase_token[1:5].isdigit() else 0,
+            year=self._extract_year_from_phase(phase_token) or 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
             all_unit_locations=self._get_units_by_power(),
-            press_history=tuple(self._press_history),
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
@@ -150,7 +193,7 @@ class DiplomacyEngine:
         # Parse unit list like ["A PAR", "F BRE"] into {"PAR": "A", "BRE": "F"}
         units_map: dict[Location, UnitType] = {}
         for unit_str in self._game.get_units(power):
-            unit_type, loc = self._split_unit(unit_str)
+            unit_type, loc = _split_unit(unit_str)
             units_map[loc] = unit_type
 
         # Home supply centres where *power* can build.
@@ -165,6 +208,7 @@ class DiplomacyEngine:
             my_supply_center_locations=tuple(self._game.get_centers(power)),
             my_unit_locations=units_map,
             my_orders_by_location=valid,
+            press_messages=tuple(self.get_current_phase_messages(power)),
         )
 
     def submit_orders(self, power: Power, orders: Orders) -> None:
@@ -172,43 +216,19 @@ class DiplomacyEngine:
         self._game.set_orders(power, orders)
 
     def process_turn(self) -> None:
-        """Advance the game one phase while recording a snapshot *before* the move."""
-        # Capture the board state *before* orders are resolved so the animation shows
-        # the pre‐resolution position for every phase
-        self.capture_frame()
-
-        # Resolve the phase in the underlying engine.
+        """Advance the game one phase."""
         self._game.process()
 
-    def capture_frame(self) -> None:
-        """Append the current board SVG to the internal frame buffer."""
+    def render_svg(self, *, incl_orders: bool = True, incl_abbrev: bool = True) -> str:
+        """
+        Return the current board as an SVG string.
+
+        This wraps the upstream ``Renderer`` so higher-level code can decide
+        *when* to capture frames without the engine having to maintain an
+        internal buffer.
+        """
         renderer: Callable[..., str] = Renderer(self._game).render
-        svg_xml: str = renderer(incl_orders=True, incl_abbrev=True)
-        self.svg_frames.append(svg_xml)
-
-    def save_animation(self, output_path: str) -> None:
-        """Create a simple SMIL animation from ``self.svg_frames`` using drawsvg."""
-        if not self.svg_frames:
-            return
-
-        fps = 2
-        duration = len(self.svg_frames) / fps
-        config = draw.types.SyncedAnimationConfig(
-            duration=duration,  # Seconds
-            show_playback_progress=True,
-            show_playback_controls=True,
-        )
-
-        d = draw.Drawing(1200, 850, animation_config=config)
-        for i, svg in enumerate(self.svg_frames):
-            img_any: Any = draw.Image(0, 0, 1200, 850, data=svg.encode("utf-8"), mime_type="image/svg+xml")
-            img_any.add_key_frame(i / fps, opacity=0)
-            img_any.add_key_frame(i / fps + 0.01, opacity=1)
-            img_any.add_key_frame(i / fps + 1, opacity=1)
-            img_any.add_key_frame(i / fps + 1.01, opacity=0)
-            d.append(img_any)
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        d.save_svg(output_path)
+        return renderer(incl_orders=incl_orders, incl_abbrev=incl_abbrev)
 
     def save(self, file_path: str) -> None:
         """Write the current game to *file_path* in DATC JSON format."""
@@ -218,32 +238,20 @@ class DiplomacyEngine:
     # Public press -------------------------------------------------
     # --------------------------------------------------------------
 
-    def add_public_message(self, sender: Power, message: str) -> None:  # noqa: D401
-        """Forward a public‐press message to the underlying diplomacy engine."""
-        from diplomacy.engine.message import GLOBAL, Message
-
-        # Build and record a server-side message object.
-        self._game.add_message(
-            Message(
-                phase=self._game.current_short_phase,
-                sender=sender,
-                recipient=GLOBAL,
-                message=message,
-            )
+    def add_message(self, sender: Power, message: str, recipient: Power | None = None) -> None:
+        """Record a public (recipient=None) or private 1→1 message in the engine."""
+        msg = Message(
+            phase=self._game.current_short_phase,
+            sender=sender,
+            recipient=GLOBAL if recipient is None else recipient,
+            message=message,
         )
 
-        # Keep a plain-text copy for easy prompt inclusion.
-        self._press_history.append(f"{sender}: {message}")
+        self._game.add_message(msg)
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
-
-    @staticmethod
-    def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
-        """Parse a unit string like 'A PAR' into typed components."""
-        unit_type_str, loc_str = unit_str.split(" ", 1)
-        return cast(UnitType, unit_type_str), cast(Location, loc_str)
 
     def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
         """Return {power: {loc: unit_type}} nested mapping for all units."""
@@ -251,7 +259,7 @@ class DiplomacyEngine:
         for power in self._game.powers:
             per_power: dict[Location, UnitType] = {}
             for unit_str in self._game.get_units(power):
-                unit_type, loc = self._split_unit(unit_str)
+                unit_type, loc = _split_unit(unit_str)
                 per_power[loc] = unit_type
             mp[power] = per_power
         return mp
@@ -261,10 +269,39 @@ class DiplomacyEngine:
         dislodged: list[Location] = []
         for power in self._game.powers:
             for unit_str in self._game.get_units(power):
-                unit_type, loc = self._split_unit(unit_str)
+                unit_type, loc = _split_unit(unit_str)
                 if unit_type.startswith("*"):
                     dislodged.append(loc)
         return dislodged
+
+    def _extract_year_from_phase(self, phase_token: str) -> int | None:
+        """Return the four-digit year component from a phase token like "S1901M"."""
+        if len(phase_token) >= 5 and phase_token[1:5].isdigit():
+            return int(phase_token[1:5])
+        return None
+
+    def get_current_phase_messages(self, power: Power) -> list[str]:
+        """
+        Return chronological messages visible to *power* from a single phase.
+
+        The upstream ``diplomacy`` engine keeps *current-phase* messages in
+        ``self._game.messages`` and archives completed phases in
+        ``self._game.messages_history``
+
+        Parameters
+        ----------
+        power
+            The in-game power whose perspective we take when filtering visibility.
+
+        """
+        filtered: MessageMap = self._game.filter_messages(  # type: ignore[attr-defined]
+            self._game.messages,
+            game_role=power,
+        )
+
+        # ``time_sent`` may be ``None`` during early tests; treat as 0.
+        messages_sorted = sorted(filtered.values(), key=lambda m: (m.time_sent or 0))
+        return [format_message(m) for m in messages_sorted]
 
 
 __all__ = [
@@ -276,4 +313,8 @@ __all__ = [
     "UnitType",
     "PhaseType",
     "Orders",
+    "MessageLike",
+    "MessageSeq",
+    "MessageMap",
+    "format_message",
 ]

@@ -3,17 +3,35 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import logging
 import random
 from collections import defaultdict
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal, Protocol, cast
 
+import drawsvg as draw
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
+from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, OutboundPress, RandomAgent
 from diplomacy_agents.engine import DiplomacyEngine, Orders, Power
 
 AgentSpecName = KnownModelName | Literal["hold", "random"]
+
+
+class _SvgImageLike(Protocol):  # pragma: no cover
+    """Subset of the ``drawsvg.Image`` interface used here (only ``add_key_frame``)."""
+
+    def add_key_frame(self, time: float, *, opacity: float) -> None: ...
+
+
+class _SvgDrawingLike(Protocol):  # pragma: no cover
+    """Subset of the ``drawsvg.Drawing`` interface we rely on."""
+
+    def append(self, element: _SvgImageLike, *, z: int | None = None) -> None: ...
+
+    def save_svg(self, fname: str, encoding: str = "utf-8", context: None | dict[str, Any] = None) -> None: ...
 
 
 class PowerModelMap(dict[Power, AgentSpecName]):
@@ -66,6 +84,7 @@ class GameOrchestrator:
         self,
         *,
         model_map: PowerModelMap | None = None,
+        messaging_rounds: int = 3,
         seed: int | None = None,
     ) -> None:
         """
@@ -78,17 +97,21 @@ class GameOrchestrator:
             ``KnownModelName``.  When given the orchestrator will **not** pick
             models randomly.  The mapping must cover *exactly* the standard
             seven powers; otherwise a ``ValueError`` is raised.
+        messaging_rounds
+            Number of press messages rounds to run per movement phase.
         seed
-            Optional random seed to make random assignments deterministic –
-            useful for repeatable tests.
+            Optional random seed for the random model assignments
 
         """
+        # 0 rounds = gunboat (no press).
+        self.MESSAGING_ROUNDS: int = messaging_rounds
+
         self.engine = DiplomacyEngine()
+        # Buffer of raw SVG strings captured throughout the game (one per phase)
+        self.svg_frames: list[str] = []
 
-        # Store the seed and derive a shared filename suffix for reproducibility.
+        # Store seed and seed RNG if provided.
         self.seed = seed
-        self._file_suffix = f"_{seed}" if seed is not None else ""
-
         if seed is not None:
             random.seed(seed)
 
@@ -108,12 +131,13 @@ class GameOrchestrator:
         else:
             self.model_map = model_map
 
-        # Log the frozen power assignments at game start for easier debugging.
-        logger.info("Initial: %s", self.model_map)
+        # Deterministic game hash ------------------------------------------
+        mapping_repr = json.dumps(dict(self.model_map), sort_keys=True)
+        hash_input = f"{seed}:{messaging_rounds}:{mapping_repr}"
+        self.game_hash = hashlib.sha1(hash_input.encode()).hexdigest()[:8]
+        self._file_suffix = f"_{self.game_hash}"
 
-        # Freeze the assignment at instantiation time so subsequent phases keep
-        # using the same underlying model for each power regardless of board
-        # changes or eliminations.
+        # Instantiate the agents.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
         # Running tally of USD cost per power.
@@ -122,29 +146,50 @@ class GameOrchestrator:
         # Running tally of LLM runtime (seconds) per power.
         self._runtime_s_by_power: dict[Power, float] = defaultdict(float)
 
+        # Aggregate press log for post-game export.
+        self._press_log: list[tuple[str, int, str, str, str]] = []  # (phase, round, sender, recipient, text)
+
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
     # ------------------------------------------------------------------
 
+    async def play_turn(self) -> None:
+        """Run all the parts of a single turn (one phase advance)."""
+        # Record board before any new orders/messages.
+        self._capture_frame()
+
+        state = self.engine.get_game_state()
+        if state.phase_type == "M" and self.MESSAGING_ROUNDS > 0:
+            await self._run_messaging_phase()
+        await self._run_orders_phase()
+        self._log_running_totals()
+        self.engine.process_turn()
+
     async def run(self) -> dict[Power, int]:
-        """Run the match to completion – returns final supply-centre counts."""
+        """Run the match to completion - returns final supply-centre counts."""
+        logger.info("Initial: %s (hash=%s)", self.model_map, self.game_hash)
         while not self.engine.get_game_state().is_game_done:
-            await self._play_turn()
+            await self.play_turn()
+            state = self.engine.get_game_state()
+            logger.info(f"{state.phase}: {state.all_supply_center_counts}")
 
         # Capture final board state after the game concludes.
-        self.engine.capture_frame()
+        self._capture_frame()
 
         # Persist full game data and board animation.
         self.engine.save(f"game_saves/game_state{self._file_suffix}.datc")
-        self.engine.save_animation(f"board_svg/board_animation{self._file_suffix}.svg")
+        self._save_animation(Path(f"board_svg/board_animation{self._file_suffix}.svg"))
 
         total_cost = sum(self._cost_usd_by_power.values())
-        logger.info("Total LLM cost: $%.4f", total_cost)
-        logger.info(f"Total LLM cost across all powers: ${total_cost:.5f}")
-
         total_runtime = sum(self._runtime_s_by_power.values())
+        logger.info("Total LLM cost: $%.4f", total_cost)
         logger.info("Total agent runtime: %.2f s", total_runtime)
-        logger.info(f"Total agent runtime across all powers: {total_runtime:.2f}s")
+
+        logger.debug(f"Total LLM cost across all powers: ${total_cost:.5f}")
+        logger.debug(f"Total agent runtime across all powers: {total_runtime:.2f}s")
+
+        # Persist press history markdown (if any).
+        self._export_press_history()
 
         return self.engine.get_game_state().all_supply_center_counts
 
@@ -157,7 +202,7 @@ class GameOrchestrator:
         state = self.engine.get_game_state()
 
         agents: dict[Power, BaseAgent] = {}
-        for p in state.all_powers:
+        for p in state.all_supply_center_counts:
             spec = self.model_map[p]
             if spec == "hold":
                 agents[p] = HoldAgent(p)
@@ -167,69 +212,99 @@ class GameOrchestrator:
                 agents[p] = LLMAgent(p, spec)
         return agents
 
+    def _update_agent_metrics(self, power: Power, agent: BaseAgent) -> None:  # noqa: D401
+        """Update cumulative cost/runtime tallies for *power* if LLM-backed."""
+        if isinstance(agent, LLMAgent):
+            self._cost_usd_by_power[power] = agent.total_cost_usd
+            self._runtime_s_by_power[power] = agent.total_runtime_s
+
+    def _log_running_totals(self) -> None:  # noqa: D401
+        """Emit debug-level summary of cumulative cost and runtime."""
+        cost_by_power = dict(self._cost_usd_by_power)
+        runtime_by_power = dict(self._runtime_s_by_power)
+        logger.debug(f"Running Cost (USD): {sum(cost_by_power.values()):.2f} ({cost_by_power})")
+        logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")
+
+    def _export_press_history(self) -> None:  # noqa: D401
+        """Write collected press messages to a Markdown file grouped by phase and round."""
+        if not self._press_log:  # Gunboat or no messages recorded.
+            return
+
+        grouped: dict[str, list[tuple[int, str, str, str]]] = defaultdict(list)
+        for phase, rnd, sender, recipient, text in self._press_log:
+            grouped[phase].append((rnd, sender, recipient, text))
+
+        lines: list[str] = [f"# Press History ({self.game_hash})\n", "## Power Assignments"]
+        for p in sorted(self.model_map):
+            lines.append(f"- {p}: {self.model_map[p]}")
+        lines.append("")
+        lines.append("")
+        for phase in sorted(grouped):
+            lines.append(f"## {phase}")
+            # Group by round within the phase.
+            rounds = sorted({entry[0] for entry in grouped[phase]})
+            for rnd in rounds:
+                lines.append(f"\n### Round {rnd}\n")
+                for entry in grouped[phase]:
+                    if entry[0] == rnd:
+                        _, sender, recipient, text = entry
+                        lines.append(f"- {sender} → {recipient}: {text}")
+            lines.append("")
+
+        output_path = Path(f"press_history/press{self._file_suffix}.md")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text("\n".join(lines))
+
     # ------------------------------------------------------------------
-    # High-level per-phase driver --------------------------------------
+    # Messaging handling ---------------------------------------------------
     # ------------------------------------------------------------------
 
-    async def _play_turn(self) -> None:
-        """Run orders every phase and public press only during movement phases."""
-        # Public press only makes sense during Movement phases ("M"). Skip
-        # press rounds in Adjustment (builds/disbands) and Retreat phases to
-        # reduce unnecessary LLM calls and cluttered history.
+    async def _run_messaging_phase(self) -> None:
+        """Run ``MESSAGING_ROUNDS`` press volleys where agents may speak publicly or privately."""
         state = self.engine.get_game_state()
-        if state.phase_type == "M":
-            # 1. Public press (up to 3 rounds) -----------------------------
-            await self._run_public_press_rounds()
-
-        # 2. Orders -------------------------------------------------------
-        await self._run_orders_phase()
-
-    # Retain old name as thin wrapper for backward compatibility.
-    async def _run_single_phase(self) -> None:  # pragma: no cover
-        await self._play_turn()
-
-    # ------------------------------------------------------------------
-    # Press handling -----------------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def _run_public_press_rounds(self) -> None:
-        """Execute up to 10 asynchronous public-press rounds."""
-        for _ in range(3):
-            state = self.engine.get_game_state()
-
-            # Launch one press task per *living* power (skip eliminated ones).
-            tasks: dict[Power, asyncio.Task[str]] = {}
-            for power in state.all_powers:
+        for _round in range(self.MESSAGING_ROUNDS):
+            # Each task returns an ``OutboundPress`` object.
+            tasks: dict[Power, asyncio.Task[OutboundPress]] = {}
+            for power in state.all_supply_center_counts:
                 view = self.engine.get_power_view(power)
-                task = asyncio.create_task(self.agents[power].get_press_message(state, view))
+
+                # Skip eliminated powers (no remaining supply centres).
+                if view.my_supply_center_count == 0:
+                    continue
+
+                # Compute rounds left *after* this one to inform message prompt guidance.
+                rounds_left = self.MESSAGING_ROUNDS - _round
+
+                # Ask the agent to generate messages.
+                agent = self.agents[power]
+                task = asyncio.create_task(agent.get_messages(state, view, rounds_left=rounds_left))
                 tasks[power] = task
+
+            if not tasks:
+                return
 
             await asyncio.gather(*tasks.values())
 
-            round_messages: list[str] = []
+            # Persist messages & update cost/runtime tallies.
             for power, task in tasks.items():
-                msg = task.result().strip()
-                if msg:  # ignore empty strings
-                    formatted = f"{power}: {msg}"
-                    round_messages.append(formatted)
+                messages = task.result()
+                for recipient_key, text in messages.model_dump(exclude_none=True).items():
+                    text = text.strip()
+                    if not text:
+                        continue
+                    logger.debug(f"{power} → {recipient_key}: {text}")
+                    self._press_log.append((state.phase, _round, power, recipient_key, text))
 
-                    # Persist via underlying diplomacy engine.
-                    self.engine.add_public_message(power, msg)
+                    if recipient_key == "ALL":
+                        self.engine.add_message(power, text, None)  # None==All
+                    else:
+                        self.engine.add_message(power, text, cast(Power, recipient_key))
 
-                # Update running cost/runtime tallies for LLM agents.
-                agent = self.agents[power]
-                if isinstance(agent, LLMAgent):
-                    self._cost_usd_by_power[power] = agent.total_cost_usd
-                    self._runtime_s_by_power[power] = agent.total_runtime_s
+                self._update_agent_metrics(power, self.agents[power])
 
-            # Stop early if everyone stayed silent.
-            if not round_messages:
-                break
-
-        # Share updated history with agents for future prompts.
-        full_history = list(self.engine.get_game_state().press_history)
-        for agent in self.agents.values():
-            agent.press_history = full_history
+        # Update press history
+        for agent_power, agent in self.agents.items():
+            agent.press_history = list(self.engine.get_current_phase_messages(agent_power))
 
     # ------------------------------------------------------------------
     # Orders handling ----------------------------------------------------
@@ -239,46 +314,72 @@ class GameOrchestrator:
         """Collect orders from all surviving powers and process the phase."""
         # Log current supply‐centre distribution for easier debugging/analysis.
         state = self.engine.get_game_state()
-        logger.info(f"{state.phase}: {state.all_supply_center_counts}")
 
         # Kick off one asynchronous orders task per surviving power.
         tasks: dict[Power, asyncio.Task[Orders]] = {}
-        for power in state.all_powers:
+        for power in state.all_supply_center_counts:
             view = self.engine.get_power_view(power)
-            if not view.orders_list:  # eliminated – skip
+            if not view.orders_list:  # No possible orders – skip
                 continue
             tasks[power] = asyncio.create_task(self.agents[power].get_orders(state, view))
 
         if not tasks:
-            return  # all powers eliminated – game should be over
+            return  # No power has possible orders: proceed to next phase (e.g. game over, or no builds in build phase)
 
         await asyncio.gather(*tasks.values())
 
         for power, task in tasks.items():
             self.engine.submit_orders(power, task.result())
+            self._update_agent_metrics(power, self.agents[power])
 
-            agent = self.agents[power]
-            if isinstance(agent, LLMAgent):
-                self._cost_usd_by_power[power] = agent.total_cost_usd
-                self._runtime_s_by_power[power] = agent.total_runtime_s
+    # ------------------ Snapshot / animation helpers -------------------
 
-        # Debug‐level running totals.
-        cost_by_power = dict(self._cost_usd_by_power)
-        logger.debug(f"Running Cost (USD): {sum(cost_by_power.values()):.2f} ({cost_by_power})")
+    def _capture_frame(self) -> None:
+        """Render the current board and append the SVG string to the buffer."""
+        svg_xml = self.engine.render_svg(incl_orders=True, incl_abbrev=True)
+        self.svg_frames.append(svg_xml)
 
-        runtime_by_power = dict(self._runtime_s_by_power)
-        logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")
+    def _save_animation(self, output_path: Path) -> None:
+        """Persist ``self.svg_frames`` as a simple SMIL animation (drawsvg)."""
+        if not self.svg_frames:
+            return
 
-        self.engine.process_turn()
+        fps = 2
+        duration = len(self.svg_frames) / fps
+        config = draw.types.SyncedAnimationConfig(
+            duration=duration,
+            show_playback_progress=True,
+            show_playback_controls=True,
+        )
 
+        d = cast(_SvgDrawingLike, draw.Drawing(1200, 850, animation_config=config))
+        for i, svg in enumerate(self.svg_frames):
+            img = cast(
+                _SvgImageLike,
+                draw.Image(
+                    0,
+                    0,
+                    1200,
+                    850,
+                    data=svg.encode("utf-8"),
+                    mime_type="image/svg+xml",
+                ),
+            )
+            img.add_key_frame(i / fps, opacity=0)
+            img.add_key_frame(i / fps + 0.01, opacity=1)
+            img.add_key_frame(i / fps + 1, opacity=1)
+            img.add_key_frame(i / fps + 1.01, opacity=0)
+            d.append(img)
 
-# Convenience wrapper --------------------------------------------------------
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        d.save_svg(str(output_path))
 
 
 def run_game(
     *,
     model_map: PowerModelMap | None = None,
     seed: int | None = None,
+    messaging_rounds: int = 3,
 ) -> dict[Power, int]:
     """
     Blocking helper for synchronous callers (e.g. CLI).
@@ -288,7 +389,11 @@ def run_game(
     """
 
     async def _runner() -> dict[Power, int]:
-        orch = GameOrchestrator(model_map=model_map, seed=seed)
+        orch = GameOrchestrator(
+            model_map=model_map,
+            seed=seed,
+            messaging_rounds=messaging_rounds,
+        )
         return await orch.run()
 
     return asyncio.run(_runner())

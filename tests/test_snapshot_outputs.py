@@ -15,11 +15,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
-from diplomacy_agents.prompts import build_orders_prompt, build_press_message_prompt
+from diplomacy_agents.literals import Power
+from diplomacy_agents.prompts import build_message_prompt, build_orders_prompt
 
 # type: ignore[reportPrivateUsage]
 from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
@@ -29,13 +31,23 @@ from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
 )
 
 
-def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> Path:  # noqa: D401
-    """Generate disk snapshot artefacts and return written path."""
+# Power is a plain ``str`` value at runtime – annotate as ``str`` to keep Pyright happy.
+def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> tuple[Path, Path]:
+    """
+    Generate and write the *orders* and *press* prompts.
+
+    Returns
+    -------
+    (orders_path, press_path)
+        Filesystem paths of the written prompt XML files so callers can assert
+        on their existence (or open them for inspection).
+
+    """
     engine = factory()
 
-    # Inject a couple of fake public‐press messages for snapshot context.
-    engine.add_public_message("FRANCE", "Greetings all – may we share the spoils?")
-    engine.add_public_message("GERMANY", "We shall see, Frankreich.")
+    # Seed some public‐press context so the prompt isn't empty.
+    engine.add_message(cast(Power, "FRANCE"), "Greetings all – may we share the spoils?")
+    engine.add_message(cast(Power, "GERMANY"), "We shall see, Frankreich.")
 
     game_state = engine.get_game_state()
     pov: PowerViewDTO = engine.get_power_view(power)  # type: ignore[arg-type]
@@ -43,16 +55,24 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt_filename = f"prompt_{tag}_{power.lower()}.xml"
-    prompt_path = base_dir / prompt_filename
-    prompt_path.write_text(build_orders_prompt(game_state, pov))
+    # Helper to avoid repetition when writing files.
+    def _write(filename: str, content: str) -> Path:
+        path = base_dir / filename
+        path.write_text(content)
+        return path
 
-    # Also generate the public-press prompt (initially with empty history).
-    press_prompt_filename = f"prompt_press_{tag}_{power.lower()}.xml"
-    press_prompt_path = base_dir / press_prompt_filename
-    press_prompt_path.write_text(build_press_message_prompt(game_state, pov))
+    file_prefix = f"{tag}_{power.lower()}"
 
-    return prompt_path
+    orders_path = _write(
+        f"prompt_{file_prefix}.xml",
+        build_orders_prompt(game_state, pov),
+    )
+    press_path = _write(
+        f"prompt_press_{file_prefix}.xml",
+        build_message_prompt(game_state, pov, 3),
+    )
+
+    return orders_path, press_path
 
 
 @pytest.mark.parametrize(
@@ -65,9 +85,8 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     ],
 )
 def test_snapshot_prompt(case_tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> None:
-    """Generate the prompt snapshot for *(case, power)* and assert it exists."""
-    path = _generate_snapshot(case_tag, power, factory)
-    assert path.exists()
-    # Ensure press prompt also exists.
-    press_path = path.parent / f"prompt_press_{case_tag}_{power.lower()}.xml"
+    """Generate snapshot files for *(case, power)* and assert they exist."""
+    orders_path, press_path = _generate_snapshot(case_tag, power, factory)
+
+    assert orders_path.exists()
     assert press_path.exists()

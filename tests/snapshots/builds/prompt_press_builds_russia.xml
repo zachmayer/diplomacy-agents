@@ -14,23 +14,14 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "phase_long": "WINTER 1901 ADJUSTMENTS",
   "phase_type": "A",
   "year": 1901,
-  "all_powers": [
-    "AUSTRIA",
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY"
-  ],
   "all_supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
     "GERMANY": 3,
     "ITALY": 3,
-    "RUSSIA": 5,
-    "TURKEY": 3
+    "TURKEY": 3,
+    "RUSSIA (YOU)": 5
   },
   "all_supply_center_locations": {
     "AUSTRIA": [
@@ -58,17 +49,17 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "ROM",
       "VEN"
     ],
-    "RUSSIA": [
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ],
+    "RUSSIA (YOU)": [
       "MOS",
       "SEV",
       "STP",
       "WAR",
       "RUM"
-    ],
-    "TURKEY": [
-      "ANK",
-      "CON",
-      "SMY"
     ]
   },
   "all_unit_locations": {
@@ -97,22 +88,18 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
       "ROM": "A",
       "VEN": "A"
     },
-    "RUSSIA": {
-      "WAR": "A",
-      "MOS": "A",
-      "STP/SC": "F",
-      "RUM": "F"
-    },
     "TURKEY": {
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
+    },
+    "RUSSIA (YOU)": {
+      "WAR": "A",
+      "MOS": "A",
+      "STP/SC": "F",
+      "RUM": "F"
     }
-  },
-  "press_history": [
-    "FRANCE: Greetings all \u2013 may we share the spoils?",
-    "GERMANY: We shall see, Frankreich."
-  ]
+  }
 }
 </full-game-state>
 
@@ -142,19 +129,25 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "my_orders_by_location": {
     "SEV": [
       "F SEV B",
-      "A SEV B",
-      "WAIVE"
+      "WAIVE",
+      "A SEV B"
     ]
-  }
+  },
+  "press_messages": [
+    "FRANCE \u2192 ALL: Greetings all \u2013 may we share the spoils?",
+    "GERMANY \u2192 ALL: We shall see, Frankreich."
+  ]
 }
 </your-power-view>
 
-<public-press-history>
-FRANCE: Greetings all – may we share the spoils?
-GERMANY: We shall see, Frankreich.
-</public-press-history>
-
+<rounds-left>
+You have 3 rounds left to send messages. Make this round count!
+</rounds-left>
 
 <instructions>
-Your next press message. Keep it short and to the point (max 2 sentences). If you don't have anything to say, return an empty string.
+Respond with a JSON object containing at most these keys:
+ALL, ENGLAND, FRANCE, GERMANY, ITALY, RUSSIA, TURKEY, AUSTRIA.
+Omit any key you don't wish to use or set its value to null. Example:
+'{"ALL": "Hello", "FRANCE": "Salut"}'
+Each value must be a short plain string (<= 30 tokens).
 </instructions>

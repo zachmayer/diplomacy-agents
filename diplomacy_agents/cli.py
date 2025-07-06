@@ -35,9 +35,17 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
 
 @cli.command("play", help="Run a complete self-play match with random models.")
 @click.option("--seed", type=int, default=42, help="RNG seed for reproducibility.")
-def play(seed: int) -> None:  # noqa: D401
+@click.option(
+    "--message-rounds",
+    "messaging_rounds",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Number of press rounds per movement phase (0 disables press).",
+)
+def play(seed: int, messaging_rounds: int) -> None:  # noqa: D401
     """Run the orchestrator and print final SC counts."""
-    run_game(seed=seed)
+    run_game(seed=seed, messaging_rounds=messaging_rounds)
 
 
 if __name__ == "__main__":
