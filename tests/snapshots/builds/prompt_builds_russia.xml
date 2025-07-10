@@ -128,14 +128,14 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   ],
   "my_orders_by_location": {
     "SEV": [
-      "F SEV B",
       "WAIVE",
-      "A SEV B"
+      "A SEV B",
+      "F SEV B"
     ]
   },
   "press_messages": [
-    "FRANCE \u2192 ALL: Greetings all \u2013 may we share the spoils?",
-    "GERMANY \u2192 ALL: We shall see, Frankreich."
+    "FRANCE → ALL: Greetings all – may we share the spoils?",
+    "GERMANY → ALL: We shall see, Frankreich."
   ]
 }
 </your-power-view>
@@ -143,5 +143,9 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 
 <instructions>
 Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 build(s). Return an array of exactly 1 DATC build order(s).
+You have 1 build(s).
+Return an array **of exactly 1 DATC build order(s)**.
+• Each build must occur in a *distinct* vacant home supply centre.
+• Do **not** specify more than one build in the same location.
+• Example (two builds): ['F BRE B', 'A PAR B']
 </instructions>

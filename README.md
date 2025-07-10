@@ -2,6 +2,13 @@
 
 Pydantic AI Agents playing Diplomacy
 
+## TODO
+
+- Add color:power:model key to map
+- Run a big experiment set
+- Analyze reuslts in R
+- Update Readme
+
 ## Dev quick-start
 
 ```bash

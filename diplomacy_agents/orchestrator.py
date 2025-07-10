@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
 import logging
-import random
-from collections import defaultdict
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
 import drawsvg as draw
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, OutboundPress, RandomAgent
-from diplomacy_agents.engine import DiplomacyEngine, Orders, Power
+from diplomacy_agents.agents import (
+    BaseAgent,
+    HoldAgent,
+    LLMAgent,
+    OutboundPress,
+    RandomAgent,
+)
+from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders, Power
 
 AgentSpecName = KnownModelName | Literal["hold", "random"]
 
@@ -46,21 +48,15 @@ class PowerModelMap(dict[Power, AgentSpecName]):
     AUSTRIA: AgentSpecName
 
 
-LOCAL_MODEL_NAMES: list[AgentSpecName] = [
-    # "openai:o3",
-    # "openai:o4-mini",
-    "openai:gpt-4.1",
-    "openai:gpt-4.1-mini",
-    "openai:gpt-4.1-nano",
-    # "openai:gpt-4o",
-    # "anthropic:claude-opus-4-0",
-    # "anthropic:claude-sonnet-4-0",
-    # "google-gla:gemini-2.5-pro",
-    "google-gla:gemini-2.5-flash",
-    # Baseline agents --------------------------------------------------
-    "hold",
-    "random",
-]
+# ---------------------------------------------------------------------------
+# Helper utilities
+# ---------------------------------------------------------------------------
+
+
+def surviving_powers(state: GameStateDTO) -> tuple[Power, ...]:  # noqa: D401
+    """Return a tuple of powers that still control ≥1 supply centre."""
+    return tuple(p for p, cnt in state.all_supply_center_counts.items() if cnt > 0)
+
 
 __all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
 
@@ -78,76 +74,37 @@ logger = logging.getLogger(__name__)
 
 
 class GameOrchestrator:
-    """High-level game loop coordinating engine and agents."""
+    """High-level game loop coordinating the engine and seven agents."""
 
     def __init__(
         self,
         *,
-        model_map: PowerModelMap | None = None,
+        model_map: PowerModelMap,
         messaging_rounds: int = 3,
-        seed: int | None = None,
+        max_year: int | None = 1951,
     ) -> None:
         """
-        Initialise orchestrator and freeze *power* → *model* assignment.
+        Create a new orchestrator bound to an explicit *model_map*.
 
-        Parameters
-        ----------
-        model_map
-            Explicit mapping from each of the seven powers to a concrete
-            ``KnownModelName``.  When given the orchestrator will **not** pick
-            models randomly.  The mapping must cover *exactly* the standard
-            seven powers; otherwise a ``ValueError`` is raised.
-        messaging_rounds
-            Number of press messages rounds to run per movement phase.
-        seed
-            Optional random seed for the random model assignments
-
+        The constructor is now *deterministic* – callers must provide the
+        complete ``Power → model`` mapping so there is no hidden randomness.
         """
         # 0 rounds = gunboat (no press).
         self.MESSAGING_ROUNDS: int = messaging_rounds
+        self._max_year: int | None = max_year
 
         self.engine = DiplomacyEngine()
         # Buffer of raw SVG strings captured throughout the game (one per phase)
         self.svg_frames: list[str] = []
 
-        # Store seed and seed RNG if provided.
-        self.seed = seed
-        if seed is not None:
-            random.seed(seed)
-
-        # Build or validate the power → spec mapping.
-        if model_map is None:
-            self.model_map: PowerModelMap = PowerModelMap(
-                {
-                    "ENGLAND": random.choice(LOCAL_MODEL_NAMES),
-                    "FRANCE": random.choice(LOCAL_MODEL_NAMES),
-                    "GERMANY": random.choice(LOCAL_MODEL_NAMES),
-                    "ITALY": random.choice(LOCAL_MODEL_NAMES),
-                    "RUSSIA": random.choice(LOCAL_MODEL_NAMES),
-                    "TURKEY": random.choice(LOCAL_MODEL_NAMES),
-                    "AUSTRIA": random.choice(LOCAL_MODEL_NAMES),
-                }
-            )
-        else:
-            self.model_map = model_map
-
-        # Deterministic game hash ------------------------------------------
-        mapping_repr = json.dumps(dict(self.model_map), sort_keys=True)
-        hash_input = f"{seed}:{messaging_rounds}:{mapping_repr}"
-        self.game_hash = hashlib.sha1(hash_input.encode()).hexdigest()[:8]
-        self._file_suffix = f"_{self.game_hash}"
+        # Freeze power → model mapping.
+        self.model_map: PowerModelMap = model_map
 
         # Instantiate the agents.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
-        # Running tally of USD cost per power.
-        self._cost_usd_by_power: dict[Power, float] = defaultdict(float)
-
-        # Running tally of LLM runtime (seconds) per power.
-        self._runtime_s_by_power: dict[Power, float] = defaultdict(float)
-
-        # Aggregate press log for post-game export.
-        self._press_log: list[tuple[str, int, str, str, str]] = []  # (phase, round, sender, recipient, text)
+        # Aggregate press log for later inspection (no direct file output).
+        self._press_log: list[tuple[str, int, str, str, str]] = []
 
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
@@ -167,29 +124,32 @@ class GameOrchestrator:
 
     async def run(self) -> dict[Power, int]:
         """Run the match to completion - returns final supply-centre counts."""
-        logger.info("Initial: %s (hash=%s)", self.model_map, self.game_hash)
+        logger.info("Initial model map: %s", self.model_map)
         while not self.engine.get_game_state().is_game_done:
             await self.play_turn()
             state = self.engine.get_game_state()
             logger.info(f"{state.phase}: {state.all_supply_center_counts}")
 
+            # Optional early-termination guard to prevent endless stalemates.
+            if self._max_year is not None and state.year >= self._max_year:
+                logger.info(
+                    "Reached year %d (cap %d) – terminating self-play early.",
+                    state.year,
+                    self._max_year,
+                )
+                break
+
         # Capture final board state after the game concludes.
         self._capture_frame()
 
-        # Persist full game data and board animation.
-        self.engine.save(f"game_saves/game_state{self._file_suffix}.datc")
-        self._save_animation(Path(f"board_svg/board_animation{self._file_suffix}.svg"))
+        total_runtime = sum(a.total_runtime_s for a in self.agents.values())
 
-        total_cost = sum(self._cost_usd_by_power.values())
-        total_runtime = sum(self._runtime_s_by_power.values())
-        logger.info("Total LLM cost: $%.4f", total_cost)
+        # Token cost aggregation happens in ExperimentRunner; avoid duplication here.
         logger.info("Total agent runtime: %.2f s", total_runtime)
 
-        logger.debug(f"Total LLM cost across all powers: ${total_cost:.5f}")
         logger.debug(f"Total agent runtime across all powers: {total_runtime:.2f}s")
 
-        # Persist press history markdown (if any).
-        self._export_press_history()
+        # No file I/O here – experiment layer handles persistence.
 
         return self.engine.get_game_state().all_supply_center_counts
 
@@ -212,48 +172,10 @@ class GameOrchestrator:
                 agents[p] = LLMAgent(p, spec)
         return agents
 
-    def _update_agent_metrics(self, power: Power, agent: BaseAgent) -> None:  # noqa: D401
-        """Update cumulative cost/runtime tallies for *power* if LLM-backed."""
-        if isinstance(agent, LLMAgent):
-            self._cost_usd_by_power[power] = agent.total_cost_usd
-            self._runtime_s_by_power[power] = agent.total_runtime_s
-
     def _log_running_totals(self) -> None:  # noqa: D401
         """Emit debug-level summary of cumulative cost and runtime."""
-        cost_by_power = dict(self._cost_usd_by_power)
-        runtime_by_power = dict(self._runtime_s_by_power)
-        logger.debug(f"Running Cost (USD): {sum(cost_by_power.values()):.2f} ({cost_by_power})")
+        runtime_by_power = {p: a.total_runtime_s for p, a in self.agents.items()}
         logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")
-
-    def _export_press_history(self) -> None:  # noqa: D401
-        """Write collected press messages to a Markdown file grouped by phase and round."""
-        if not self._press_log:  # Gunboat or no messages recorded.
-            return
-
-        grouped: dict[str, list[tuple[int, str, str, str]]] = defaultdict(list)
-        for phase, rnd, sender, recipient, text in self._press_log:
-            grouped[phase].append((rnd, sender, recipient, text))
-
-        lines: list[str] = [f"# Press History ({self.game_hash})\n", "## Power Assignments"]
-        for p in sorted(self.model_map):
-            lines.append(f"- {p}: {self.model_map[p]}")
-        lines.append("")
-        lines.append("")
-        for phase in sorted(grouped):
-            lines.append(f"## {phase}")
-            # Group by round within the phase.
-            rounds = sorted({entry[0] for entry in grouped[phase]})
-            for rnd in rounds:
-                lines.append(f"\n### Round {rnd}\n")
-                for entry in grouped[phase]:
-                    if entry[0] == rnd:
-                        _, sender, recipient, text = entry
-                        lines.append(f"- {sender} → {recipient}: {text}")
-            lines.append("")
-
-        output_path = Path(f"press_history/press{self._file_suffix}.md")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text("\n".join(lines))
 
     # ------------------------------------------------------------------
     # Messaging handling ---------------------------------------------------
@@ -265,12 +187,8 @@ class GameOrchestrator:
         for _round in range(self.MESSAGING_ROUNDS):
             # Each task returns an ``OutboundPress`` object.
             tasks: dict[Power, asyncio.Task[OutboundPress]] = {}
-            for power in state.all_supply_center_counts:
+            for power in surviving_powers(state):
                 view = self.engine.get_power_view(power)
-
-                # Skip eliminated powers (no remaining supply centres).
-                if view.my_supply_center_count == 0:
-                    continue
 
                 # Compute rounds left *after* this one to inform message prompt guidance.
                 rounds_left = self.MESSAGING_ROUNDS - _round
@@ -300,12 +218,6 @@ class GameOrchestrator:
                     else:
                         self.engine.add_message(power, text, cast(Power, recipient_key))
 
-                self._update_agent_metrics(power, self.agents[power])
-
-        # Update press history
-        for agent_power, agent in self.agents.items():
-            agent.press_history = list(self.engine.get_current_phase_messages(agent_power))
-
     # ------------------------------------------------------------------
     # Orders handling ----------------------------------------------------
     # ------------------------------------------------------------------
@@ -317,7 +229,7 @@ class GameOrchestrator:
 
         # Kick off one asynchronous orders task per surviving power.
         tasks: dict[Power, asyncio.Task[Orders]] = {}
-        for power in state.all_supply_center_counts:
+        for power in surviving_powers(state):
             view = self.engine.get_power_view(power)
             if not view.orders_list:  # No possible orders – skip
                 continue
@@ -330,7 +242,6 @@ class GameOrchestrator:
 
         for power, task in tasks.items():
             self.engine.submit_orders(power, task.result())
-            self._update_agent_metrics(power, self.agents[power])
 
     # ------------------ Snapshot / animation helpers -------------------
 
@@ -339,10 +250,13 @@ class GameOrchestrator:
         svg_xml = self.engine.render_svg(incl_orders=True, incl_abbrev=True)
         self.svg_frames.append(svg_xml)
 
-    def _save_animation(self, output_path: Path) -> None:
+    # Renamed from *_save_animation* to make it part of the public surface.
+    def save_animation(self, output_path: Path | str) -> None:
         """Persist ``self.svg_frames`` as a simple SMIL animation (drawsvg)."""
         if not self.svg_frames:
             return
+
+        path_obj = Path(output_path)
 
         fps = 2
         duration = len(self.svg_frames) / fps
@@ -371,15 +285,20 @@ class GameOrchestrator:
             img.add_key_frame(i / fps + 1.01, opacity=0)
             d.append(img)
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        d.save_svg(str(output_path))
+        path_obj.parent.mkdir(parents=True, exist_ok=True)
+        d.save_svg(str(path_obj))
+
+    @property
+    def press_entries(self) -> list[tuple[str, int, str, str, str]]:  # noqa: D401
+        """Return the collected press log tuples for external consumers."""
+        return list(self._press_log)
 
 
 def run_game(
     *,
-    model_map: PowerModelMap | None = None,
-    seed: int | None = None,
+    model_map: PowerModelMap,
     messaging_rounds: int = 3,
+    max_year: int | None = 1951,
 ) -> dict[Power, int]:
     """
     Blocking helper for synchronous callers (e.g. CLI).
@@ -391,8 +310,8 @@ def run_game(
     async def _runner() -> dict[Power, int]:
         orch = GameOrchestrator(
             model_map=model_map,
-            seed=seed,
             messaging_rounds=messaging_rounds,
+            max_year=max_year,
         )
         return await orch.run()
 

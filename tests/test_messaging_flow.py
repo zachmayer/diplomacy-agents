@@ -71,13 +71,15 @@ def test_messaging_rounds_collect_messages() -> None:
 
     asyncio.run(orch.play_turn())
 
-    # Verify that the orchestrator stored messages correctly in each agent's
-    # ``press_history`` (captured at the end of the messaging phase).
+    # Verify that the orchestrator logged the messages and that each power
+    # would observe only those addressed to it or broadcast to everyone.
 
-    hist_fr = orch.agents["FRANCE"].press_history
-    assert any("Hello all" in line for line in hist_fr)
-    assert any("Hi France" in line for line in hist_fr)
+    entries = orch.press_entries
 
-    hist_ger = orch.agents["GERMANY"].press_history
-    assert any("Hello all" in line for line in hist_ger)
-    assert not any("Hi France" in line for line in hist_ger)
+    hist_fr = [text for _phase, _round, _sender, recipient, text in entries if recipient in ("ALL", "FRANCE")]
+    assert any("Hello all" in msg for msg in hist_fr)
+    assert any("Hi France" in msg for msg in hist_fr)
+
+    hist_ger = [text for _phase, _round, _sender, recipient, text in entries if recipient in ("ALL", "GERMANY")]
+    assert any("Hello all" in msg for msg in hist_ger)
+    assert not any("Hi France" in msg for msg in hist_ger)

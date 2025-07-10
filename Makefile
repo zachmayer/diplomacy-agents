@@ -38,8 +38,12 @@ test-smoke: ## Run slower conductor smoke test
 .PHONY: test
 test: test-unit test-smoke ## Run all tests (unit then smoke)
 
-.PHONY: check-all
-check-all: format lint types contract test ## Run all checks
+.PHONY: coverage
+coverage: ## Run tests with coverage reporting
+	uv run pytest -q && uv run coverage report --fail-under 25
+
+.PHONY: all
+all: format lint types contract test coverage ## Run all checks
 
 .PHONY: check-ci
 check-ci: lint types contract test-unit ## Checks for CI (unit tests only)
@@ -49,13 +53,13 @@ install: ## Create virtual-env and install project incl. dev deps using uv
 	uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
 .PHONY: run
-run: ## Run self-play match with seed 42 via the CLI
-	uv run -m diplomacy_agents.cli play --seed 42
+run: ## Run one experiment with ExperimentRunner (single game)
+	uv run -m diplomacy_agents.cli experiments --runs 1 --message-rounds 0
 
 .PHONY: run-full-press
-run-full-press: ## Run self-play match with seed 42 via the CLI
-	uv run -m diplomacy_agents.cli play --seed 42 --message-rounds 3
+run-full-press: ## Run one experiment with 3 press rounds
+	uv run -m diplomacy_agents.cli experiments --runs 1 --message-rounds 3
 
-.PHONY: coverage
-coverage: ## Run tests with coverage reporting (terminal + HTML output)
-	uv run pytest --cov=diplomacy_agents --cov-report=term-missing --cov-report=html
+.PHONY: run-ten
+run-ten: ## Run ten experiments with ExperimentRunner (single game)
+	uv run -m diplomacy_agents.cli experiments --runs 5 --message-rounds 0

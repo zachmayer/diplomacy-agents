@@ -35,6 +35,9 @@ class MessageLike(Protocol):
     message: str
     time_sent: int | None
 
+    # Compact phase token like "S1901M" for the message.
+    phase: str
+
     def is_global(self) -> bool:  # noqa: D401
         """Return ``True`` if the message was addressed to everyone."""
         ...
@@ -248,6 +251,20 @@ class DiplomacyEngine:
         )
 
         self._game.add_message(msg)
+
+    def get_all_messages(self) -> list[MessageLike]:  # noqa: D401
+        """Return *all* Message objects (history + current) in chronological order."""
+        # Collect past-phase messages from the engine's archive (one dict per phase).
+        msgs: list[MessageLike] = []
+        for phase_dict in getattr(self._game, "messages_history", []):
+            msgs.extend(phase_dict.values())
+
+        # Include messages from the active phase.
+        msgs.extend(self._game.messages.values())
+
+        # Sort deterministically: first by phase identifier, then by time sent.
+        msgs.sort(key=lambda m: (m.phase, m.time_sent or 0))
+        return msgs
 
     # ------------------------------------------------------------------
     # Internals

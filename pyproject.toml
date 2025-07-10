@@ -11,10 +11,13 @@ dependencies = [
     "drawsvg>=2.4.0",
     "tokencost>=0.1.24",
     "tokonomics>=0.3.14",
+    "pandas>=2.3.1",
+    "anthropic>=0.54.0",
 ]
 
 [dependency-groups]
 dev = [
+    "pandas-stubs>=2.3.0.250703",
     "pre-commit>=4.2.0",
     "pyright>=1.1.403",
     "pytest>=8.4.1",

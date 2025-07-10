@@ -28,10 +28,9 @@ def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  
     game_state_dict.pop("all_powers", None)
 
     game_state_json = json.dumps(game_state_dict, indent=2, sort_keys=False)
-    # The ``press_messages`` list contains third‐party ``Message`` objects that
-    # aren't JSON‐serialisable by default.  Use the ``fallback`` hook so
-    # pydantic converts them to string via ``str(obj)`` during dumping.
-    view_json = json.dumps(view.model_dump(mode="json", fallback=str), indent=2, sort_keys=False)
+    # The ``press_messages`` list may contain non-JSON-serialisable objects,
+    # but ``model_dump_json`` handles them via Pydantic's default encoders.
+    view_json = view.model_dump_json(indent=2)
 
     return f"""
 <main-goal>
@@ -64,7 +63,13 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
     if game_state.phase_type == "A":  # Adjustment – builds or disbands
         diff = view.my_supply_center_count - len(view.my_unit_locations)
         if diff > 0:
-            extra_guidance.append(f"\nYou have {diff} build(s). Return an array of exactly {diff} DATC build order(s).")
+            extra_guidance.append(
+                f"\nYou have {diff} build(s)."
+                f"\nReturn an array **of exactly {diff} DATC build order(s)**."
+                "\n• Each build must occur in a *distinct* vacant home supply centre."
+                "\n• Do **not** specify more than one build in the same location."
+                "\n• Example (two builds): ['F BRE B', 'A PAR B']"
+            )
         elif diff < 0:
             extra_guidance.append(
                 f"\nYou must remove {-diff} unit(s). Return an array of exactly {-diff} DATC disband order(s)."
