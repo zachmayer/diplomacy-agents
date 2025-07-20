@@ -6,7 +6,7 @@ import json
 
 from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
 
-__all__: list[str] = ["build_orders_prompt", "build_message_prompt"]
+__all__: list[str] = ["build_orders_prompt"]
 
 
 def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
@@ -96,25 +96,4 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
     return prompt
 
 
-def build_message_prompt(
-    game_state: GameStateDTO,
-    view: PowerViewDTO,
-    rounds_left: int,
-) -> str:
-    """Return the text prompt instructing the LLM to send public/private messages."""
-    prompt = _build_common_prompt(game_state, view)
-    prompt += f"""
-<rounds-left>
-You have {rounds_left} rounds left to send messages. Make this round count!
-</rounds-left>
-
-<instructions>
-Respond with a JSON object containing at most these keys:
-ALL, ENGLAND, FRANCE, GERMANY, ITALY, RUSSIA, TURKEY, AUSTRIA.
-Omit any key you don't wish to use or set its value to null. Example:
-'{{"ALL": "Hello", "FRANCE": "Salut"}}'
-Each value must be a short plain string (<= 30 tokens).
-</instructions>
-"""
-
-    return prompt
+# build_message_prompt has been removed – public press is no longer supported in gunboat mode.

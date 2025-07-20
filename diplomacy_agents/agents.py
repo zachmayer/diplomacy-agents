@@ -19,12 +19,11 @@ from enum import Enum
 from time import perf_counter
 from typing import Literal, TypeVar, cast
 
-from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
-from diplomacy_agents.prompts import build_message_prompt, build_orders_prompt
+from diplomacy_agents.prompts import build_orders_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,6 @@ __all__ = [
     "HoldAgent",
     "RandomAgent",
     "LLMAgent",
-    "OutboundPress",
 ]
 
 
@@ -62,26 +60,7 @@ class BaseAgent(ABC):
         """Return a list of DATC order strings for *power* in the current phase."""
         raise NotImplementedError  # pragma: no cover
 
-    # ------------------------------------------------------------------
-    # Unified messaging API -------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def get_messages(
-        self,
-        _game_state: GameStateDTO,
-        _view: PowerViewDTO,
-        *,
-        rounds_left: int,
-    ) -> OutboundPress:  # noqa: D401
-        """
-        Return structured outbound press; default implementation sends nothing.
-
-        The base implementation ignores *rounds_left* and simply returns an
-        empty ``OutboundPress`` container so that non-LLM agents remain
-        compatible without extra work.
-        """
-        _ = rounds_left  # deliberately unused to silence linters
-        return OutboundPress()
+    # BaseAgent no longer exposes a messaging API.
 
 
 # ---------------------------------------------------------------------------
@@ -145,25 +124,7 @@ def create_dynamic_enum_model(allowed_values: Orders) -> type[Enum]:
     return Enum("ValidOrders", members)
 
 
-# ---------------------------------------------------------------------------
-# Structured outbound press model -------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-class OutboundPress(BaseModel):
-    """Structured press payload – now immutable and slot-optimised."""
-
-    ALL: str | None = Field(default=None, description="Public broadcast visible to everyone.")
-
-    ENGLAND: str | None = Field(default=None, description="Private message to ENGLAND.")
-    FRANCE: str | None = Field(default=None, description="Private message to FRANCE.")
-    GERMANY: str | None = Field(default=None, description="Private message to GERMANY.")
-    ITALY: str | None = Field(default=None, description="Private message to ITALY.")
-    RUSSIA: str | None = Field(default=None, description="Private message to RUSSIA.")
-    TURKEY: str | None = Field(default=None, description="Private message to TURKEY.")
-    AUSTRIA: str | None = Field(default=None, description="Private message to AUSTRIA.")
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
+# OutboundPress removed – gunboat mode eliminates messaging entirely.
 
 
 class LLMAgent(BaseAgent):
@@ -240,30 +201,4 @@ class LLMAgent(BaseAgent):
 
         return cast(Orders, orders)
 
-    # ------------------------------------------------------------------
-    # Messaging generation ---------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def get_messages(
-        self,
-        _game_state: GameStateDTO,
-        _view: PowerViewDTO,
-        *,
-        rounds_left: int,
-    ) -> OutboundPress:
-        """
-        Generate public/private messages as a structured ``OutboundPress`` model.
-
-        The optional ``rounds_left`` hint lets the orchestrator inform the LLM
-        how many messaging volleys remain in the current movement phase.  When
-        of no interest to the implementation here beyond injecting it into the
-        prompt.
-        """
-        prompt = build_message_prompt(_game_state, _view, rounds_left)
-
-        messages: OutboundPress = await self._run_llm(
-            prompt=prompt,
-            output_type=OutboundPress,
-        )
-
-        return messages
+    # Messaging support removed for gunboat mode – this agent now focuses solely on orders.

@@ -14,7 +14,6 @@ from diplomacy_agents.agents import (
     BaseAgent,
     HoldAgent,
     LLMAgent,
-    OutboundPress,
     RandomAgent,
 )
 from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders, Power
@@ -103,8 +102,7 @@ class GameOrchestrator:
         # Instantiate the agents.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
-        # Aggregate press log for later inspection (no direct file output).
-        self._press_log: list[tuple[str, int, str, str, str]] = []
+        # Messaging removed – no press log required in gunboat mode.
 
     # ------------------------------------------------------------------
     # Main public API ---------------------------------------------------
@@ -115,9 +113,7 @@ class GameOrchestrator:
         # Record board before any new orders/messages.
         self._capture_frame()
 
-        state = self.engine.get_game_state()
-        if state.phase_type == "M" and self.MESSAGING_ROUNDS > 0:
-            await self._run_messaging_phase()
+        self.engine.get_game_state()
         await self._run_orders_phase()
         self._log_running_totals()
         self.engine.process_turn()
@@ -177,46 +173,7 @@ class GameOrchestrator:
         runtime_by_power = {p: a.total_runtime_s for p, a in self.agents.items()}
         logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")
 
-    # ------------------------------------------------------------------
-    # Messaging handling ---------------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def _run_messaging_phase(self) -> None:
-        """Run ``MESSAGING_ROUNDS`` press volleys where agents may speak publicly or privately."""
-        state = self.engine.get_game_state()
-        for _round in range(self.MESSAGING_ROUNDS):
-            # Each task returns an ``OutboundPress`` object.
-            tasks: dict[Power, asyncio.Task[OutboundPress]] = {}
-            for power in surviving_powers(state):
-                view = self.engine.get_power_view(power)
-
-                # Compute rounds left *after* this one to inform message prompt guidance.
-                rounds_left = self.MESSAGING_ROUNDS - _round
-
-                # Ask the agent to generate messages.
-                agent = self.agents[power]
-                task = asyncio.create_task(agent.get_messages(state, view, rounds_left=rounds_left))
-                tasks[power] = task
-
-            if not tasks:
-                return
-
-            await asyncio.gather(*tasks.values())
-
-            # Persist messages & update cost/runtime tallies.
-            for power, task in tasks.items():
-                messages = task.result()
-                for recipient_key, text in messages.model_dump(exclude_none=True).items():
-                    text = text.strip()
-                    if not text:
-                        continue
-                    logger.debug(f"{power} → {recipient_key}: {text}")
-                    self._press_log.append((state.phase, _round, power, recipient_key, text))
-
-                    if recipient_key == "ALL":
-                        self.engine.add_message(power, text, None)  # None==All
-                    else:
-                        self.engine.add_message(power, text, cast(Power, recipient_key))
+    # Messaging handling removed entirely – gunboat mode has no press phase.
 
     # ------------------------------------------------------------------
     # Orders handling ----------------------------------------------------
@@ -288,10 +245,7 @@ class GameOrchestrator:
         path_obj.parent.mkdir(parents=True, exist_ok=True)
         d.save_svg(str(path_obj))
 
-    @property
-    def press_entries(self) -> list[tuple[str, int, str, str, str]]:  # noqa: D401
-        """Return the collected press log tuples for external consumers."""
-        return list(self._press_log)
+    # press_entries property removed – no press in gunboat mode.
 
 
 def run_game(

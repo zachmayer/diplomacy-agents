@@ -25,7 +25,8 @@ from tokonomics import calculate_token_cost
 
 from diplomacy_agents.literals import LOCAL_MODEL_NAMES, POWERS
 from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
-from diplomacy_agents.press_export import save_press_markdown
+
+# Press export removed – gunboat mode has no messaging.
 
 logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
@@ -173,13 +174,7 @@ class ExperimentRunner:  # noqa: D101 – batch self-play runner
         # SVG animation
         orch.save_animation(arte_dir / f"animation_{exp_hash}.svg")
 
-        # Press markdown
-        save_press_markdown(
-            entries=orch.press_entries,
-            model_map=cast(dict[str, object], model_map),
-            game_hash=exp_hash,
-            output_path=arte_dir / f"press_{exp_hash}.md",
-        )
+        # Press markdown removed – no press in gunboat mode.
 
         # --------------------------------------------------------------
         # CSV append (one row)
