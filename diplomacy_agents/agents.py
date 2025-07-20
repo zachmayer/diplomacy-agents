@@ -1,185 +1,111 @@
 """
 Agents controlling each power - baseline (hold/random) and LLM-backed.
 
-This module is purposely self-contained so the orchestrator can import
-``make_agent`` without pulling in the heavy *pydantic-ai* dependency when the
-caller only needs baseline agents.
+The module is intentionally self-contained so callers who need only baseline
+agents do **not** import the heavier *pydantic-ai* dependency chain.
 """
 
 from __future__ import annotations
 
 import logging
 import random
-import re
-
-# stdlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from enum import Enum
 from time import perf_counter
-from typing import Literal, TypeVar, cast
+from typing import Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
-from diplomacy_agents.prompts import build_message_prompt, build_orders_prompt
+from diplomacy_agents.engine import DiplomacyEngine, Orders
+from diplomacy_agents.enums import Power
+from diplomacy_agents.prompts import build_orders_prompt
 
 logger = logging.getLogger(__name__)
-
 
 __all__ = [
     "BaseAgent",
     "HoldAgent",
     "RandomAgent",
     "LLMAgent",
-    "OutboundPress",
 ]
 
-
 # ---------------------------------------------------------------------------
-# Abstract base --------------------------------------------------------------
+# Abstract base
 # ---------------------------------------------------------------------------
 
 
 class BaseAgent(ABC):
-    """Common async interface shared by all power controllers."""
+    """Common asynchronous interface shared by all power controllers."""
 
     def __init__(self, power: Power) -> None:
-        """Store the owning *power* token for later reference and initialise cost tracking."""
+        """Store the *power* this agent controls and reset runtime / cost stats."""
         self.power = power
         self.total_runtime_s: float = 0.0
 
-        # Decide wrapper at subclass level; default to ToolOutput.
+        # Subclasses may switch this to NativeOutput when the LLM supports JSON-schema.
         self.output_wrapper = ToolOutput
 
-        # Per-agent cumulative token buckets → {model: {bucket: count}}
+        # Per-model cumulative token buckets → {model_name: {bucket: count}}
         self.token_totals: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     @abstractmethod
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
-        """Return a list of DATC order strings for *power* in the current phase."""
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+        """Return a tuple of DATC-formatted order strings for *self.power* in thecurrent phase."""
         raise NotImplementedError  # pragma: no cover
-
-    # ------------------------------------------------------------------
-    # Unified messaging API -------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def get_messages(
-        self,
-        _game_state: GameStateDTO,
-        _view: PowerViewDTO,
-        *,
-        rounds_left: int,
-    ) -> OutboundPress:  # noqa: D401
-        """
-        Return structured outbound press; default implementation sends nothing.
-
-        The base implementation ignores *rounds_left* and simply returns an
-        empty ``OutboundPress`` container so that non-LLM agents remain
-        compatible without extra work.
-        """
-        _ = rounds_left  # deliberately unused to silence linters
-        return OutboundPress()
 
 
 # ---------------------------------------------------------------------------
-# Baseline agents ------------------------------------------------------------
+# Baseline agents
 # ---------------------------------------------------------------------------
 
 
 class HoldAgent(BaseAgent):
-    """Agent that issues no orders (all units hold/wait)."""
+    """Agent that issues no orders - every unit *holds* / *waits*."""
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
-        """Return an empty order list: all units hold."""
-        return []
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+        """Return an empty order set."""
+        return ()
 
 
 class RandomAgent(BaseAgent):
-    """Agent that submits one random legal order per controllable unit."""
+    """Agent that submits **one random legal order** for each controllable unit in the current phase."""
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
-        """Pick **one** random legal order per controlled unit."""
-        orders: Orders = []
-        for opts in _view.my_orders_by_location.values():
-            orders.append(random.choice(opts))
-        return orders
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+        """Pick exactly one random order per orderable location."""
+        chosen = tuple(random.choice(opts) for opts in _engine.possible_orders[self.power].values())
+        return chosen
 
 
 # ---------------------------------------------------------------------------
-# Generic output spec typing -------------------------------------------------
+# Generic output-spec typing (for pydantic-ai)
 # ---------------------------------------------------------------------------
 
-
-# ``OutputSpec[T]`` captures the allowed ways of specifying a result schema
-# for *pydantic-ai* agents:
-#   1. A plain Python type (e.g. ``str``) – meaning "return exactly this type".
-#   2. A ``ToolOutput`` wrapper specifying a tool schema.
-#   3. A ``NativeOutput`` wrapper requesting the model's native structured output.
 T = TypeVar("T")
 type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]
 
 
 # ---------------------------------------------------------------------------
-# LLM-backed agent -----------------------------------------------------------
+# LLM-backed agent
 # ---------------------------------------------------------------------------
-
-
-def create_dynamic_enum_model(allowed_values: Orders) -> type[Enum]:
-    """
-    Build an Enum whose *values* are the exact order strings we pass in.
-
-    The member *names* must be valid Python identifiers, so we derive them from
-    the orders (or you could use "ORDER_1", "ORDER_2", …).
-    """
-
-    def safe_name(s: str) -> str:
-        # Turn "A PAR - BUR" → "A_PAR_BUR"  (only letters, digits or _)
-        return re.sub(r"[^0-9A-Za-z]+", "_", s).strip("_")
-
-    members = {safe_name(v): v for v in allowed_values}
-
-    # Enum(<name>, <members-dict>) returns a *new* Enum subclass
-    return Enum("ValidOrders", members)
-
-
-# ---------------------------------------------------------------------------
-# Structured outbound press model -------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-class OutboundPress(BaseModel):
-    """Structured press payload – now immutable and slot-optimised."""
-
-    ALL: str | None = Field(default=None, description="Public broadcast visible to everyone.")
-
-    ENGLAND: str | None = Field(default=None, description="Private message to ENGLAND.")
-    FRANCE: str | None = Field(default=None, description="Private message to FRANCE.")
-    GERMANY: str | None = Field(default=None, description="Private message to GERMANY.")
-    ITALY: str | None = Field(default=None, description="Private message to ITALY.")
-    RUSSIA: str | None = Field(default=None, description="Private message to RUSSIA.")
-    TURKEY: str | None = Field(default=None, description="Private message to TURKEY.")
-    AUSTRIA: str | None = Field(default=None, description="Private message to AUSTRIA.")
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class LLMAgent(BaseAgent):
     """Thin wrapper around *pydantic-ai* for a single power."""
 
     def __init__(self, power: Power, model_name: KnownModelName) -> None:
-        """Bind *power* to a concrete ``pydantic-ai`` backend model."""
+        """Bind *power* to a concrete backend model and choose the output wrapper."""
         super().__init__(power)
         self.model_name = model_name
 
-        # Choose NativeOutput when the target model advertises JSON-schema native support.
-        model_obj = models.infer_model(self.model_name)
-        if model_obj.profile.supports_json_schema_output:
+        # Prefer NativeOutput when the target model advertises JSON-schema support.
+        # Otherwise use tool calls for JSON output via a tool call.
+        if models.infer_model(model_name).profile.supports_json_schema_output:
             self.output_wrapper = NativeOutput
-        else:
-            self.output_wrapper = ToolOutput
+
+    # ------------------------------------------------------------------ #
+    # Private helpers                                                     #
+    # ------------------------------------------------------------------ #
 
     async def _run_llm(
         self,
@@ -187,9 +113,9 @@ class LLMAgent(BaseAgent):
         output_type: OutputSpec[T],
         system_prompt: str | None = None,
     ) -> T:
-        """Execute *prompt* using ``pydantic-ai`` and track runtime/cost."""
+        """Execute *prompt* via *pydantic-ai*, accumulate runtime & token usage,and return the structured output produced by the model."""
         if system_prompt is None:
-            system_prompt = f"You are playing diplomacy as {self.power}. Your goal is to win"
+            system_prompt = f"You are playing Diplomacy as {self.power}. Your goal is to win."
 
         agent = Agent(
             model=self.model_name,
@@ -203,67 +129,39 @@ class LLMAgent(BaseAgent):
         result = await agent.run(prompt)
         self.total_runtime_s += perf_counter() - start
 
-        usage_obj = result.usage()
-
-        model_totals = self.token_totals[self.model_name]
-        model_totals["request_tokens"] = model_totals.get("request_tokens", 0) + (usage_obj.request_tokens or 0)
-        model_totals["response_tokens"] = model_totals.get("response_tokens", 0) + (usage_obj.response_tokens or 0)
-
-        # Provider-specific buckets live in `.details` when present.
-        details: dict[str, int] | None = getattr(usage_obj, "details", None)
-        if details:
+        usage = result.usage()
+        buckets = self.token_totals[self.model_name]
+        buckets["request_tokens"] += usage.request_tokens or 0
+        buckets["response_tokens"] += usage.response_tokens or 0
+        if details := getattr(usage, "details", None):
             for k, v in details.items():
-                model_totals[k] = model_totals.get(k, 0) + v
+                buckets[k] += v
 
         return result.output
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
-        """Delegate order creation to the configured LLM via *pydantic-ai*."""
-        # Build a Literal union of all allowed order strings, then ask for a list of these literals.
-        orders_literal = Literal[tuple(_view.orders_list)]  # type: ignore[misc]
+    # ------------------------------------------------------------------ #
+    # Public API                                                          #
+    # ------------------------------------------------------------------ #
 
-        base_type = list[orders_literal]  # noqa: PTH123 (typing generic alias)
+    async def get_orders(self, engine: DiplomacyEngine, max_schema_size: int = 1_000) -> Orders:
+        """Ask the configured LLM for a valid order set, constrained to the exact list of legal options provided in *engine*."""
+        flat_orders = engine.flat_possible_orders[self.power]
+
+        # Construct a Literal type enumerating exactly the legal orders for this
+        # power when the list is reasonably small.  For extremely large lists
+        # we fall back to a plain ``str`` element type to avoid creating a
+        # gigantic Literal union that would slow down Pydantic’s schema
+        # generation.
+        elem_type = Literal[*tuple(flat_orders),] if len(flat_orders) <= max_schema_size else str
 
         output_type = self.output_wrapper(
-            base_type,
+            list[elem_type],
             name="valid_orders",
-            description="Return a list of valid orders for your power in the current phase.",
-            strict=len(_view.orders_list) <= 1000,
+            description="Return a list of valid orders for your power in this phase.",
+            strict=len(flat_orders) <= max_schema_size,
         )
 
-        prompt = build_orders_prompt(_game_state, _view)
+        prompt = build_orders_prompt(engine, self.power)
+        raw_orders = await self._run_llm(prompt=prompt, output_type=output_type)
 
-        orders = await self._run_llm(
-            prompt=prompt,
-            output_type=output_type,
-        )
-
-        return cast(Orders, orders)
-
-    # ------------------------------------------------------------------
-    # Messaging generation ---------------------------------------------
-    # ------------------------------------------------------------------
-
-    async def get_messages(
-        self,
-        _game_state: GameStateDTO,
-        _view: PowerViewDTO,
-        *,
-        rounds_left: int,
-    ) -> OutboundPress:
-        """
-        Generate public/private messages as a structured ``OutboundPress`` model.
-
-        The optional ``rounds_left`` hint lets the orchestrator inform the LLM
-        how many messaging volleys remain in the current movement phase.  When
-        of no interest to the implementation here beyond injecting it into the
-        prompt.
-        """
-        prompt = build_message_prompt(_game_state, _view, rounds_left)
-
-        messages: OutboundPress = await self._run_llm(
-            prompt=prompt,
-            output_type=OutboundPress,
-        )
-
-        return messages
+        return tuple(str(order) for order in raw_orders)

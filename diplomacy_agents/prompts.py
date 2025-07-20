@@ -1,120 +1,126 @@
-"""Prompt construction helpers."""
-
-from __future__ import annotations
+"""Prompt-construction helpers for Diplomacy LLM agents."""
 
 import json
+from collections.abc import Callable, Hashable, Mapping
+from typing import TypeVar
 
-from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine
+from diplomacy_agents.enums import PhaseType, Power
 
-__all__: list[str] = ["build_orders_prompt", "build_message_prompt"]
+__all__ = ["build_orders_prompt"]
 
 
-def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
-    """Return the common context block used by both orders and press prompts."""
-    # Convert to plain dict so we can annotate *your* power keys with a suffix.
-    game_state_dict = game_state.model_dump(mode="json")
+K = TypeVar("K", bound=Hashable)
+V = TypeVar("V")
 
-    # Append " (YOU)" to the requesting power's keys in the board‐wide mappings.
-    for field in [
-        "all_supply_center_counts",
-        "all_supply_center_locations",
-        "all_unit_locations",
-    ]:
-        if field in game_state_dict and view.power in game_state_dict[field]:
-            mapping = game_state_dict[field]
-            mapping[f"{view.power} (YOU)"] = mapping.pop(view.power)
+lost_home_center_note = """
+Note that home supply centers are the only places you can build units.
+You may not own some or all of your home supply centers.
+If you do not own a particular home supply center, you cannot build units there.
 
-    # Remove redundant info not needed for language model context.
-    game_state_dict.pop("all_powers", None)
+If you do not own a particular home supply center, it is probably important to recapture.
+"""
 
-    game_state_json = json.dumps(game_state_dict, indent=2, sort_keys=False)
-    # The ``press_messages`` list may contain non-JSON-serialisable objects,
-    # but ``model_dump_json`` handles them via Pydantic's default encoders.
-    view_json = view.model_dump_json(indent=2)
 
-    return f"""
+def dump_dict[K: Hashable, V](d: Mapping[K, V]) -> str:
+    """Dump a mapping to a pretty-printed JSON string."""
+    return json.dumps(d, indent=2, default=str, sort_keys=True)
+
+
+def _adjustment_guidance(engine: DiplomacyEngine, power: Power) -> str:
+    """Guidance for Adjustment (build / disband) phases."""
+    diff = engine.supply_center_counts[power] - len(engine.units[power])
+    if diff > 0:
+        return f"You have **{diff} build(s)**. Return exactly {diff} distinct build order(s)."
+    if diff < 0:
+        removes = -diff
+        return f"You must **disband {removes} unit(s)**. Return exactly {removes} disband order(s)."
+    return "No builds or removals required; return an empty list."
+
+
+def _movement_guidance(_engine: DiplomacyEngine, _power: "Power") -> str:
+    """Guidance for Movement phases."""
+    return "Issue one legal order to each of your units. Units without orders will *hold*."
+
+
+def _retreat_guidance(engine: DiplomacyEngine, power: Power) -> str:
+    """Guidance for Retreat phases."""
+    pending = len(engine.possible_orders[power])
+    return f"You have **{pending} dislodged unit(s)**. Return exactly {pending} retreat **or** disband order(s)."
+
+
+# Map phase-code → guidance generator (functions take engine, power)
+_PHASE_GUIDE: dict[str, Callable[[DiplomacyEngine, "Power"], str]] = {
+    PhaseType.MOVEMENT: _movement_guidance,
+    PhaseType.RETREAT: _retreat_guidance,
+    PhaseType.ADJUSTMENT: _adjustment_guidance,
+}
+
+
+def build_orders_prompt(engine: DiplomacyEngine, power: "Power") -> str:
+    """Return the full instruction prompt for orders generation."""
+    guidance_fn = _PHASE_GUIDE.get(str(engine.phase_type), lambda _e, _p: "")
+    guidance = guidance_fn(engine, power)
+
+    home_centers = tuple(sorted(engine.home_supply_centers[power]))
+    owned_centers = tuple(sorted(engine.supply_centers[power]))
+
+    write_lost_home_center_note = len(set(home_centers) - set(owned_centers)) > 0
+
+    return f"""\
 <main-goal>
-You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
-<who-am-i>
-You are power {view.power} in phase {game_state.phase_long} ({game_state.phase}).
-</who-am-i>
+<power>
+You are playing as {power}
+</power>
 
-<full-game-state>
-{game_state_json}
-</full-game-state>
+<general-instructions>
+* Choose legal DATC orders **only** for *your* power.
+* You must occupy supply centers with a unit at end of Fall to capture them.
+* A supply center must be empty in order to build a unit there.
+    * (But be aware: Empty supply centers are vulnerable to capture.)
+* You may not build units in supply centers you do not own.
 
-<your-power-view>
-{view_json}
-</your-power-view>
+Respond with a JSON array of order strings - no commentary.
+</general-instructions>
+
+<full-game>
+This is the full game state for all powers:
+
+all_supply_center_counts:
+{dump_dict(engine.supply_center_counts)}
+
+all_supply_centers:
+{dump_dict(engine.supply_centers)}
+
+all_units:
+{dump_dict(engine.units)}
+
+game_phase_type: {engine.phase_type}
+game_year: {engine.year}
+game_phase: {engine.phase}
+game_short_phase: {engine.short_phase}
+</full-game>
+
+<you>
+These are your power, owned supply centers and home supply centers
+
+- power: {power}
+- owned_supply_centers: {owned_centers}
+- home_supply_centers: {home_centers}
+{lost_home_center_note if write_lost_home_center_note else ""}
+These are your units and possible moves:
+
+units:
+{dump_dict(engine.units[power])}
+
+possible_moves:
+{dump_dict(engine.possible_orders[power])}
+</you>
+
+<specific-instructions>
+{guidance}
+</specific-instructions>
 """
-
-
-def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
-    """Return an instruction prompt for the *orders* agent."""
-    prompt = _build_common_prompt(game_state, view)
-
-    # ------------------------------------------------------------------
-    # Dynamic phase-specific guidance -----------------------------------
-    # ------------------------------------------------------------------
-    extra_guidance: list[str] = []
-
-    if game_state.phase_type == "A":  # Adjustment – builds or disbands
-        diff = view.my_supply_center_count - len(view.my_unit_locations)
-        if diff > 0:
-            extra_guidance.append(
-                f"\nYou have {diff} build(s)."
-                f"\nReturn an array **of exactly {diff} DATC build order(s)**."
-                "\n• Each build must occur in a *distinct* vacant home supply centre."
-                "\n• Do **not** specify more than one build in the same location."
-                "\n• Example (two builds): ['F BRE B', 'A PAR B']"
-            )
-        elif diff < 0:
-            extra_guidance.append(
-                f"\nYou must remove {-diff} unit(s). Return an array of exactly {-diff} DATC disband order(s)."
-            )
-    elif game_state.phase_type == "M":  # Movement – support / convoy note
-        extra_guidance.append(
-            "\nReturn an array of DATC order(s) for each of *your* units."
-            "\nUnits without orders will hold."
-            "\nYou may support or convoy other powers' units, but first consider your strategic goals."
-        )
-    elif game_state.phase_type == "R":
-        pending_units = len(view.my_orders_by_location)
-        if pending_units > 0:
-            extra_guidance.append(
-                f"\nYou have {pending_units} dislodged unit(s)."
-                f"\nReturn an array of exactly {pending_units} DATC retreat or disband order(s)."
-                f"\nYou must submit exactly one order per dislodged unit."
-            )
-
-    guidance_block = "\n".join(extra_guidance)
-
-    prompt += f"\n\n<instructions>\nChoose legal DATC orders. Respond **only** with a JSON array of order strings.{guidance_block}\n</instructions>"
-
-    return prompt
-
-
-def build_message_prompt(
-    game_state: GameStateDTO,
-    view: PowerViewDTO,
-    rounds_left: int,
-) -> str:
-    """Return the text prompt instructing the LLM to send public/private messages."""
-    prompt = _build_common_prompt(game_state, view)
-    prompt += f"""
-<rounds-left>
-You have {rounds_left} rounds left to send messages. Make this round count!
-</rounds-left>
-
-<instructions>
-Respond with a JSON object containing at most these keys:
-ALL, ENGLAND, FRANCE, GERMANY, ITALY, RUSSIA, TURKEY, AUSTRIA.
-Omit any key you don't wish to use or set its value to null. Example:
-'{{"ALL": "Hello", "FRANCE": "Salut"}}'
-Each value must be a short plain string (<= 30 tokens).
-</instructions>
-"""
-
-    return prompt
