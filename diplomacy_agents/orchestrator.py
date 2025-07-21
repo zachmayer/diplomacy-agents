@@ -188,7 +188,7 @@ class GameOrchestrator:
         tasks: dict[Power, asyncio.Task[Orders]] = {}
         for power in surviving_powers(state):
             view = self.engine.get_power_view(power)
-            if not view.orders_list:  # No possible orders – skip
+            if not view.legal_orders_list:  # No possible orders – skip
                 continue
             tasks[power] = asyncio.create_task(self.agents[power].get_orders(state, view))
 

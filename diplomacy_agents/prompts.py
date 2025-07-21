@@ -81,7 +81,7 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
             "\nYou may support or convoy other powers' units, but first consider your strategic goals."
         )
     elif game_state.phase_type == "R":
-        pending_units = len(view.my_orders_by_location)
+        pending_units = len(view.my_possible_orders_by_location)
         if pending_units > 0:
             extra_guidance.append(
                 f"\nYou have {pending_units} dislodged unit(s)."

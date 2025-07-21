@@ -1,0 +1,171 @@
+
+<main-goal>
+You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+</main-goal>
+
+<who-am-i>
+You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
+</who-am-i>
+
+<full-game-state>
+{
+  "is_game_done": false,
+  "phase": "S1901M",
+  "phase_long": "SPRING 1901 MOVEMENT",
+  "phase_type": "M",
+  "year": 1901,
+  "all_supply_center_counts": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "GERMANY": 3,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3,
+    "FRANCE (YOU)": 3
+  },
+  "all_supply_center_locations": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "GERMANY": [
+      "BER",
+      "KIE",
+      "MUN"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ],
+    "FRANCE (YOU)": [
+      "BRE",
+      "MAR",
+      "PAR"
+    ]
+  },
+  "all_unit_locations": {
+    "AUSTRIA": {
+      "BUD": "A",
+      "VIE": "A",
+      "TRI": "F"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "GERMANY": {
+      "KIE": "F",
+      "BER": "A",
+      "MUN": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "WAR": "A",
+      "MOS": "A",
+      "SEV": "F",
+      "STP/SC": "F"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    },
+    "FRANCE (YOU)": {
+      "BRE": "F",
+      "MAR": "A",
+      "PAR": "A"
+    }
+  }
+}
+</full-game-state>
+
+<your-power-view>
+{
+  "power": "FRANCE",
+  "my_supply_center_count": 3,
+  "my_unit_locations": {
+    "BRE": "F",
+    "MAR": "A",
+    "PAR": "A"
+  },
+  "my_supply_center_locations": [
+    "BRE",
+    "MAR",
+    "PAR"
+  ],
+  "my_home_supply_center_locations": [
+    "BRE",
+    "MAR",
+    "PAR"
+  ],
+  "my_possible_orders_by_location": {
+    "BRE": [
+      "F BRE S A MAR - GAS",
+      "F BRE - PIC",
+      "F BRE H",
+      "F BRE S A PAR - PIC",
+      "F BRE - MAO",
+      "F BRE - ENG",
+      "F BRE S F LON - ENG",
+      "F BRE - GAS",
+      "F BRE S A PAR - GAS"
+    ],
+    "MAR": [
+      "A MAR S A PAR - BUR",
+      "A MAR - SPA",
+      "A MAR H",
+      "A MAR S F BRE - GAS",
+      "A MAR S A VEN - PIE",
+      "A MAR - BUR",
+      "A MAR S A PAR - GAS",
+      "A MAR - PIE",
+      "A MAR S A MUN - BUR",
+      "A MAR - GAS"
+    ],
+    "PAR": [
+      "A PAR S A MUN - BUR",
+      "A PAR S A MAR - BUR",
+      "A PAR S A MAR - GAS",
+      "A PAR - BUR",
+      "A PAR S F BRE - GAS",
+      "A PAR - BRE",
+      "A PAR S F BRE",
+      "A PAR - GAS",
+      "A PAR H",
+      "A PAR - PIC",
+      "A PAR S F BRE - PIC"
+    ]
+  }
+}
+</your-power-view>
+
+
+<instructions>
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+Return an array of DATC order(s) for each of *your* units.
+Units without orders will hold.
+You may support or convoy other powers' units, but first consider your strategic goals.
+</instructions>

@@ -82,7 +82,7 @@ class RandomAgent(BaseAgent):
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Pick **one** random legal order per controlled unit."""
         orders: Orders = []
-        for opts in _view.my_orders_by_location.values():
+        for opts in _view.my_possible_orders_by_location.values():
             orders.append(random.choice(opts))
         return orders
 
@@ -181,7 +181,7 @@ class LLMAgent(BaseAgent):
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Delegate order creation to the configured LLM via *pydantic-ai*."""
         # Build a Literal union of all allowed order strings, then ask for a list of these literals.
-        orders_literal = Literal[tuple(_view.orders_list)]  # type: ignore[misc]
+        orders_literal = Literal[tuple(_view.legal_orders_list)]  # type: ignore[misc]
 
         base_type = list[orders_literal]  # noqa: PTH123 (typing generic alias)
 
@@ -189,7 +189,7 @@ class LLMAgent(BaseAgent):
             base_type,
             name="valid_orders",
             description="Return a list of valid orders for your power in the current phase.",
-            strict=len(_view.orders_list) <= 1000,
+            strict=len(_view.legal_orders_list) <= 1000,
         )
 
         prompt = build_orders_prompt(_game_state, _view)

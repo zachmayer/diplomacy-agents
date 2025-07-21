@@ -94,14 +94,14 @@ class PowerViewDTO(BaseModel):
     # TODO: should these be "your" instead of "my"?
     my_supply_center_count: int
     my_unit_locations: dict[Location, UnitType]
-    my_home_supply_center_locations: tuple[Location, ...]
     my_supply_center_locations: tuple[Location, ...]
-    my_orders_by_location: dict[Location, tuple[str, ...]]
+    my_home_supply_center_locations: tuple[Location, ...]
+    my_possible_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
-    def orders_list(self) -> Orders:
+    def legal_orders_list(self) -> Orders:
         """Return a single flat ``list`` containing all legal order strings."""
-        return [order for opts in self.my_orders_by_location.values() for order in opts]
+        return [order for opts in self.my_possible_orders_by_location.values() for order in opts]
 
 
 # ---------------------------------------------------------------------------
@@ -126,14 +126,14 @@ class DiplomacyEngine:
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
-        phase_token = self._game.get_current_phase()  # e.g. "S1901M"
+        phase = self._game.get_current_phase()  # e.g. "S1901M"
 
         return GameStateDTO(
             is_game_done=self._game.is_game_done,
-            phase=phase_token,
+            phase=phase,
             phase_long=str(self._game.phase),
             phase_type=self._game.phase_type,
-            year=self._extract_year_from_phase(phase_token) or 0,
+            year=self._extract_year_from_phase(phase) or 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
@@ -163,10 +163,10 @@ class DiplomacyEngine:
         return PowerViewDTO(
             power=power,
             my_supply_center_count=len(self._game.get_centers(power)),
-            my_home_supply_center_locations=homes_raw,
             my_supply_center_locations=tuple(self._game.get_centers(power)),
             my_unit_locations=units_map,
-            my_orders_by_location=valid,
+            my_home_supply_center_locations=homes_raw,
+            my_possible_orders_by_location=valid,
         )
 
     def submit_orders(self, power: Power, orders: Orders) -> None:
