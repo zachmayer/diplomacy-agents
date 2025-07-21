@@ -1,4 +1,11 @@
 
+
+<instructions>
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+You have 1 dislodged unit(s).
+Return an array of exactly 1 DATC retreat or disband order(s).
+You must submit exactly one order per dislodged unit.
+</instructions>
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
@@ -112,8 +119,8 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
     "MUN"
   ],
   "my_home_supply_center_locations": [
-    "KIE",
     "BER",
+    "KIE",
     "MUN"
   ],
   "my_unit_locations": {
@@ -123,23 +130,15 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   },
   "my_possible_orders_by_location": {
     "MUN": [
-      "A MUN R TYR",
       "A MUN D",
       "A MUN R SIL",
+      "A MUN R TYR",
       "A MUN R RUH"
     ]
   }
 }
 </your-power-view>
 
-<your-legal-orders>
-['A MUN R TYR', 'A MUN D', 'A MUN R SIL', 'A MUN R RUH']
-</your-legal-orders>
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 dislodged unit(s).
-Return an array of exactly 1 DATC retreat or disband order(s).
-You must submit exactly one order per dislodged unit.
-</instructions>
+<your-possible-legal-orders>
+['A MUN D', 'A MUN R SIL', 'A MUN R TYR', 'A MUN R RUH']
+</your-possible-legal-orders>

@@ -1,4 +1,13 @@
 
+
+<instructions>
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+You have 1 build(s).
+Return an array **of exactly 1 DATC build order(s)**.
+• Each build must occur in a *distinct* vacant home supply centre.
+• Do **not** specify more than one build in the same location.
+• Example (two builds): ['F BRE B', 'A PAR B']
+</instructions>
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
@@ -115,10 +124,10 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "RUM"
   ],
   "my_home_supply_center_locations": [
-    "STP",
-    "SEV",
     "MOS",
-    "WAR"
+    "SEV",
+    "WAR",
+    "STP"
   ],
   "my_unit_locations": {
     "WAR": "A",
@@ -129,23 +138,13 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "my_possible_orders_by_location": {
     "SEV": [
       "WAIVE",
-      "A SEV B",
-      "F SEV B"
+      "F SEV B",
+      "A SEV B"
     ]
   }
 }
 </your-power-view>
 
-<your-legal-orders>
-['WAIVE', 'A SEV B', 'F SEV B']
-</your-legal-orders>
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 build(s).
-Return an array **of exactly 1 DATC build order(s)**.
-• Each build must occur in a *distinct* vacant home supply centre.
-• Do **not** specify more than one build in the same location.
-• Example (two builds): ['F BRE B', 'A PAR B']
-</instructions>
+<your-possible-legal-orders>
+['WAIVE', 'F SEV B', 'A SEV B']
+</your-possible-legal-orders>

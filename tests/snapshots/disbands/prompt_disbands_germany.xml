@@ -1,4 +1,9 @@
 
+
+<instructions>
+Choose legal DATC orders. Respond **only** with a JSON array of order strings.
+You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
+</instructions>
 <main-goal>
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
@@ -111,8 +116,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "KIE"
   ],
   "my_home_supply_center_locations": [
-    "KIE",
-    "BER"
+    "BER",
+    "KIE"
   ],
   "my_unit_locations": {
     "KIE": "F",
@@ -133,12 +138,6 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 }
 </your-power-view>
 
-<your-legal-orders>
+<your-possible-legal-orders>
 ['A BER D', 'F KIE D', 'A RUH D']
-</your-legal-orders>
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
-</instructions>
+</your-possible-legal-orders>

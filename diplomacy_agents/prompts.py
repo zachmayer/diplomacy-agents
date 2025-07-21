@@ -95,7 +95,10 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
 
     guidance_block = "\n".join(extra_guidance)
 
-    prompt += f"\n\n<instructions>\nChoose legal DATC orders. Respond **only** with a JSON array of order strings.{guidance_block}\n</instructions>"
+    prompt = (
+        f"\n\n<instructions>\nChoose legal DATC orders. Respond **only** with a JSON array of order strings.{guidance_block}\n</instructions>"
+        + prompt
+    )
 
     return prompt
 
