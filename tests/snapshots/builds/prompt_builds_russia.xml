@@ -107,12 +107,6 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 {
   "power": "RUSSIA",
   "my_supply_center_count": 5,
-  "my_unit_locations": {
-    "WAR": "A",
-    "MOS": "A",
-    "STP/SC": "F",
-    "RUM": "F"
-  },
   "my_supply_center_locations": [
     "MOS",
     "SEV",
@@ -121,20 +115,30 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "RUM"
   ],
   "my_home_supply_center_locations": [
-    "MOS",
-    "SEV",
     "STP",
+    "SEV",
+    "MOS",
     "WAR"
   ],
+  "my_unit_locations": {
+    "WAR": "A",
+    "MOS": "A",
+    "STP/SC": "F",
+    "RUM": "F"
+  },
   "my_possible_orders_by_location": {
     "SEV": [
       "WAIVE",
-      "F SEV B",
-      "A SEV B"
+      "A SEV B",
+      "F SEV B"
     ]
   }
 }
 </your-power-view>
+
+<your-legal-orders>
+['WAIVE', 'A SEV B', 'F SEV B']
+</your-legal-orders>
 
 
 <instructions>

@@ -93,9 +93,9 @@ class PowerViewDTO(BaseModel):
     # Collections -------------------------------------------------------------
     # TODO: should these be "your" instead of "my"?
     my_supply_center_count: int
-    my_unit_locations: dict[Location, UnitType]
     my_supply_center_locations: tuple[Location, ...]
     my_home_supply_center_locations: tuple[Location, ...]
+    my_unit_locations: dict[Location, UnitType]
     my_possible_orders_by_location: dict[Location, tuple[str, ...]]
 
     @property
@@ -158,14 +158,15 @@ class DiplomacyEngine:
         # Home supply centres where *power* can build.
         # The underlying diplomacy engine stores them on the per-power object
         # under the ``homes`` attribute.
-        homes_raw: tuple[Location, ...] = tuple(cast(list[Location], self._game.powers[power].homes))
+        home_centers: tuple[Location, ...] = tuple(cast(list[Location], self._game.powers[power].homes))
+        centers = self._game.get_centers(power)
 
         return PowerViewDTO(
             power=power,
-            my_supply_center_count=len(self._game.get_centers(power)),
-            my_supply_center_locations=tuple(self._game.get_centers(power)),
+            my_supply_center_count=len(centers),
+            my_supply_center_locations=tuple(centers),
+            my_home_supply_center_locations=tuple(set(home_centers) & set(centers)),
             my_unit_locations=units_map,
-            my_home_supply_center_locations=homes_raw,
             my_possible_orders_by_location=valid,
         )
 

@@ -48,6 +48,10 @@ You are power {view.power} in phase {game_state.phase_long} ({game_state.phase})
 <your-power-view>
 {view_json}
 </your-power-view>
+
+<your-possible-legal-orders>
+{view.legal_orders_list}
+</your-possible-legal-orders>
 """
 
 

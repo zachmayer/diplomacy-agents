@@ -106,31 +106,35 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 {
   "power": "GERMANY",
   "my_supply_center_count": 3,
-  "my_unit_locations": {
-    "KIE": "F",
-    "BER": "A",
-    "MUN": "*A"
-  },
   "my_supply_center_locations": [
     "BER",
     "KIE",
     "MUN"
   ],
   "my_home_supply_center_locations": [
-    "BER",
     "KIE",
+    "BER",
     "MUN"
   ],
+  "my_unit_locations": {
+    "KIE": "F",
+    "BER": "A",
+    "MUN": "*A"
+  },
   "my_possible_orders_by_location": {
     "MUN": [
-      "A MUN R SIL",
-      "A MUN D",
       "A MUN R TYR",
+      "A MUN D",
+      "A MUN R SIL",
       "A MUN R RUH"
     ]
   }
 }
 </your-power-view>
+
+<your-legal-orders>
+['A MUN R TYR', 'A MUN D', 'A MUN R SIL', 'A MUN R RUH']
+</your-legal-orders>
 
 
 <instructions>
