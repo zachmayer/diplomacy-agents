@@ -117,7 +117,7 @@ def sorted_by_key[K, V](mapping: Mapping[K, V]) -> dict[K, V]:
 def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
     """Parse a unit string like 'A PAR' into typed components."""
     unit_type_str, loc_str = unit_str.split(" ", 1)
-    return cast(UnitType, unit_type_str), cast(Location, loc_str)
+    return UnitType(unit_type_str), cast(Location, loc_str)
 
 
 class DiplomacyEngine:

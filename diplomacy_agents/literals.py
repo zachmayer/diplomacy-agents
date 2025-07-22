@@ -14,15 +14,14 @@ __all__ = [
 # phase_type: indicates the current phase type. e.g. ‘M’ for Movement, ‘R’ for Retreats, ‘A’ for Adjustment, ‘-‘ for non-playing phase
 PhaseType = Literal["M", "R", "A", "-"]
 
-UnitType = Literal["A", "F", "*A", "*F"]
 
-# class UnitType(StrEnum):
-#     """The types of units in the game."""
+class UnitType(StrEnum):
+    """The types of units in the game."""
 
-#     ARMY = "A"
-#     FLEET = "F"
-#     DISLODGED_ARMY = "*A"
-#     DISLODGED_FLEET = "*F"
+    ARMY = "A"
+    FLEET = "F"
+    DISLODGED_ARMY = "*A"
+    DISLODGED_FLEET = "*F"
 
 
 class Power(StrEnum):
