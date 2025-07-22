@@ -18,11 +18,9 @@ from pathlib import Path
 
 import pytest
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, Power, PowerViewDTO
 from diplomacy_agents.prompts import build_orders_prompt
-
-# type: ignore[reportPrivateUsage]
-from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
+from tests.test_phase_orders import (
     _setup_build_russia,
     _setup_disband_germany,
     _setup_retreat_germany,
@@ -30,7 +28,7 @@ from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
 
 
 # Power is a plain ``str`` value at runtime – annotate as ``str`` to keep Pyright happy.
-def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> Path:
+def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> Path:
     """
     Generate and write the *orders* and *press* prompts.
 
@@ -44,7 +42,7 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
     engine = factory()
 
     game_state = engine.get_game_state()
-    pov: PowerViewDTO = engine.get_power_view(power)  # type: ignore[arg-type]
+    pov: PowerViewDTO = engine.get_power_view(power)
 
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -74,7 +72,7 @@ def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngi
         ("disbands", "GERMANY", _setup_disband_germany),
     ],
 )
-def test_snapshot_prompt(case_tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> None:
+def test_snapshot_prompt(case_tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> None:
     """Generate snapshot files for *(case, power)* and assert they exist."""
     orders_path = _generate_snapshot(case_tag, power, factory)
     assert orders_path.exists()

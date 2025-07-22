@@ -116,8 +116,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "KIE"
   ],
   "my_home_supply_center_locations": [
-    "KIE",
-    "BER"
+    "BER",
+    "KIE"
   ],
   "my_unit_locations": {
     "KIE": "F",

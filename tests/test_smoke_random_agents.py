@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
 
 
-def test_random_agents_smoke() -> None:  # noqa: D401
+def test_random_agents_smoke() -> None:
     """Process 5 phases using random agents – should complete without error."""
     orch = GameOrchestrator(
         model_map=PowerModelMap(

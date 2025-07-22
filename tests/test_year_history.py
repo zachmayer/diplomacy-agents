@@ -17,6 +17,6 @@ from diplomacy_agents.engine import DiplomacyEngine
     ],
 )
 def test_extract_year(token: str, expected: int | None) -> None:
-    """Verify `_extract_year_from_phase` parses year tokens as expected."""
+    """Verify years parse as expected."""
     eng = DiplomacyEngine()
-    assert eng._extract_year_from_phase(token) == expected  # type: ignore[protected-access]
+    assert eng.extract_year_from_phase(token) == expected

@@ -32,7 +32,7 @@ logger = logging.getLogger("cli")
 
 
 @click.group()
-def cli() -> None:  # noqa: D401  (simple grouping command)
+def cli() -> None:
     """Diplomacy-Agents command-line tools."""
 
 
@@ -51,7 +51,7 @@ def cli() -> None:  # noqa: D401  (simple grouping command)
     required=True,
     help="Path to a JSON file mapping powers to model names.",
 )
-def play(model_map: str, messaging_rounds: int) -> None:  # noqa: D401
+def play(model_map: str, messaging_rounds: int) -> None:
     """Run the orchestrator with an explicit model map JSON file."""
     import json
     from pathlib import Path
@@ -83,7 +83,6 @@ def play(model_map: str, messaging_rounds: int) -> None:  # noqa: D401
     show_default=True,
     help="Random seed for model assignment reproducibility.",
 )
-# noqa: D401
 def experiments(runs: int, messaging_rounds: int, seed: int) -> None:
     """Execute *runs* experiments via ExperimentRunner."""
     runner = ExperimentRunner(messaging_rounds=messaging_rounds, seed=seed)

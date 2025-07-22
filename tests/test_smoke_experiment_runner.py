@@ -22,7 +22,7 @@ def _all_hold_model_map() -> PowerModelMap:
     )
 
 
-def test_experiment_runner_smoke_all_hold() -> None:  # noqa: D401
+def test_experiment_runner_smoke_all_hold() -> None:
     """Run ExperimentRunner once with all HoldAgents to ensure basic execution."""
     runner = ExperimentRunner(messaging_rounds=0, seed=123, max_year=1905)
     result = runner.run_once(model_map=_all_hold_model_map())

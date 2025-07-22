@@ -13,7 +13,7 @@ import logging
 __all__ = ["setup_logging"]
 
 
-def setup_logging(level: str = "INFO", json: bool = False) -> None:  # noqa: D401
+def setup_logging(level: str = "INFO", json: bool = False) -> None:
     """
     Configure root logger if no handler exists.
 

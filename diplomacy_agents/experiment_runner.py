@@ -62,7 +62,9 @@ MODEL_UNIVERSE: tuple[str, ...] = (
 __all__ = ["ExperimentRunner"]
 
 
-class ExperimentRunner:  # noqa: D101 – batch self-play runner
+class ExperimentRunner:
+    """Batch self-play experiment runner."""
+
     def __init__(self, *, messaging_rounds: int = 3, seed: int = 42, max_year: int | None = 1951) -> None:
         """
         Store common configuration for a batch of experiments.
@@ -116,7 +118,7 @@ class ExperimentRunner:  # noqa: D101 – batch self-play runner
     # Core async workflow
     # ------------------------------------------------------------------
 
-    async def _run_once_async(self, model_map: PowerModelMap | None) -> dict[str, Any]:  # noqa: D401
+    async def _run_once_async(self, model_map: PowerModelMap | None) -> dict[str, Any]:
         """
         Run one game, persist artefacts, append CSV row, return metrics.
 
@@ -240,7 +242,7 @@ class ExperimentRunner:  # noqa: D101 – batch self-play runner
     # Public API
     # ------------------------------------------------------------------
 
-    def run_once(self, *, model_map: PowerModelMap | None = None) -> dict[str, Any]:  # noqa: D401
+    def run_once(self, *, model_map: PowerModelMap | None = None) -> dict[str, Any]:
         """
         Blocking wrapper around the async workflow.
 

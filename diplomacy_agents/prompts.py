@@ -9,7 +9,7 @@ from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
 __all__: list[str] = ["build_orders_prompt"]
 
 
-def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:  # noqa: D401
+def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
     """Return the common context block used by both orders and press prompts."""
     # Convert to plain dict so we can annotate *your* power keys with a suffix.
     game_state_dict = game_state.model_dump(mode="json")

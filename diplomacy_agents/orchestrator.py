@@ -52,7 +52,7 @@ class PowerModelMap(dict[Power, AgentSpecName]):
 # ---------------------------------------------------------------------------
 
 
-def surviving_powers(state: GameStateDTO) -> tuple[Power, ...]:  # noqa: D401
+def surviving_powers(state: GameStateDTO) -> tuple[Power, ...]:
     """Return a tuple of powers that still control ≥1 supply centre."""
     return tuple(p for p, cnt in state.all_supply_center_counts.items() if cnt > 0)
 
@@ -168,7 +168,7 @@ class GameOrchestrator:
                 agents[p] = LLMAgent(p, spec)
         return agents
 
-    def _log_running_totals(self) -> None:  # noqa: D401
+    def _log_running_totals(self) -> None:
         """Emit debug-level summary of cumulative cost and runtime."""
         runtime_by_power = {p: a.total_runtime_s for p, a in self.agents.items()}
         logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")

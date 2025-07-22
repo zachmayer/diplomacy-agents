@@ -130,7 +130,7 @@ class DiplomacyEngine:
             short_phase=short_phase,
             phase=str(self._game.phase),
             phase_type=self._game.phase_type,
-            year=self._extract_year_from_phase(short_phase) or 0,
+            year=self.extract_year_from_phase(short_phase) or 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
@@ -215,7 +215,7 @@ class DiplomacyEngine:
                     dislodged.append(loc)
         return dislodged
 
-    def _extract_year_from_phase(self, phase_token: str) -> int | None:
+    def extract_year_from_phase(self, phase_token: str) -> int | None:
         """Return the four-digit year component from a phase token like "S1901M"."""
         if len(phase_token) >= 5 and phase_token[1:5].isdigit():
             return int(phase_token[1:5])

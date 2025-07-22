@@ -181,9 +181,9 @@ class LLMAgent(BaseAgent):
     async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
         """Delegate order creation to the configured LLM via *pydantic-ai*."""
         # Build a Literal union of all allowed order strings, then ask for a list of these literals.
-        orders_literal = Literal[tuple(_view.legal_orders_list)]  # type: ignore[misc]
+        orders_literal = Literal[tuple(_view.legal_orders_list)]
 
-        base_type = list[orders_literal]  # noqa: PTH123 (typing generic alias)
+        base_type = list[orders_literal]
 
         output_type = self.output_wrapper(
             base_type,
@@ -200,5 +200,3 @@ class LLMAgent(BaseAgent):
         )
 
         return cast(Orders, orders)
-
-    # Messaging support removed for gunboat mode – this agent now focuses solely on orders.

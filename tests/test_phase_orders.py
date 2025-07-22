@@ -15,7 +15,7 @@ from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
 # ---------------------------------------------------------------------------
 
 
-def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:  # noqa: D401
+def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:
     """Process turns until `engine.phase` starts with *phase_prefix*."""
     while not engine.get_game_state().short_phase.startswith(phase_prefix):
         engine.process_turn()
@@ -41,7 +41,7 @@ def _setup_retreat_germany() -> DiplomacyEngine:
     return eng
 
 
-def test_retreat_options_include_retreat_or_disband() -> None:  # noqa: D401
+def test_retreat_options_include_retreat_or_disband() -> None:
     """Legal orders for Germany in F1901R must include a retreat or disband."""
     eng = _setup_retreat_germany()
     germany: PowerViewDTO = eng.get_power_view("GERMANY")
@@ -69,7 +69,7 @@ def _setup_build_russia() -> DiplomacyEngine:
     return eng
 
 
-def test_build_phase_has_build_orders() -> None:  # noqa: D401
+def test_build_phase_has_build_orders() -> None:
     """Russia should have at least one build order available in W1901A."""
     eng = _setup_build_russia()
     rus: PowerViewDTO = eng.get_power_view("RUSSIA")
@@ -102,7 +102,7 @@ def _setup_disband_germany() -> DiplomacyEngine:
     return eng
 
 
-def test_disband_phase_has_disband_orders() -> None:  # noqa: D401
+def test_disband_phase_has_disband_orders() -> None:
     """Germany must have a disband/removal option after losing a centre."""
     eng = _setup_disband_germany()
     ger: PowerViewDTO = eng.get_power_view("GERMANY")
