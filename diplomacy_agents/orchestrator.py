@@ -124,7 +124,7 @@ class GameOrchestrator:
         while not self.engine.get_game_state().is_game_done:
             await self.play_turn()
             state = self.engine.get_game_state()
-            logger.info(f"{state.phase}: {state.all_supply_center_counts}")
+            logger.info(f"{state.short_phase}: {state.all_supply_center_counts}")
 
             # Optional early-termination guard to prevent endless stalemates.
             if self._max_year is not None and state.year >= self._max_year:

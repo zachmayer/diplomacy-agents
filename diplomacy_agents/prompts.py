@@ -38,7 +38,7 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
 </main-goal>
 
 <who-am-i>
-You are power {view.power} in phase {game_state.phase_long} ({game_state.phase}).
+You are power {view.power} in phase {game_state.phase} ({game_state.short_phase}).
 </who-am-i>
 
 <full-game-state>

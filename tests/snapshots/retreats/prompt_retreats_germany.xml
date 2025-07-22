@@ -17,8 +17,8 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 <full-game-state>
 {
   "is_game_done": false,
-  "phase": "F1901R",
-  "phase_long": "FALL 1901 RETREATS",
+  "short_phase": "F1901R",
+  "phase": "FALL 1901 RETREATS",
   "phase_type": "R",
   "year": 1901,
   "all_supply_center_counts": {
@@ -119,8 +119,8 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
     "MUN"
   ],
   "my_home_supply_center_locations": [
-    "BER",
     "KIE",
+    "BER",
     "MUN"
   ],
   "my_unit_locations": {
@@ -130,9 +130,9 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   },
   "my_possible_orders_by_location": {
     "MUN": [
-      "A MUN D",
-      "A MUN R SIL",
       "A MUN R TYR",
+      "A MUN R SIL",
+      "A MUN D",
       "A MUN R RUH"
     ]
   }
@@ -140,5 +140,5 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 </your-power-view>
 
 <your-possible-legal-orders>
-['A MUN D', 'A MUN R SIL', 'A MUN R TYR', 'A MUN R RUH']
+['A MUN R TYR', 'A MUN R SIL', 'A MUN D', 'A MUN R RUH']
 </your-possible-legal-orders>

@@ -17,7 +17,7 @@ from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
 
 def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:  # noqa: D401
     """Process turns until `engine.phase` starts with *phase_prefix*."""
-    while not engine.get_game_state().phase.startswith(phase_prefix):
+    while not engine.get_game_state().short_phase.startswith(phase_prefix):
         engine.process_turn()
 
 
@@ -47,7 +47,7 @@ def test_retreat_options_include_retreat_or_disband() -> None:  # noqa: D401
     germany: PowerViewDTO = eng.get_power_view("GERMANY")
 
     # Retreat phase confirmation using global state
-    assert eng.get_game_state().phase.endswith("R"), "Expected retreat phase"
+    assert eng.get_game_state().short_phase.endswith("R"), "Expected retreat phase"
 
     # At least one retreat (" R ") or disband (" D") order should be legal.
     flat = " ".join(germany.legal_orders_list)
@@ -74,7 +74,7 @@ def test_build_phase_has_build_orders() -> None:  # noqa: D401
     eng = _setup_build_russia()
     rus: PowerViewDTO = eng.get_power_view("RUSSIA")
 
-    assert eng.get_game_state().phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
+    assert eng.get_game_state().short_phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
     all_orders_flat = rus.legal_orders_list
     assert "build" in " ".join(all_orders_flat).lower() or any(o.endswith(" B") for o in all_orders_flat)
 
@@ -107,7 +107,7 @@ def test_disband_phase_has_disband_orders() -> None:  # noqa: D401
     eng = _setup_disband_germany()
     ger: PowerViewDTO = eng.get_power_view("GERMANY")
 
-    assert eng.get_game_state().phase.startswith("W1901A")
+    assert eng.get_game_state().short_phase.startswith("W1901A")
     # Germany should have more units than centers and therefore disband options.
     flat = " ".join(ger.legal_orders_list)
     assert " D" in flat or "disband" in flat.lower()

@@ -15,8 +15,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 <full-game-state>
 {
   "is_game_done": false,
-  "phase": "W1901A",
-  "phase_long": "WINTER 1901 ADJUSTMENTS",
+  "short_phase": "W1901A",
+  "phase": "WINTER 1901 ADJUSTMENTS",
   "phase_type": "A",
   "year": 1901,
   "all_supply_center_counts": {
@@ -116,8 +116,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "KIE"
   ],
   "my_home_supply_center_locations": [
-    "BER",
-    "KIE"
+    "KIE",
+    "BER"
   ],
   "my_unit_locations": {
     "KIE": "F",

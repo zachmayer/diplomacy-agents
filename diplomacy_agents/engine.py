@@ -39,9 +39,6 @@ class _GameProtocol(Protocol):
     phase: str  # Long phase name, e.g. "SPRING 1901 MOVEMENT"
     is_game_done: bool  # True if the game is over
 
-    # Shorthand phase token like "S1901M"
-    current_short_phase: str  # e.g. "S1901M"
-
     # Public methods --------------------------------------------------------
     def get_current_phase(self) -> str: ...
 
@@ -70,8 +67,8 @@ class GameStateDTO(BaseModel):
 
     # Scalars -----------------------------------------------------------------
     is_game_done: bool
-    phase: str  # compact phase token, e.g. "S1901M"
-    phase_long: str  # human‐friendly phase string, e.g. "SPRING 1901 MOVEMENT"
+    short_phase: str  # compact phase token, e.g. "S1901M"
+    phase: str  # human‐friendly phase string, e.g. "SPRING 1901 MOVEMENT"
     phase_type: PhaseType
     year: int
 
@@ -116,7 +113,7 @@ def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
 
 
 class DiplomacyEngine:
-    """Very thin wrapper exposing just the bits we need."""
+    """Wrapper around the diplomacy package engine."""
 
     def __init__(self, *, rules: set[str] | None = None) -> None:
         """Create a new Diplomacy game instance."""
@@ -126,14 +123,14 @@ class DiplomacyEngine:
 
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
-        phase = self._game.get_current_phase()  # e.g. "S1901M"
+        short_phase = self._game.get_current_phase()  # e.g. "S1901M"
 
         return GameStateDTO(
             is_game_done=self._game.is_game_done,
-            phase=phase,
-            phase_long=str(self._game.phase),
+            short_phase=short_phase,
+            phase=str(self._game.phase),
             phase_type=self._game.phase_type,
-            year=self._extract_year_from_phase(phase) or 0,
+            year=self._extract_year_from_phase(short_phase) or 0,
             all_powers=tuple(self._game.powers),
             all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
             all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
