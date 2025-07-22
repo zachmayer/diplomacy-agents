@@ -12,7 +12,15 @@ __all__ = [
 
 # https://diplomacy.readthedocs.io/en/stable/api/diplomacy.engine.game.html
 # phase_type: indicates the current phase type. e.g. ‘M’ for Movement, ‘R’ for Retreats, ‘A’ for Adjustment, ‘-‘ for non-playing phase
-PhaseType = Literal["M", "R", "A", "-"]
+
+
+class PhaseType(StrEnum):
+    """The types of phases in the game."""
+
+    MOVEMENT = "M"
+    RETREAT = "R"
+    ADJUSTMENT = "A"
+    NON_PLAYING = "-"
 
 
 class UnitType(StrEnum):

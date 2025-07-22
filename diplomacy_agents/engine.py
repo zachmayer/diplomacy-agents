@@ -191,7 +191,7 @@ class DiplomacyEngine:
             is_game_done=self._game.is_game_done,
             short_phase=short_phase,
             phase=str(self._game.phase),
-            phase_type=self._game.phase_type,
+            phase_type=PhaseType(self._game.phase_type),
             year=self.extract_year_from_phase(short_phase) or 0,
             all_powers=all_powers,
             all_supply_center_counts=all_supply_center_counts,
