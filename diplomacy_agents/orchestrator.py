@@ -198,7 +198,7 @@ class GameOrchestrator:
         await asyncio.gather(*tasks.values())
 
         for power, task in tasks.items():
-            self.engine.submit_orders(power, task.result())
+            self.engine.set_orders(power, task.result())
 
     # ------------------ Snapshot / animation helpers -------------------
 

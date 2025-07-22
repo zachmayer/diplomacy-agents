@@ -12,10 +12,6 @@ Return an array **of exactly 1 DATC build order(s)**.
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
-<who-am-i>
-You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
-</who-am-i>
-
 <full-game-state>
 {
   "is_game_done": false,
@@ -112,6 +108,10 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 }
 </full-game-state>
 
+<who-am-i>
+You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
+</who-am-i>
+
 <your-power-view>
 {
   "power": "RUSSIA",
@@ -124,10 +124,10 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "RUM"
   ],
   "my_home_supply_center_locations": [
-    "STP",
+    "WAR",
     "MOS",
-    "SEV",
-    "WAR"
+    "STP",
+    "SEV"
   ],
   "my_unit_locations": {
     "WAR": "A",
@@ -137,14 +137,14 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   },
   "my_possible_orders_by_location": {
     "SEV": [
+      "F SEV B",
       "A SEV B",
-      "WAIVE",
-      "F SEV B"
+      "WAIVE"
     ]
   }
 }
 </your-power-view>
 
 <your-possible-legal-orders>
-['A SEV B', 'WAIVE', 'F SEV B']
+['F SEV B', 'A SEV B', 'WAIVE']
 </your-possible-legal-orders>

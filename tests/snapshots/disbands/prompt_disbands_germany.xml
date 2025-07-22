@@ -8,10 +8,6 @@ You must remove 1 unit(s). Return an array of exactly 1 DATC disband order(s).
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
-<who-am-i>
-You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
-</who-am-i>
-
 <full-game-state>
 {
   "is_game_done": false,
@@ -107,6 +103,10 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
 }
 </full-game-state>
 
+<who-am-i>
+You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
+</who-am-i>
+
 <your-power-view>
 {
   "power": "GERMANY",
@@ -116,8 +116,8 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "KIE"
   ],
   "my_home_supply_center_locations": [
-    "BER",
-    "KIE"
+    "KIE",
+    "BER"
   ],
   "my_unit_locations": {
     "KIE": "F",

@@ -19,7 +19,7 @@ def test_20_turns_smoke() -> None:
     # underlying engine should tolerate holds / no orders gracefully.
     for _ in range(20):  # 20 phases ~ 10 game‐years
         for p in eng.get_game_state().all_supply_center_counts:
-            eng.submit_orders(p, [])  # everyone holds / waits
+            eng.set_orders(p, [])  # everyone holds / waits
         eng.process_turn()
 
     # Ensure the year advanced and the game hasn't crashed.

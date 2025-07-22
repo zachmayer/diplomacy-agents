@@ -10,10 +10,6 @@ You must submit exactly one order per dislodged unit.
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
-<who-am-i>
-You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
-</who-am-i>
-
 <full-game-state>
 {
   "is_game_done": false,
@@ -109,6 +105,10 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
 }
 </full-game-state>
 
+<who-am-i>
+You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
+</who-am-i>
+
 <your-power-view>
 {
   "power": "GERMANY",
@@ -119,9 +119,9 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
     "MUN"
   ],
   "my_home_supply_center_locations": [
-    "BER",
     "MUN",
-    "KIE"
+    "KIE",
+    "BER"
   ],
   "my_unit_locations": {
     "KIE": "F",
@@ -130,15 +130,15 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
   },
   "my_possible_orders_by_location": {
     "MUN": [
-      "A MUN D",
       "A MUN R RUH",
-      "A MUN R SIL",
-      "A MUN R TYR"
+      "A MUN D",
+      "A MUN R TYR",
+      "A MUN R SIL"
     ]
   }
 }
 </your-power-view>
 
 <your-possible-legal-orders>
-['A MUN D', 'A MUN R RUH', 'A MUN R SIL', 'A MUN R TYR']
+['A MUN R RUH', 'A MUN D', 'A MUN R TYR', 'A MUN R SIL']
 </your-possible-legal-orders>

@@ -167,7 +167,7 @@ class DiplomacyEngine:
             my_possible_orders_by_location=valid,
         )
 
-    def submit_orders(self, power: Power, orders: Orders) -> None:
+    def set_orders(self, power: Power, orders: Orders) -> None:
         """Submit list of DATC order strings for *power*."""
         self._game.set_orders(power, orders)
 

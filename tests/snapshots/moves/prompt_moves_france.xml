@@ -10,10 +10,6 @@ You may support or convoy other powers' units, but first consider your strategic
 You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
 </main-goal>
 
-<who-am-i>
-You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
-</who-am-i>
-
 <full-game-state>
 {
   "is_game_done": false,
@@ -109,6 +105,10 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
 }
 </full-game-state>
 
+<who-am-i>
+You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
+</who-am-i>
+
 <your-power-view>
 {
   "power": "FRANCE",
@@ -120,8 +120,8 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   ],
   "my_home_supply_center_locations": [
     "MAR",
-    "BRE",
-    "PAR"
+    "PAR",
+    "BRE"
   ],
   "my_unit_locations": {
     "BRE": "F",
@@ -130,45 +130,45 @@ You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
   },
   "my_possible_orders_by_location": {
     "BRE": [
-      "F BRE S A PAR - GAS",
       "F BRE - PIC",
-      "F BRE S F LON - ENG",
-      "F BRE - GAS",
-      "F BRE - ENG",
+      "F BRE S A PAR - GAS",
       "F BRE S A MAR - GAS",
+      "F BRE - ENG",
       "F BRE - MAO",
+      "F BRE - GAS",
       "F BRE S A PAR - PIC",
+      "F BRE S F LON - ENG",
       "F BRE H"
     ],
     "MAR": [
-      "A MAR S A PAR - BUR",
-      "A MAR S A VEN - PIE",
-      "A MAR - SPA",
-      "A MAR - PIE",
-      "A MAR S A PAR - GAS",
       "A MAR - BUR",
-      "A MAR H",
+      "A MAR - PIE",
       "A MAR S F BRE - GAS",
+      "A MAR S A VEN - PIE",
+      "A MAR - GAS",
+      "A MAR S A PAR - BUR",
       "A MAR S A MUN - BUR",
-      "A MAR - GAS"
+      "A MAR S A PAR - GAS",
+      "A MAR H",
+      "A MAR - SPA"
     ],
     "PAR": [
-      "A PAR - BUR",
-      "A PAR - BRE",
-      "A PAR S F BRE - PIC",
       "A PAR S A MAR - BUR",
-      "A PAR - PIC",
-      "A PAR S A MUN - BUR",
-      "A PAR S A MAR - GAS",
+      "A PAR - BRE",
       "A PAR S F BRE - GAS",
-      "A PAR - GAS",
       "A PAR H",
-      "A PAR S F BRE"
+      "A PAR - GAS",
+      "A PAR S F BRE - PIC",
+      "A PAR S A MUN - BUR",
+      "A PAR - PIC",
+      "A PAR S A MAR - GAS",
+      "A PAR S F BRE",
+      "A PAR - BUR"
     ]
   }
 }
 </your-power-view>
 
 <your-possible-legal-orders>
-['F BRE S A PAR - GAS', 'F BRE - PIC', 'F BRE S F LON - ENG', 'F BRE - GAS', 'F BRE - ENG', 'F BRE S A MAR - GAS', 'F BRE - MAO', 'F BRE S A PAR - PIC', 'F BRE H', 'A MAR S A PAR - BUR', 'A MAR S A VEN - PIE', 'A MAR - SPA', 'A MAR - PIE', 'A MAR S A PAR - GAS', 'A MAR - BUR', 'A MAR H', 'A MAR S F BRE - GAS', 'A MAR S A MUN - BUR', 'A MAR - GAS', 'A PAR - BUR', 'A PAR - BRE', 'A PAR S F BRE - PIC', 'A PAR S A MAR - BUR', 'A PAR - PIC', 'A PAR S A MUN - BUR', 'A PAR S A MAR - GAS', 'A PAR S F BRE - GAS', 'A PAR - GAS', 'A PAR H', 'A PAR S F BRE']
+['F BRE - PIC', 'F BRE S A PAR - GAS', 'F BRE S A MAR - GAS', 'F BRE - ENG', 'F BRE - MAO', 'F BRE - GAS', 'F BRE S A PAR - PIC', 'F BRE S F LON - ENG', 'F BRE H', 'A MAR - BUR', 'A MAR - PIE', 'A MAR S F BRE - GAS', 'A MAR S A VEN - PIE', 'A MAR - GAS', 'A MAR S A PAR - BUR', 'A MAR S A MUN - BUR', 'A MAR S A PAR - GAS', 'A MAR H', 'A MAR - SPA', 'A PAR S A MAR - BUR', 'A PAR - BRE', 'A PAR S F BRE - GAS', 'A PAR H', 'A PAR - GAS', 'A PAR S F BRE - PIC', 'A PAR S A MUN - BUR', 'A PAR - PIC', 'A PAR S A MAR - GAS', 'A PAR S F BRE', 'A PAR - BUR']
 </your-possible-legal-orders>
