@@ -66,9 +66,9 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
   },
   "all_unit_locations": {
     "AUSTRIA": {
+      "BOH": "A",
       "BUD": "A",
-      "TRI": "F",
-      "BOH": "A"
+      "TRI": "F"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -86,10 +86,10 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "VEN": "A"
     },
     "RUSSIA": {
-      "WAR": "A",
       "MOS": "A",
       "SEV": "F",
-      "STP/SC": "F"
+      "STP/SC": "F",
+      "WAR": "A"
     },
     "TURKEY": {
       "ANK": "F",
@@ -97,8 +97,8 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "SMY": "A"
     },
     "GERMANY (YOU)": {
-      "KIE": "F",
       "BER": "A",
+      "KIE": "F",
       "MUN": "*A"
     }
   }
@@ -119,26 +119,26 @@ You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
     "MUN"
   ],
   "my_home_supply_center_locations": [
-    "MUN",
+    "BER",
     "KIE",
-    "BER"
+    "MUN"
   ],
   "my_unit_locations": {
-    "KIE": "F",
     "BER": "A",
+    "KIE": "F",
     "MUN": "*A"
   },
   "my_possible_orders_by_location": {
     "MUN": [
-      "A MUN R RUH",
       "A MUN D",
-      "A MUN R TYR",
-      "A MUN R SIL"
+      "A MUN R RUH",
+      "A MUN R SIL",
+      "A MUN R TYR"
     ]
   }
 }
 </your-power-view>
 
 <your-possible-legal-orders>
-['A MUN R RUH', 'A MUN D', 'A MUN R TYR', 'A MUN R SIL']
+['A MUN D', 'A MUN R RUH', 'A MUN R SIL', 'A MUN R TYR']
 </your-possible-legal-orders>

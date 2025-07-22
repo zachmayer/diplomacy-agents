@@ -38,8 +38,8 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
     "FRANCE": [
       "BRE",
       "MAR",
-      "PAR",
-      "MUN"
+      "MUN",
+      "PAR"
     ],
     "ITALY": [
       "NAP",
@@ -64,9 +64,9 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
   },
   "all_unit_locations": {
     "AUSTRIA": {
+      "BOH": "A",
       "BUD": "A",
-      "TRI": "F",
-      "BOH": "A"
+      "TRI": "F"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -84,10 +84,10 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "VEN": "A"
     },
     "RUSSIA": {
-      "WAR": "A",
       "MOS": "A",
       "SEV": "F",
-      "STP/SC": "F"
+      "STP/SC": "F",
+      "WAR": "A"
     },
     "TURKEY": {
       "ANK": "F",
@@ -95,8 +95,8 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "SMY": "A"
     },
     "GERMANY (YOU)": {
-      "KIE": "F",
       "BER": "A",
+      "KIE": "F",
       "RUH": "A"
     }
   }
@@ -116,12 +116,12 @@ You are power GERMANY in phase WINTER 1901 ADJUSTMENTS (W1901A).
     "KIE"
   ],
   "my_home_supply_center_locations": [
-    "KIE",
-    "BER"
+    "BER",
+    "KIE"
   ],
   "my_unit_locations": {
-    "KIE": "F",
     "BER": "A",
+    "KIE": "F",
     "RUH": "A"
   },
   "my_possible_orders_by_location": {

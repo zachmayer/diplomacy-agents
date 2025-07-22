@@ -61,17 +61,17 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
     ],
     "RUSSIA (YOU)": [
       "MOS",
+      "RUM",
       "SEV",
       "STP",
-      "WAR",
-      "RUM"
+      "WAR"
     ]
   },
   "all_unit_locations": {
     "AUSTRIA": {
       "BUD": "A",
-      "VIE": "A",
-      "TRI": "F"
+      "TRI": "F",
+      "VIE": "A"
     },
     "ENGLAND": {
       "EDI": "F",
@@ -84,8 +84,8 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "PAR": "A"
     },
     "GERMANY": {
-      "KIE": "F",
       "BER": "A",
+      "KIE": "F",
       "MUN": "A"
     },
     "ITALY": {
@@ -99,10 +99,10 @@ You are playing Diplomacy, a strategy board game. Your objective is to win by co
       "SMY": "A"
     },
     "RUSSIA (YOU)": {
-      "WAR": "A",
       "MOS": "A",
+      "RUM": "F",
       "STP/SC": "F",
-      "RUM": "F"
+      "WAR": "A"
     }
   }
 }
@@ -118,27 +118,27 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
   "my_supply_center_count": 5,
   "my_supply_center_locations": [
     "MOS",
+    "RUM",
     "SEV",
     "STP",
-    "WAR",
-    "RUM"
+    "WAR"
   ],
   "my_home_supply_center_locations": [
-    "WAR",
     "MOS",
+    "SEV",
     "STP",
-    "SEV"
+    "WAR"
   ],
   "my_unit_locations": {
-    "WAR": "A",
     "MOS": "A",
+    "RUM": "F",
     "STP/SC": "F",
-    "RUM": "F"
+    "WAR": "A"
   },
   "my_possible_orders_by_location": {
     "SEV": [
-      "F SEV B",
       "A SEV B",
+      "F SEV B",
       "WAIVE"
     ]
   }
@@ -146,5 +146,5 @@ You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
 </your-power-view>
 
 <your-possible-legal-orders>
-['F SEV B', 'A SEV B', 'WAIVE']
+['A SEV B', 'F SEV B', 'WAIVE']
 </your-possible-legal-orders>

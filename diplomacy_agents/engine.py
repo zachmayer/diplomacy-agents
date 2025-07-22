@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Protocol, cast, runtime_checkable
+from collections.abc import Callable, Mapping
+from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
@@ -105,6 +105,14 @@ class PowerViewDTO(BaseModel):
 # Engine façade
 # ---------------------------------------------------------------------------
 
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def sorted_by_key[K, V](mapping: Mapping[K, V]) -> dict[K, V]:
+    """Return a **new** dict with items ordered by key (ascending)."""
+    return dict(sorted(mapping.items()))
+
 
 def _split_unit(unit_str: str) -> tuple[UnitType, Location]:
     """Parse a unit string like 'A PAR' into typed components."""
@@ -121,9 +129,63 @@ class DiplomacyEngine:
         raw_game = _RawGame(rules=rules or default_rules)
         self._game: _GameProtocol = cast(_GameProtocol, raw_game)
 
+    # ------------------------------------------------------------------
+    # Helper
+    # ------------------------------------------------------------------
+
+    def extract_year_from_phase(self, phase_token: str) -> int | None:
+        """Return the four-digit year component from a phase token like "S1901M"."""
+        if len(phase_token) >= 5 and phase_token[1:5].isdigit():
+            return int(phase_token[1:5])
+        return None
+
+    def get_powers(self) -> tuple[Power, ...]:
+        """Return the list of powers."""
+        return tuple(sorted(Power(p) for p in self._game.powers))
+
+    def get_power_supply_centers(self, power: Power) -> tuple[Location, ...]:
+        """Return the list of centers for a power."""
+        return tuple(sorted(self._game.get_centers(power)))
+
+    def get_all_supply_centers(self) -> dict[Power, tuple[Location, ...]]:
+        """Return the list of centers for all powers."""
+        centers = {p: self.get_power_supply_centers(p) for p in self.get_powers()}
+        return sorted_by_key(centers)
+
+    def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
+        """Return {power: {loc: unit_type}} nested mapping for all units."""
+        power_units: dict[Power, dict[Location, UnitType]] = {}
+        for power in self.get_powers():
+            per_power: dict[Location, UnitType] = {}
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = _split_unit(unit_str)
+                per_power[loc] = unit_type
+            power_units[power] = sorted_by_key(per_power)
+        return sorted_by_key(power_units)
+
+    def _get_dislodged_locations(self) -> list[Location]:
+        """Return locations of units that are currently dislodged."""
+        dislodged: list[Location] = []
+        for power in self.get_powers():
+            for unit_str in self._game.get_units(power):
+                unit_type, loc = _split_unit(unit_str)
+                if unit_type.startswith("*"):
+                    dislodged.append(loc)
+        return dislodged
+
+    # ------------------------------------------------------------------
+    # DTO Interface Constructors
+    # ------------------------------------------------------------------
+
     def get_game_state(self) -> GameStateDTO:
         """Return a coarse snapshot of the entire game."""
         short_phase = self._game.get_current_phase()  # e.g. "S1901M"
+        all_powers = self.get_powers()
+
+        all_supply_center_locations = self.get_all_supply_centers()
+        all_supply_center_counts = {k: len(v) for k, v in all_supply_center_locations.items()}
+
+        all_unit_locations = sorted_by_key(self._get_units_by_power())
 
         return GameStateDTO(
             is_game_done=self._game.is_game_done,
@@ -131,41 +193,48 @@ class DiplomacyEngine:
             phase=str(self._game.phase),
             phase_type=self._game.phase_type,
             year=self.extract_year_from_phase(short_phase) or 0,
-            all_powers=tuple(self._game.powers),
-            all_supply_center_counts={p: len(self._game.get_centers(p)) for p in self._game.powers},
-            all_supply_center_locations={p: tuple(self._game.get_centers(p)) for p in self._game.powers},
-            all_unit_locations=self._get_units_by_power(),
+            all_powers=all_powers,
+            all_supply_center_counts=all_supply_center_counts,
+            all_supply_center_locations=all_supply_center_locations,
+            all_unit_locations=all_unit_locations,
         )
 
     def get_power_view(self, power: Power) -> PowerViewDTO:
         """Return the board from *power*'s perspective."""
-        all_possible: dict[Location, Orders] = self._game.get_all_possible_orders()
-        orderable: tuple[Location, ...] = tuple(self._game.get_orderable_locations(power))
+        all_possible: dict[Location, Orders] = sorted_by_key(self._game.get_all_possible_orders())
+        orderable: tuple[Location, ...] = tuple(sorted(self._game.get_orderable_locations(power)))
 
         valid: dict[Location, tuple[str, ...]] = {
-            loc: tuple(all_possible[loc]) for loc in orderable if loc in all_possible
+            loc: tuple(sorted(all_possible[loc])) for loc in orderable if loc in all_possible
         }
+        valid = sorted_by_key(valid)
 
         # Parse unit list like ["A PAR", "F BRE"] into {"PAR": "A", "BRE": "F"}
         units_map: dict[Location, UnitType] = {}
         for unit_str in self._game.get_units(power):
             unit_type, loc = _split_unit(unit_str)
             units_map[loc] = unit_type
+        units_map = sorted_by_key(units_map)
 
         # Home supply centres where *power* can build.
         # The underlying diplomacy engine stores them on the per-power object
         # under the ``homes`` attribute.
+        centers = tuple(sorted(self._game.get_centers(power)))
         home_centers: tuple[Location, ...] = tuple(cast(list[Location], self._game.powers[power].homes))
-        centers = self._game.get_centers(power)
+        home_centers = tuple(sorted(set(home_centers) & set(centers)))  # Just owned home centers
 
         return PowerViewDTO(
             power=power,
             my_supply_center_count=len(centers),
-            my_supply_center_locations=tuple(centers),
-            my_home_supply_center_locations=tuple(set(home_centers) & set(centers)),
+            my_supply_center_locations=centers,
+            my_home_supply_center_locations=home_centers,
             my_unit_locations=units_map,
             my_possible_orders_by_location=valid,
         )
+
+    # ------------------------------------------------------------------
+    # I/O
+    # ------------------------------------------------------------------
 
     def set_orders(self, power: Power, orders: Orders) -> None:
         """Submit list of DATC order strings for *power*."""
@@ -189,34 +258,3 @@ class DiplomacyEngine:
     def save(self, file_path: str) -> None:
         """Write the current game to *file_path* in DATC JSON format."""
         export.to_saved_game_format(self._game, file_path, "w")
-
-    # ------------------------------------------------------------------
-    # Internals
-    # ------------------------------------------------------------------
-
-    def _get_units_by_power(self) -> dict[Power, dict[Location, UnitType]]:
-        """Return {power: {loc: unit_type}} nested mapping for all units."""
-        mp: dict[Power, dict[Location, UnitType]] = {}
-        for power in self._game.powers:
-            per_power: dict[Location, UnitType] = {}
-            for unit_str in self._game.get_units(power):
-                unit_type, loc = _split_unit(unit_str)
-                per_power[loc] = unit_type
-            mp[power] = per_power
-        return mp
-
-    def _get_dislodged_locations(self) -> list[Location]:
-        """Return locations of units that are currently dislodged."""
-        dislodged: list[Location] = []
-        for power in self._game.powers:
-            for unit_str in self._game.get_units(power):
-                unit_type, loc = _split_unit(unit_str)
-                if unit_type.startswith("*"):
-                    dislodged.append(loc)
-        return dislodged
-
-    def extract_year_from_phase(self, phase_token: str) -> int | None:
-        """Return the four-digit year component from a phase token like "S1901M"."""
-        if len(phase_token) >= 5 and phase_token[1:5].isdigit():
-            return int(phase_token[1:5])
-        return None

@@ -66,10 +66,10 @@ def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEn
 @pytest.mark.parametrize(
     ("case_tag", "power", "factory"),
     [
-        ("moves", "FRANCE", DiplomacyEngine),
-        ("retreats", "GERMANY", _setup_retreat_germany),
-        ("builds", "RUSSIA", _setup_build_russia),
-        ("disbands", "GERMANY", _setup_disband_germany),
+        ("moves", Power.FRANCE, DiplomacyEngine),
+        ("retreats", Power.GERMANY, _setup_retreat_germany),
+        ("builds", Power.RUSSIA, _setup_build_russia),
+        ("disbands", Power.GERMANY, _setup_disband_germany),
     ],
 )
 def test_snapshot_prompt(case_tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> None:

@@ -9,6 +9,7 @@ carefully crafted board positions.
 from __future__ import annotations
 
 from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.literals import Power
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,13 +31,13 @@ def _setup_retreat_germany() -> DiplomacyEngine:
     """Create an F1901R retreat scenario for Germany (A MUN dislodged)."""
     eng = DiplomacyEngine()
     # Spring 1901 movement
-    eng.set_orders("FRANCE", ["A PAR - BUR"])
-    eng.set_orders("AUSTRIA", ["A VIE - BOH"])
+    eng.set_orders(Power.FRANCE, ["A PAR - BUR"])
+    eng.set_orders(Power.AUSTRIA, ["A VIE - BOH"])
     _advance_until(eng, "F1901M")  # progress through S1901R to F1901M
 
     # Fall 1901 movement: BUR supported into MUN
-    eng.set_orders("FRANCE", ["A BUR - MUN"])
-    eng.set_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    eng.set_orders(Power.FRANCE, ["A BUR - MUN"])
+    eng.set_orders(Power.AUSTRIA, ["A BOH S A BUR - MUN"])
     _advance_until(eng, "F1901R")
     return eng
 
@@ -44,7 +45,7 @@ def _setup_retreat_germany() -> DiplomacyEngine:
 def test_retreat_options_include_retreat_or_disband() -> None:
     """Legal orders for Germany in F1901R must include a retreat or disband."""
     eng = _setup_retreat_germany()
-    germany: PowerViewDTO = eng.get_power_view("GERMANY")
+    germany: PowerViewDTO = eng.get_power_view(Power.GERMANY)
 
     # Retreat phase confirmation using global state
     assert eng.get_game_state().short_phase.endswith("R"), "Expected retreat phase"
@@ -64,7 +65,7 @@ def _setup_build_russia() -> DiplomacyEngine:
     eng = DiplomacyEngine()
     _advance_until(eng, "F1901M")  # advance to Fall movement
 
-    eng.set_orders("RUSSIA", ["F SEV - RUM"])
+    eng.set_orders(Power.RUSSIA, ["F SEV - RUM"])
     _advance_until(eng, "W1901A")
     return eng
 
@@ -72,7 +73,7 @@ def _setup_build_russia() -> DiplomacyEngine:
 def test_build_phase_has_build_orders() -> None:
     """Russia should have at least one build order available in W1901A."""
     eng = _setup_build_russia()
-    rus: PowerViewDTO = eng.get_power_view("RUSSIA")
+    rus: PowerViewDTO = eng.get_power_view(Power.RUSSIA)
 
     assert eng.get_game_state().short_phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
     all_orders_flat = rus.legal_orders_list
@@ -88,16 +89,16 @@ def _setup_disband_germany() -> DiplomacyEngine:
     """Germany loses MUN and must remove one unit in W1901A."""
     eng = DiplomacyEngine()
     # Same opening as retreat scenario
-    eng.set_orders("FRANCE", ["A PAR - BUR"])
-    eng.set_orders("AUSTRIA", ["A VIE - BOH"])
+    eng.set_orders(Power.FRANCE, ["A PAR - BUR"])
+    eng.set_orders(Power.AUSTRIA, ["A VIE - BOH"])
     _advance_until(eng, "F1901M")
 
-    eng.set_orders("FRANCE", ["A BUR - MUN"])
-    eng.set_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    eng.set_orders(Power.FRANCE, ["A BUR - MUN"])
+    eng.set_orders(Power.AUSTRIA, ["A BOH S A BUR - MUN"])
     _advance_until(eng, "F1901R")
 
     # Retreat Germany to RUH so it still has unit count mismatch later
-    eng.set_orders("GERMANY", ["A MUN R RUH"])
+    eng.set_orders(Power.GERMANY, ["A MUN R RUH"])
     _advance_until(eng, "W1901A")
     return eng
 
@@ -105,7 +106,7 @@ def _setup_disband_germany() -> DiplomacyEngine:
 def test_disband_phase_has_disband_orders() -> None:
     """Germany must have a disband/removal option after losing a centre."""
     eng = _setup_disband_germany()
-    ger: PowerViewDTO = eng.get_power_view("GERMANY")
+    ger: PowerViewDTO = eng.get_power_view(Power.GERMANY)
 
     assert eng.get_game_state().short_phase.startswith("W1901A")
     # Germany should have more units than centers and therefore disband options.

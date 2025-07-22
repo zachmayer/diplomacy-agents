@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import xml.etree.ElementTree as ET
 
+from diplomacy_agents.literals import Power
 from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
 
 
@@ -17,13 +18,13 @@ def test_random_agents_smoke() -> None:
     orch = GameOrchestrator(
         model_map=PowerModelMap(
             {
-                "AUSTRIA": "random",
-                "ENGLAND": "random",
-                "FRANCE": "random",
-                "GERMANY": "random",
-                "ITALY": "random",
-                "RUSSIA": "random",
-                "TURKEY": "random",
+                Power.AUSTRIA: "random",
+                Power.ENGLAND: "random",
+                Power.FRANCE: "random",
+                Power.GERMANY: "random",
+                Power.ITALY: "random",
+                Power.RUSSIA: "random",
+                Power.TURKEY: "random",
             }
         )
     )

@@ -1,5 +1,6 @@
 """Canonical token literals used throughout the project (PEP 695 type aliases)."""
 
+from enum import StrEnum
 from typing import Literal
 
 __all__ = [
@@ -15,15 +16,26 @@ PhaseType = Literal["M", "R", "A", "-"]
 
 UnitType = Literal["A", "F", "*A", "*F"]
 
-Power = Literal[
-    "ENGLAND",
-    "FRANCE",
-    "GERMANY",
-    "ITALY",
-    "RUSSIA",
-    "TURKEY",
-    "AUSTRIA",
-]
+# class UnitType(StrEnum):
+#     """The types of units in the game."""
+
+#     ARMY = "A"
+#     FLEET = "F"
+#     DISLODGED_ARMY = "*A"
+#     DISLODGED_FLEET = "*F"
+
+
+class Power(StrEnum):
+    """The powers in the game."""
+
+    ENGLAND = "ENGLAND"
+    FRANCE = "FRANCE"
+    GERMANY = "GERMANY"
+    ITALY = "ITALY"
+    RUSSIA = "RUSSIA"
+    TURKEY = "TURKEY"
+    AUSTRIA = "AUSTRIA"
+
 
 Location = Literal[
     "ADR",

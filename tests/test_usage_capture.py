@@ -10,6 +10,7 @@ from pydantic_ai.usage import Usage
 
 # We now track usage per-agent instead of a global list.
 from diplomacy_agents.agents import LLMAgent
+from diplomacy_agents.literals import Power
 
 
 class _StubModel:
@@ -68,7 +69,7 @@ def test_stats_capture(monkeypatch: pytest.MonkeyPatch) -> None:
     # Prevent real model inference that would hit external services.
     monkeypatch.setattr(agents_mod.models, "infer_model", _infer_model_stub)
 
-    agent = LLMAgent("ENGLAND", "openai:gpt-4.1")
+    agent = LLMAgent(Power.ENGLAND, "openai:gpt-4.1")
 
     _ = _dummy_state_view()
 

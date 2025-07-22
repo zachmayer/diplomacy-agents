@@ -99,6 +99,3 @@ def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
     )
 
     return prompt
-
-
-# build_message_prompt has been removed – public press is no longer supported in gunboat mode.
