@@ -1,0 +1,139 @@
+<main-goal>
+You are playing Diplomacy. Win by owning 18+ supply centres.
+</main-goal>
+
+<instructions>
+Choose legal DATC orders **only** for *your* power.
+Respond with a JSON array of order strings - no commentary.
+You must **disband 1 unit(s)**. Return exactly 1 disband order(s).
+</instructions>
+
+<full-game-state>
+{
+  "is_done": false,
+  "short_phase": "W1901A",
+  "phase": "WINTER 1901 ADJUSTMENTS",
+  "phase_type": "A",
+  "year": 1901,
+  "supply_centers": {
+    "AUSTRIA": [
+      "BUD",
+      "TRI",
+      "VIE"
+    ],
+    "ENGLAND": [
+      "EDI",
+      "LON",
+      "LVP"
+    ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "MUN",
+      "PAR"
+    ],
+    "ITALY": [
+      "NAP",
+      "ROM",
+      "VEN"
+    ],
+    "RUSSIA": [
+      "MOS",
+      "SEV",
+      "STP",
+      "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
+    ],
+    "GERMANY (YOU)": [
+      "BER",
+      "KIE"
+    ]
+  },
+  "supply_center_counts": {
+    "AUSTRIA": 3,
+    "ENGLAND": 3,
+    "FRANCE": 4,
+    "ITALY": 3,
+    "RUSSIA": 4,
+    "TURKEY": 3,
+    "GERMANY (YOU)": 2
+  },
+  "units": {
+    "AUSTRIA": {
+      "BOH": "A",
+      "BUD": "A",
+      "TRI": "F"
+    },
+    "ENGLAND": {
+      "EDI": "F",
+      "LON": "F",
+      "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "MUN": "A"
+    },
+    "ITALY": {
+      "NAP": "F",
+      "ROM": "A",
+      "VEN": "A"
+    },
+    "RUSSIA": {
+      "MOS": "A",
+      "SEV": "F",
+      "STP/SC": "F",
+      "WAR": "A"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
+    },
+    "GERMANY (YOU)": {
+      "BER": "A",
+      "KIE": "F",
+      "RUH": "A"
+    }
+  }
+}
+</full-game-state>
+
+<your-power-view>
+{
+  "power": "GERMANY",
+  "supply_center_count": 2,
+  "supply_centers": [
+    "BER",
+    "KIE"
+  ],
+  "home_supply_centers": [
+    "BER",
+    "KIE"
+  ],
+  "units": {
+    "BER": "A",
+    "KIE": "F",
+    "RUH": "A"
+  },
+  "possible_orders": {
+    "BER": [
+      "A BER D"
+    ],
+    "KIE": [
+      "F KIE D"
+    ],
+    "RUH": [
+      "A RUH D"
+    ]
+  }
+}
+</your-power-view>
+
+<your-possible-legal-orders>
+['A BER D', 'F KIE D', 'A RUH D']
+</your-possible-legal-orders>
