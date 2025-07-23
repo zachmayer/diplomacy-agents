@@ -1,7 +1,6 @@
 """Canonical token literals used throughout the project (PEP 695 type aliases)."""
 
 from enum import StrEnum
-from typing import Literal
 
 __all__ = [
     "PhaseType",
@@ -44,87 +43,88 @@ class Power(StrEnum):
     AUSTRIA = "AUSTRIA"
 
 
-Location = Literal[
-    "ADR",
-    "AEG",
-    "ALB",
-    "ANK",
-    "APU",
-    "ARM",
-    "BAL",
-    "BAR",
-    "BEL",
-    "BER",
-    "BLA",
-    "BOH",
-    "BOT",
-    "BRE",
-    "BUD",
-    "BUL",
-    "BUL/EC",
-    "BUL/SC",
-    "BUR",
-    "CLY",
-    "CON",
-    "DEN",
-    "EAS",
-    "EDI",
-    "ENG",
-    "FIN",
-    "GAL",
-    "GAS",
-    "GRE",
-    "HEL",
-    "HOL",
-    "ION",
-    "IRI",
-    "KIE",
-    "LON",
-    "LVN",
-    "LVP",
-    "LYO",
-    "MAO",
-    "MAR",
-    "MOS",
-    "MUN",
-    "NAF",
-    "NAO",
-    "NAP",
-    "NTH",
-    "NWG",
-    "NWY",
-    "PAR",
-    "PIC",
-    "PIE",
-    "POR",
-    "PRU",
-    "ROM",
-    "RUH",
-    "RUM",
-    "SER",
-    "SEV",
-    "SIL",
-    "SKA",
-    "SMY",
-    "SPA",
-    "SPA/NC",
-    "SPA/SC",
-    "STP",
-    "STP/NC",
-    "STP/SC",
-    "SWE",
-    "SWI",
-    "SYR",
-    "TRI",
-    "TUN",
-    "TUS",
-    "TYR",
-    "TYS",
-    "UKR",
-    "VEN",
-    "VIE",
-    "WAL",
-    "WAR",
-    "WES",
-    "YOR",
-]
+class Location(StrEnum):
+    """The locations in the game."""
+
+    ADR = "ADR"
+    AEG = "AEG"
+    ALB = "ALB"
+    ANK = "ANK"
+    APU = "APU"
+    ARM = "ARM"
+    BAL = "BAL"
+    BAR = "BAR"
+    BEL = "BEL"
+    BER = "BER"
+    BLA = "BLA"
+    BOH = "BOH"
+    BOT = "BOT"
+    BRE = "BRE"
+    BUD = "BUD"
+    BUL = "BUL"
+    BUL_EC = "BUL/EC"
+    BUL_SC = "BUL/SC"
+    BUR = "BUR"
+    CLY = "CLY"
+    CON = "CON"
+    DEN = "DEN"
+    EAS = "EAS"
+    EDI = "EDI"
+    ENG = "ENG"
+    FIN = "FIN"
+    GAL = "GAL"
+    GAS = "GAS"
+    GRE = "GRE"
+    HEL = "HEL"
+    HOL = "HOL"
+    ION = "ION"
+    IRI = "IRI"
+    KIE = "KIE"
+    LON = "LON"
+    LVN = "LVN"
+    LVP = "LVP"
+    LYO = "LYO"
+    MAO = "MAO"
+    MAR = "MAR"
+    MOS = "MOS"
+    MUN = "MUN"
+    NAF = "NAF"
+    NAO = "NAO"
+    NAP = "NAP"
+    NTH = "NTH"
+    NWG = "NWG"
+    NWY = "NWY"
+    PAR = "PAR"
+    PIC = "PIC"
+    PIE = "PIE"
+    POR = "POR"
+    PRU = "PRU"
+    ROM = "ROM"
+    RUH = "RUH"
+    RUM = "RUM"
+    SER = "SER"
+    SEV = "SEV"
+    SIL = "SIL"
+    SKA = "SKA"
+    SMY = "SMY"
+    SPA = "SPA"
+    SPA_NC = "SPA/NC"
+    SPA_SC = "SPA/SC"
+    STP = "STP"
+    STP_NC = "STP/NC"
+    STP_SC = "STP/SC"
+    SWE = "SWE"
+    SWI = "SWI"
+    SYR = "SYR"
+    TRI = "TRI"
+    TUN = "TUN"
+    TUS = "TUS"
+    TYR = "TYR"
+    TYS = "TYS"
+    UKR = "UKR"
+    VEN = "VEN"
+    VIE = "VIE"
+    WAL = "WAL"
+    WAR = "WAR"
+    WES = "WES"
+    YOR = "YOR"

@@ -1,14 +1,9 @@
 # pyright: reportPrivateUsage=false
 """
+Generate snapshot JSON / prompt artefacts for manual inspection.
 
-Generate snapshot JSON artifacts for inspection & regression checks.
-
-This test isn't about behavioural assertions; it serialises the first-turn
-state of the `DiplomacyEngine` so humans (and future tests) can eyeball or
-compare the structures we expose via our typed façade.
-
-It writes files into tests/snapshots/<phase>/<power>/ … so they can be easily
-committed and diffed.
+Each parametrised case serialises the board state and the generated orders
+prompt for a specific power, writing files under *tests/snapshots/*.
 """
 
 from __future__ import annotations
@@ -26,41 +21,29 @@ from tests.test_phase_orders import (
     _setup_retreat_germany,
 )
 
+# ---------------------------------------------------------------------------#
+# Helper                                                                      #
+# ---------------------------------------------------------------------------#
 
-# Power is a plain ``str`` value at runtime – annotate as ``str`` to keep Pyright happy.
+
 def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> Path:
-    """
-    Generate and write the *orders* and *press* prompts.
-
-    Returns
-    -------
-    (orders_path, press_path)
-        Filesystem paths of the written prompt XML files so callers can assert
-        on their existence (or open them for inspection).
-
-    """
+    """Build the orders prompt for *(tag, power)*, write it to disk, and return the path."""
     engine = factory()
-
-    game_state = engine.get_game_state()
-    pov: PowerViewDTO = engine.get_power_view(power)
+    state = engine.game_state()
+    view: PowerViewDTO = engine.power_view(power)
 
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    # Helper to avoid repetition when writing files.
-    def _write(filename: str, content: str) -> Path:
-        path = base_dir / filename
-        path.write_text(content)
-        return path
+    file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.txt"
+    file_path.write_text(build_orders_prompt(state, view))
 
-    file_prefix = f"{tag}_{power.lower()}"
+    return file_path
 
-    orders_path = _write(
-        f"prompt_{file_prefix}.xml",
-        build_orders_prompt(game_state, pov),
-    )
 
-    return orders_path
+# ---------------------------------------------------------------------------#
+# Parametrised snapshot generation                                           #
+# ---------------------------------------------------------------------------#
 
 
 @pytest.mark.parametrize(
@@ -73,6 +56,6 @@ def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEn
     ],
 )
 def test_snapshot_prompt(case_tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> None:
-    """Generate snapshot files for *(case, power)* and assert they exist."""
-    orders_path = _generate_snapshot(case_tag, power, factory)
-    assert orders_path.exists()
+    """Generate snapshot prompt files and assert they were written."""
+    prompt_path = _generate_snapshot(case_tag, power, factory)
+    assert prompt_path.exists()

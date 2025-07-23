@@ -1,11 +1,12 @@
-"""Unit tests for year-based message filtering helper."""
+"""Unit tests for year‑extraction helper on phase tokens."""
+
+from __future__ import annotations
 
 import pytest
 
-from diplomacy_agents.engine import DiplomacyEngine
+from diplomacy_agents.engine import year_from_short_phase
 
 
-# https://diplomacy.readthedocs.io/en/stable/api/diplomacy.engine.game.html#diplomacy.engine.game.Game.get_current_phase
 @pytest.mark.parametrize(
     ("token", "expected"),
     [
@@ -17,6 +18,5 @@ from diplomacy_agents.engine import DiplomacyEngine
     ],
 )
 def test_extract_year(token: str, expected: int | None) -> None:
-    """Verify years parse as expected."""
-    eng = DiplomacyEngine()
-    assert eng.extract_year_from_phase(token) == expected
+    """Verify that phase tokens map to the correct year (or None)."""
+    assert year_from_short_phase(token) == expected

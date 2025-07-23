@@ -1,101 +1,86 @@
-"""Prompt construction helpers."""
+"""Prompt‑construction helpers for Diplomacy LLM agents."""
 
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
-from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
+from diplomacy_agents.engine import GameStateDTO, PhaseType, PowerViewDTO
 
-__all__: list[str] = ["build_orders_prompt"]
+__all__ = ["build_orders_prompt"]
 
 
-def _build_common_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
-    """Return the common context block used by both orders and press prompts."""
-    # Convert to plain dict so we can annotate *your* power keys with a suffix.
-    game_state_dict = game_state.model_dump(mode="json")
+def _adjustment_guidance(view: PowerViewDTO) -> str:
+    """Guidance for Adjustment (build / disband) phases."""
+    diff = view.supply_center_count - len(view.units)
+    if diff > 0:
+        return (
+            f"You have **{diff} build(s)**. Return exactly {diff} distinct build orders (e.g. ['F BRE B', 'A PAR B'])."
+        )
+    if diff < 0:
+        removes = -diff
+        return f"You must **disband {removes} unit(s)**. Return exactly {removes} disband order(s)."
+    return "No builds or removals required; return an empty list."
 
-    # Append " (YOU)" to the requesting power's keys in the board‐wide mappings.
-    for field in [
-        "all_supply_center_counts",
-        "all_supply_center_locations",
-        "all_unit_locations",
-    ]:
-        if field in game_state_dict and view.power in game_state_dict[field]:
-            mapping = game_state_dict[field]
-            mapping[f"{view.power} (YOU)"] = mapping.pop(view.power)
 
-    # Remove redundant info not needed for language model context.
-    game_state_dict.pop("all_powers", None)
+def _movement_guidance(_: PowerViewDTO) -> str:
+    """Guidance for Movement phases."""
+    return "Issue one legal order to each of your units. Units without orders will *hold*."
 
-    game_state_json = json.dumps(game_state_dict, indent=2, sort_keys=False)
+
+def _retreat_guidance(view: PowerViewDTO) -> str:
+    """Guidance for Retreat phases."""
+    pending = len(view.possible_orders)
+    return f"Each of your **{pending} dislodged unit(s)** needs exactly one retreat **or** disband order."
+
+
+# Map phase‑code → guidance generator (functions take *view* only)
+_PHASE_GUIDE: dict[str, Callable[[PowerViewDTO], str]] = {
+    PhaseType.MOVEMENT: _movement_guidance,
+    PhaseType.RETREAT: _retreat_guidance,
+    PhaseType.ADJUSTMENT: _adjustment_guidance,
+}
+
+
+def build_orders_prompt(state: GameStateDTO, view: PowerViewDTO) -> str:
+    """Return the full instruction prompt for orders generation."""
+    guidance_fn = _PHASE_GUIDE.get(str(state.phase_type), lambda _v: "")
+    guidance = guidance_fn(view)
+
+    # ----- JSON snapshots --------------------------------------------------
+    state_dict = state.model_dump(mode="json")
+    for key in ("supply_center_counts", "supply_centers", "units"):
+        if key in state_dict:
+            mapping = state_dict[key]
+            if view.power in mapping:
+                mapping[f"{view.power.value} (YOU)"] = mapping.pop(view.power.value)
+    state_dict.pop("powers", None)
+
+    game_state_json = json.dumps(state_dict, indent=2)
     view_json = view.model_dump_json(indent=2)
+    legal_orders = list(view.flat_orders)
 
-    return f"""
+    # ----- Final template --------------------------------------------------
+    return f"""\
 <main-goal>
-You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+You are playing Diplomacy. Win by owning 18+ supply centres.
 </main-goal>
+
+<instructions>
+Choose legal DATC orders **only** for *your* power.
+Respond with a JSON array of order strings - no commentary.
+{guidance}
+</instructions>
 
 <full-game-state>
 {game_state_json}
 </full-game-state>
-
-<who-am-i>
-You are power {view.power} in phase {game_state.phase} ({game_state.short_phase}).
-</who-am-i>
 
 <your-power-view>
 {view_json}
 </your-power-view>
 
 <your-possible-legal-orders>
-{view.legal_orders_list}
+{legal_orders}
 </your-possible-legal-orders>
 """
-
-
-def build_orders_prompt(game_state: GameStateDTO, view: PowerViewDTO) -> str:
-    """Return an instruction prompt for the *orders* agent."""
-    prompt = _build_common_prompt(game_state, view)
-
-    # ------------------------------------------------------------------
-    # Dynamic phase-specific guidance -----------------------------------
-    # ------------------------------------------------------------------
-    extra_guidance: list[str] = []
-
-    if game_state.phase_type == "A":  # Adjustment – builds or disbands
-        diff = view.my_supply_center_count - len(view.my_unit_locations)
-        if diff > 0:
-            extra_guidance.append(
-                f"\nYou have {diff} build(s)."
-                f"\nReturn an array **of exactly {diff} DATC build order(s)**."
-                "\n• Each build must occur in a *distinct* vacant home supply centre."
-                "\n• Do **not** specify more than one build in the same location."
-                "\n• Example (two builds): ['F BRE B', 'A PAR B']"
-            )
-        elif diff < 0:
-            extra_guidance.append(
-                f"\nYou must remove {-diff} unit(s). Return an array of exactly {-diff} DATC disband order(s)."
-            )
-    elif game_state.phase_type == "M":  # Movement – support / convoy note
-        extra_guidance.append(
-            "\nReturn an array of DATC order(s) for each of *your* units."
-            "\nUnits without orders will hold."
-            "\nYou may support or convoy other powers' units, but first consider your strategic goals."
-        )
-    elif game_state.phase_type == "R":
-        pending_units = len(view.my_possible_orders_by_location)
-        if pending_units > 0:
-            extra_guidance.append(
-                f"\nYou have {pending_units} dislodged unit(s)."
-                f"\nReturn an array of exactly {pending_units} DATC retreat or disband order(s)."
-                f"\nYou must submit exactly one order per dislodged unit."
-            )
-
-    guidance_block = "\n".join(extra_guidance)
-
-    prompt = (
-        f"\n\n<instructions>\nChoose legal DATC orders. Respond **only** with a JSON array of order strings.{guidance_block}\n</instructions>"
-        + prompt
-    )
-
-    return prompt

@@ -1,4 +1,4 @@
-"""Asynchronous self-play driver orchestrating seven agents (LLMs or baselines)."""
+"""Asynchronous self‑play driver orchestrating seven agents (LLMs or baselines)."""
 
 from __future__ import annotations
 
@@ -10,33 +10,37 @@ from typing import Any, Literal, Protocol, cast
 import drawsvg as draw
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.agents import (
-    BaseAgent,
-    HoldAgent,
-    LLMAgent,
-    RandomAgent,
-)
+from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
 from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders, Power
+
+# ---------------------------------------------------------------------------#
+# Typing helpers                                                             #
+# ---------------------------------------------------------------------------#
 
 AgentSpecName = KnownModelName | Literal["hold", "random"]
 
 
-class _SvgImageLike(Protocol):  # pragma: no cover
-    """Subset of the ``drawsvg.Image`` interface used here (only ``add_key_frame``)."""
+class _SvgImageLike(Protocol):
+    """Minimal subset of ``drawsvg.Image`` used for SMIL key‑framing."""
 
     def add_key_frame(self, time: float, *, opacity: float) -> None: ...
 
 
-class _SvgDrawingLike(Protocol):  # pragma: no cover
-    """Subset of the ``drawsvg.Drawing`` interface we rely on."""
+class _SvgDrawingLike(Protocol):
+    """Subset of ``drawsvg.Drawing`` used here."""
 
     def append(self, element: _SvgImageLike, *, z: int | None = None) -> None: ...
 
-    def save_svg(self, fname: str, encoding: str = "utf-8", context: None | dict[str, Any] = None) -> None: ...
+    def save_svg(
+        self,
+        fname: str,
+        encoding: str = "utf-8",
+        context: None | dict[str, Any] = None,
+    ) -> None: ...
 
 
 class PowerModelMap(dict[Power, AgentSpecName]):
-    """Mapping from each power to its agent specification."""
+    """Explicit mapping from each power to its agent spec (LLM or baseline)."""
 
     ENGLAND: AgentSpecName
     FRANCE: AgentSpecName
@@ -47,33 +51,27 @@ class PowerModelMap(dict[Power, AgentSpecName]):
     AUSTRIA: AgentSpecName
 
 
-# ---------------------------------------------------------------------------
-# Helper utilities
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Utilities                                                                  #
+# ---------------------------------------------------------------------------#
 
 
 def surviving_powers(state: GameStateDTO) -> tuple[Power, ...]:
-    """Return a tuple of powers that still control ≥1 supply centre."""
-    return tuple(p for p, cnt in state.all_supply_center_counts.items() if cnt > 0)
+    """Return powers that own at least one supply centre."""
+    return tuple(p for p, cnt in state.supply_center_counts.items() if cnt > 0)
 
 
 __all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
 
-
-# ---------------------------------------------------------------------------
-# Module-level logger --------------------------------------------------------
-# ---------------------------------------------------------------------------
-
 logger = logging.getLogger(__name__)
 
-
-# ---------------------------------------------------------------------------
-# High-level orchestrator -----------------------------------------------------
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Orchestrator                                                               #
+# ---------------------------------------------------------------------------#
 
 
 class GameOrchestrator:
-    """High-level game loop coordinating the engine and seven agents."""
+    """Coordinate the Diplomacy engine with seven autonomous agents."""
 
     def __init__(
         self,
@@ -83,138 +81,114 @@ class GameOrchestrator:
         max_year: int | None = 1951,
     ) -> None:
         """
-        Create a new orchestrator bound to an explicit *model_map*.
+        Create a new orchestrator.
 
-        The constructor is now *deterministic* – callers must provide the
-        complete ``Power → model`` mapping so there is no hidden randomness.
+        *model_map* assigns each *Power* to an agent spec (`"hold"`, `"random"`
+        or a concrete LLM model name).  No randomness is introduced here; call
+        sites supply the full mapping.
         """
-        # 0 rounds = gunboat (no press).
         self.MESSAGING_ROUNDS: int = messaging_rounds
         self._max_year: int | None = max_year
 
         self.engine = DiplomacyEngine()
-        # Buffer of raw SVG strings captured throughout the game (one per phase)
-        self.svg_frames: list[str] = []
-
-        # Freeze power → model mapping.
+        self.svg_frames: list[str] = []  # SVG board snapshots (one per phase)
         self.model_map: PowerModelMap = model_map
-
-        # Instantiate the agents.
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
-        # Messaging removed – no press log required in gunboat mode.
-
-    # ------------------------------------------------------------------
-    # Main public API ---------------------------------------------------
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ #
+    # Public control flow                                                 #
+    # ------------------------------------------------------------------ #
 
     async def play_turn(self) -> None:
-        """Run all the parts of a single turn (one phase advance)."""
-        # Record board before any new orders/messages.
+        """Execute one phase: snapshot, gather orders, advance game."""
         self._capture_frame()
-
-        self.engine.get_game_state()
         await self._run_orders_phase()
         self._log_running_totals()
         self.engine.process_turn()
 
     async def run(self) -> dict[Power, int]:
-        """Run the match to completion - returns final supply-centre counts."""
+        """Run until game end (or *max_year* cap) and return final SC counts."""
         logger.info("Initial model map: %s", self.model_map)
-        while not self.engine.get_game_state().is_game_done:
-            await self.play_turn()
-            state = self.engine.get_game_state()
-            logger.info(f"{state.short_phase}: {state.all_supply_center_counts}")
 
-            # Optional early-termination guard to prevent endless stalemates.
+        while not self.engine.game_state().is_done:
+            await self.play_turn()
+            state = self.engine.game_state()
+            logger.info("%s: %s", state.short_phase, state.supply_center_counts)
+
             if self._max_year is not None and state.year >= self._max_year:
                 logger.info(
-                    "Reached year %d (cap %d) – terminating self-play early.",
+                    "Reached year %d (cap %d) – terminating early.",
                     state.year,
                     self._max_year,
                 )
                 break
 
-        # Capture final board state after the game concludes.
+        # Final board snapshot
         self._capture_frame()
 
         total_runtime = sum(a.total_runtime_s for a in self.agents.values())
+        logger.info("Total agent runtime: %.2f s", total_runtime)
 
-        # Token cost aggregation happens in ExperimentRunner; avoid duplication here.
-        logger.info("Total agent runtime: %.2f s", total_runtime)
+        return self.engine.game_state().supply_center_counts
 
-        logger.debug(f"Total agent runtime across all powers: {total_runtime:.2f}s")
-
-        # No file I/O here – experiment layer handles persistence.
-
-        return self.engine.get_game_state().all_supply_center_counts
-
-    # ------------------------------------------------------------------
-    # Internals ---------------------------------------------------------
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ #
+    # Agent initialisation & logging                                     #
+    # ------------------------------------------------------------------ #
 
     def _init_agents(self) -> dict[Power, BaseAgent]:
-        """Create and return the immutable power → agent mapping."""
-        state = self.engine.get_game_state()
-
+        """Instantiate one agent per power according to *self.model_map*."""
         agents: dict[Power, BaseAgent] = {}
-        for p in state.all_supply_center_counts:
-            spec = self.model_map[p]
+        for power in self.engine.game_state().powers:
+            spec = self.model_map[power]
             if spec == "hold":
-                agents[p] = HoldAgent(p)
+                agents[power] = HoldAgent(power)
             elif spec == "random":
-                agents[p] = RandomAgent(p)
+                agents[power] = RandomAgent(power)
             else:
-                agents[p] = LLMAgent(p, spec)
+                agents[power] = LLMAgent(power, spec)
         return agents
 
     def _log_running_totals(self) -> None:
-        """Emit debug-level summary of cumulative cost and runtime."""
-        runtime_by_power = {p: a.total_runtime_s for p, a in self.agents.items()}
-        logger.debug(f"Running Runtime (s): {sum(runtime_by_power.values()):.2f} ({runtime_by_power})")
+        """Emit debug‑level cumulative runtime per power."""
+        runtimes = {p: a.total_runtime_s for p, a in self.agents.items()}
+        logger.debug("Cumulative runtime (s): %.2f %s", sum(runtimes.values()), runtimes)
 
-    # Messaging handling removed entirely – gunboat mode has no press phase.
-
-    # ------------------------------------------------------------------
-    # Orders handling ----------------------------------------------------
-    # ------------------------------------------------------------------
+    # ------------------------------------------------------------------ #
+    # Orders phase                                                       #
+    # ------------------------------------------------------------------ #
 
     async def _run_orders_phase(self) -> None:
-        """Collect orders from all surviving powers and process the phase."""
-        # Log current supply‐centre distribution for easier debugging/analysis.
-        state = self.engine.get_game_state()
+        """Collect orders from surviving powers and submit to the engine."""
+        state = self.engine.game_state()
 
-        # Kick off one asynchronous orders task per surviving power.
         tasks: dict[Power, asyncio.Task[Orders]] = {}
         for power in surviving_powers(state):
-            view = self.engine.get_power_view(power)
-            if not view.legal_orders_list:  # No possible orders – skip
+            view = self.engine.power_view(power)
+            if not view.flat_orders:  # nothing orderable (e.g. no builds)
                 continue
             tasks[power] = asyncio.create_task(self.agents[power].get_orders(state, view))
 
-        if not tasks:
-            return  # No power has possible orders: proceed to next phase (e.g. game over, or no builds in build phase)
+        if not tasks:  # no orders to collect
+            return
 
         await asyncio.gather(*tasks.values())
-
         for power, task in tasks.items():
             self.engine.set_orders(power, task.result())
 
-    # ------------------ Snapshot / animation helpers -------------------
+    # ------------------------------------------------------------------ #
+    # Snapshot / animation helpers                                       #
+    # ------------------------------------------------------------------ #
 
     def _capture_frame(self) -> None:
-        """Render the current board and append the SVG string to the buffer."""
-        svg_xml = self.engine.render_svg(incl_orders=True, incl_abbrev=True)
-        self.svg_frames.append(svg_xml)
+        """Render current board to SVG and append to the frame buffer."""
+        self.svg_frames.append(self.engine.render_svg(incl_orders=True, incl_abbrev=True))
 
-    # Renamed from *_save_animation* to make it part of the public surface.
     def save_animation(self, output_path: Path | str) -> None:
-        """Persist ``self.svg_frames`` as a simple SMIL animation (drawsvg)."""
+        """Write buffered SVG frames to a SMIL animation (drawsvg)."""
         if not self.svg_frames:
             return
 
-        path_obj = Path(output_path)
-
+        path = Path(output_path)
         fps = 2
         duration = len(self.svg_frames) / fps
         config = draw.types.SyncedAnimationConfig(
@@ -223,29 +197,25 @@ class GameOrchestrator:
             show_playback_controls=True,
         )
 
-        d = cast(_SvgDrawingLike, draw.Drawing(1200, 850, animation_config=config))
+        drawing = cast(_SvgDrawingLike, draw.Drawing(1200, 850, animation_config=config))
         for i, svg in enumerate(self.svg_frames):
             img = cast(
                 _SvgImageLike,
-                draw.Image(
-                    0,
-                    0,
-                    1200,
-                    850,
-                    data=svg.encode("utf-8"),
-                    mime_type="image/svg+xml",
-                ),
+                draw.Image(0, 0, 1200, 850, data=svg.encode(), mime_type="image/svg+xml"),
             )
             img.add_key_frame(i / fps, opacity=0)
             img.add_key_frame(i / fps + 0.01, opacity=1)
             img.add_key_frame(i / fps + 1, opacity=1)
             img.add_key_frame(i / fps + 1.01, opacity=0)
-            d.append(img)
+            drawing.append(img)
 
-        path_obj.parent.mkdir(parents=True, exist_ok=True)
-        d.save_svg(str(path_obj))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        drawing.save_svg(str(path))
 
-    # press_entries property removed – no press in gunboat mode.
+
+# ---------------------------------------------------------------------------#
+# Convenience wrapper for synchronous callers                                #
+# ---------------------------------------------------------------------------#
 
 
 def run_game(
@@ -254,19 +224,14 @@ def run_game(
     messaging_rounds: int = 3,
     max_year: int | None = 1951,
 ) -> dict[Power, int]:
-    """
-    Blocking helper for synchronous callers (e.g. CLI).
-
-    This thin wrapper mirrors ``GameOrchestrator``'s keyword parameters so it
-    can be used interchangeably in simple scripts.
-    """
+    """Blocking helper that hides the asyncio event loop."""
 
     async def _runner() -> dict[Power, int]:
-        orch = GameOrchestrator(
+        orchestrator = GameOrchestrator(
             model_map=model_map,
             messaging_rounds=messaging_rounds,
             max_year=max_year,
         )
-        return await orch.run()
+        return await orchestrator.run()
 
     return asyncio.run(_runner())
