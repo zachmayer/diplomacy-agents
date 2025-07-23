@@ -10,7 +10,7 @@ from pydantic_ai.usage import Usage
 
 # We now track usage per-agent instead of a global list.
 from diplomacy_agents.agents import LLMAgent
-from diplomacy_agents.literals import Power
+from diplomacy_agents.enums import Power
 
 
 class _StubModel:

@@ -11,7 +11,7 @@ from diplomacy.engine.renderer import Renderer
 from diplomacy.utils import export
 from pydantic import BaseModel, ConfigDict
 
-from diplomacy_agents.literals import Location, PhaseType, Power, UnitType
+from diplomacy_agents.enums import Location, PhaseType, Power, UnitType
 
 __all__ = [
     "Orders",

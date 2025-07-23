@@ -11,7 +11,8 @@ import drawsvg as draw
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
-from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders, Power
+from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders
+from diplomacy_agents.enums import Power
 
 # ---------------------------------------------------------------------------#
 # Typing helpers                                                             #

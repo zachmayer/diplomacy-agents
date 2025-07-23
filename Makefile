@@ -40,7 +40,7 @@ test: test-unit test-smoke ## Run all tests (unit then smoke)
 
 .PHONY: coverage
 coverage: ## Run tests with coverage reporting
-	uv run pytest -q && uv run coverage report --fail-under 25
+	uv run coverage run -m pytest && uv run coverage report --fail-under 25
 
 .PHONY: all
 all: format lint types contract test coverage ## Run all checks
@@ -63,3 +63,19 @@ run-full-press: ## Run one experiment with 3 press rounds
 .PHONY: run-ten
 run-ten: ## Run ten experiments with ExperimentRunner (single game)
 	uv run -m diplomacy_agents.cli experiments --runs 5 --message-rounds 0
+
+.PHONY: clean
+clean: ## Clean up all generated files
+	rm -rf .venv
+	rm -rf .DS_Store
+	rm -rf .pytest_cache
+	rm -rf .ruff_cache
+	rm -rf .coverage
+	rm -rf .coverage.*
+	rm -rf .coverage.xml
+	rm -rf .coverage.json
+	rm -rf .coverage.html
+	rm -rf .coverage.lcov
+	rm -rf .coverage.xml
+	rm -rf htmlcov
+	rm -rf uv.lock

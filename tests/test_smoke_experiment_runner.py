@@ -2,8 +2,8 @@
 
 from typing import cast
 
+from diplomacy_agents.enums import Power
 from diplomacy_agents.experiment_runner import ExperimentRunner
-from diplomacy_agents.literals import Power
 from diplomacy_agents.orchestrator import PowerModelMap
 
 

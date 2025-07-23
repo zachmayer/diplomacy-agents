@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 
-from diplomacy_agents.engine import GameStateDTO, PhaseType, PowerViewDTO
+from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
+from diplomacy_agents.enums import PhaseType
 
 __all__ = ["build_orders_prompt"]
 

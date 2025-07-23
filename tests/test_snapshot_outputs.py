@@ -13,7 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from diplomacy_agents.engine import DiplomacyEngine, Power, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.enums import Power
 from diplomacy_agents.prompts import build_orders_prompt
 from tests.test_phase_orders import (
     _setup_build_russia,

@@ -8,7 +8,7 @@ retreats, builds and disbands in tricky board positions.
 from __future__ import annotations
 
 from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
-from diplomacy_agents.literals import Power
+from diplomacy_agents.enums import Power
 
 # ---------------------------------------------------------------------------#
 # Helpers                                                                    #

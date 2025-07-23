@@ -17,7 +17,8 @@ from typing import Literal, TypeVar
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import GameStateDTO, Orders, Power, PowerViewDTO
+from diplomacy_agents.engine import GameStateDTO, Orders, PowerViewDTO
+from diplomacy_agents.enums import Power
 from diplomacy_agents.prompts import build_orders_prompt
 
 logger = logging.getLogger(__name__)

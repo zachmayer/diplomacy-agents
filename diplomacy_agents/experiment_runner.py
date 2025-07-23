@@ -23,7 +23,7 @@ import pandas as pd
 # Pricing util
 from tokonomics import calculate_token_cost
 
-from diplomacy_agents.literals import Power
+from diplomacy_agents.enums import Power
 from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
 
 # Press export removed – gunboat mode has no messaging.

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import xml.etree.ElementTree as ET
 
-from diplomacy_agents.literals import Power
+from diplomacy_agents.enums import Power
 from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
 
 
