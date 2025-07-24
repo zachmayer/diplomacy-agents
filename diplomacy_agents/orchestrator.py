@@ -111,7 +111,7 @@ class GameOrchestrator:
         """Run until game end (or *max_year* cap) and return final SC counts."""
         logger.info("Initial model map: %s", self.model_map)
 
-        while not self.engine.game_state().is_done:
+        while not self.engine.is_done:
             await self.play_turn()
             state = self.engine.game_state()
             logger.info("%s: %s", state.short_phase, state.supply_center_counts)
@@ -130,7 +130,7 @@ class GameOrchestrator:
         total_runtime = sum(a.total_runtime_s for a in self.agents.values())
         logger.info("Total agent runtime: %.2f s", total_runtime)
 
-        return self.engine.game_state().supply_center_counts
+        return self.engine.supply_center_counts
 
     # ------------------------------------------------------------------ #
     # Agent initialisation & logging                                     #
@@ -139,7 +139,7 @@ class GameOrchestrator:
     def _init_agents(self) -> dict[Power, BaseAgent]:
         """Instantiate one agent per power according to *self.model_map*."""
         agents: dict[Power, BaseAgent] = {}
-        for power in self.engine.game_state().powers:
+        for power in self.engine.powers:
             spec = self.model_map[power]
             if spec == "hold":
                 agents[power] = HoldAgent(power)

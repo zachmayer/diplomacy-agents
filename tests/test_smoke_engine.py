@@ -15,9 +15,9 @@ def test_20_turns_smoke() -> None:
 
     for _ in range(20):
         # Submit an empty order tuple for every power that still exists.
-        for p in eng.game_state().supply_center_counts:
+        for p in eng.supply_center_counts:
             eng.set_orders(p, ())  # everyone holds / waits
         eng.process_turn()
 
     # Year should have advanced past the starting 1901.
-    assert eng.game_state().year >= 1903
+    assert eng.year >= 1903

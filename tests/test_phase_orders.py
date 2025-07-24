@@ -17,7 +17,7 @@ from diplomacy_agents.enums import Power
 
 def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:
     """Advance the game until `engine.game_state().short_phase` starts with the prefix."""
-    while not engine.game_state().short_phase.startswith(phase_prefix):
+    while not engine.short_phase.startswith(phase_prefix):
         engine.process_turn()
 
 
@@ -48,7 +48,7 @@ def test_retreat_options_include_retreat_or_disband() -> None:
     eng = _setup_retreat_germany()
     germany: PowerViewDTO = eng.power_view(Power.GERMANY)
 
-    assert eng.game_state().short_phase.endswith("R"), "Expected retreat phase"
+    assert eng.short_phase.endswith("R"), "Expected retreat phase"
 
     flat = " ".join(germany.flat_orders)
     assert " R " in flat or " D" in flat
@@ -74,7 +74,7 @@ def test_build_phase_has_build_orders() -> None:
     eng = _setup_build_russia()
     rus: PowerViewDTO = eng.power_view(Power.RUSSIA)
 
-    assert eng.game_state().short_phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
+    assert eng.short_phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
     flat = " ".join(rus.flat_orders).lower()
     assert "build" in flat or any(o.endswith(" B") for o in rus.flat_orders)
 
@@ -108,7 +108,7 @@ def test_disband_phase_has_disband_orders() -> None:
     eng = _setup_disband_germany()
     ger: PowerViewDTO = eng.power_view(Power.GERMANY)
 
-    assert eng.game_state().short_phase.startswith("W1901A")
+    assert eng.short_phase.startswith("W1901A")
     flat = " ".join(ger.flat_orders).lower()
     assert " d" in flat or "disband" in flat
 

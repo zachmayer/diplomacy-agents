@@ -21,7 +21,7 @@ def test_random_agents_smoke() -> None:
         asyncio.run(orch.play_turn())
 
     # Game year should be ≥ 1901 (starting year) after five phase advances.
-    assert orch.engine.game_state().year >= 1901
+    assert orch.engine.year >= 1901
 
     # One frame captured at the start of each processed phase.
     assert len(orch.svg_frames) == 5
