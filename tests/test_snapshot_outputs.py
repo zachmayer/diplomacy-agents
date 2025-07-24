@@ -30,14 +30,13 @@ from tests.test_phase_orders import (
 def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> Path:
     """Build the orders prompt for *(tag, power)*, write it to disk, and return the path."""
     engine = factory()
-    state = engine.game_state()
     view: PowerViewDTO = engine.power_view(power)
 
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.txt"
-    file_path.write_text(build_orders_prompt(state, view))
+    file_path.write_text(build_orders_prompt(engine, view))
 
     return file_path
 

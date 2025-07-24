@@ -11,7 +11,7 @@ import drawsvg as draw
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
-from diplomacy_agents.engine import DiplomacyEngine, GameStateDTO, Orders
+from diplomacy_agents.engine import DiplomacyEngine, Orders
 from diplomacy_agents.enums import Power
 
 # ---------------------------------------------------------------------------#
@@ -57,9 +57,9 @@ class PowerModelMap(dict[Power, AgentSpecName]):
 # ---------------------------------------------------------------------------#
 
 
-def surviving_powers(state: GameStateDTO) -> tuple[Power, ...]:
+def surviving_powers(engine: DiplomacyEngine) -> tuple[Power, ...]:
     """Return powers that own at least one supply centre."""
-    return tuple(p for p, cnt in state.supply_center_counts.items() if cnt > 0)
+    return tuple(p for p, cnt in engine.supply_center_counts.items() if cnt > 0)
 
 
 __all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
@@ -113,13 +113,12 @@ class GameOrchestrator:
 
         while not self.engine.is_done:
             await self.play_turn()
-            state = self.engine.game_state()
-            logger.info("%s: %s", state.short_phase, state.supply_center_counts)
+            logger.info("%s: %s", self.engine.short_phase, self.engine.supply_center_counts)
 
-            if self._max_year is not None and state.year >= self._max_year:
+            if self._max_year is not None and self.engine.year >= self._max_year:
                 logger.info(
                     "Reached year %d (cap %d) – terminating early.",
-                    state.year,
+                    self.engine.year,
                     self._max_year,
                 )
                 break
@@ -160,14 +159,12 @@ class GameOrchestrator:
 
     async def _run_orders_phase(self) -> None:
         """Collect orders from surviving powers and submit to the engine."""
-        state = self.engine.game_state()
-
         tasks: dict[Power, asyncio.Task[Orders]] = {}
-        for power in surviving_powers(state):
+        for power in surviving_powers(self.engine):
             view = self.engine.power_view(power)
             if not view.flat_orders:  # nothing orderable (e.g. no builds)
                 continue
-            tasks[power] = asyncio.create_task(self.agents[power].get_orders(state, view))
+            tasks[power] = asyncio.create_task(self.agents[power].get_orders(self.engine, view))
 
         if not tasks:  # no orders to collect
             return

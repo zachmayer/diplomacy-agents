@@ -1,11 +1,9 @@
 """Prompt‑construction helpers for Diplomacy LLM agents."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Callable
 
-from diplomacy_agents.engine import GameStateDTO, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
 from diplomacy_agents.enums import PhaseType
 
 __all__ = ["build_orders_prompt"]
@@ -43,21 +41,30 @@ _PHASE_GUIDE: dict[str, Callable[[PowerViewDTO], str]] = {
 }
 
 
-def build_orders_prompt(state: GameStateDTO, view: PowerViewDTO) -> str:
+def build_orders_prompt(engine: DiplomacyEngine, view: PowerViewDTO) -> str:
     """Return the full instruction prompt for orders generation."""
-    guidance_fn = _PHASE_GUIDE.get(str(state.phase_type), lambda _v: "")
+    guidance_fn = _PHASE_GUIDE.get(str(engine.phase_type), lambda _v: "")
     guidance = guidance_fn(view)
 
-    # ----- JSON snapshots --------------------------------------------------
-    state_dict = state.model_dump(mode="json")
-    for key in ("supply_center_counts", "supply_centers", "units"):
-        if key in state_dict:
-            mapping = state_dict[key]
-            if view.power in mapping:
-                mapping[f"{view.power.value} (YOU)"] = mapping.pop(view.power.value)
-    state_dict.pop("powers", None)
+    # ----- Inline JSON snapshot -------------------------------------------
+    snapshot_json = json.dumps(
+        {
+            "is_done": engine.is_done,
+            "short_phase": engine.short_phase,
+            "phase": engine.phase,
+            "phase_type": str(engine.phase_type),
+            "year": engine.year,
+            "supply_centers": {p.value: list(locs) for p, locs in engine.supply_centers.items()},
+            "supply_center_counts": {p.value: cnt for p, cnt in engine.supply_center_counts.items()},
+            "units": {p.value: {loc.value: unit.value for loc, unit in engine.units[p].items()} for p in engine.units},
+        },
+        indent=2,
+    )
 
-    game_state_json = json.dumps(state_dict, indent=2)
+    full_game_state = f"""<full-game-state>
+{snapshot_json}
+</full-game-state>"""
+
     view_json = view.model_dump_json(indent=2)
     legal_orders = list(view.flat_orders)
 
@@ -73,9 +80,7 @@ Respond with a JSON array of order strings - no commentary.
 {guidance}
 </instructions>
 
-<full-game-state>
-{game_state_json}
-</full-game-state>
+{full_game_state}
 
 <your-power-view>
 {view_json}

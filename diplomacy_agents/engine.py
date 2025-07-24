@@ -15,7 +15,6 @@ from diplomacy_agents.enums import Location, PhaseType, Power, UnitType
 
 __all__ = [
     "Orders",
-    "GameStateDTO",
     "PowerViewDTO",
     "DiplomacyEngine",
 ]
@@ -24,7 +23,7 @@ __all__ = [
 # Typings
 # ---------------------------------------------------------------------------
 
-Orders = tuple[str, ...]  # immutable, external callers see a tuple
+Orders = tuple[str, ...]
 
 K = TypeVar("K", bound=str)
 V = TypeVar("V")
@@ -203,22 +202,8 @@ class DiplomacyEngine:
         return sort_by_key(result)
 
     # ---------------------------------------------------------------------
-    # DTO builders
+    # (Removed GameStateDTO – callers should access engine properties directly.)
     # ---------------------------------------------------------------------
-
-    def game_state(self) -> GameStateDTO:
-        """Return a coarse, type‑safe snapshot of the entire board."""
-        return GameStateDTO(
-            is_done=self.is_done,
-            short_phase=self.short_phase,
-            phase=self.phase,
-            phase_type=self.phase_type,
-            year=self.year,
-            powers=self.powers,
-            supply_centers=self.supply_centers,
-            supply_center_counts=self.supply_center_counts,
-            units=self.units,
-        )
 
     def power_view(self, power: Power) -> PowerViewDTO:
         """Return a perspective snapshot for *power*."""

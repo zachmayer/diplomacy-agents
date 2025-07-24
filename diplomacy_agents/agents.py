@@ -17,7 +17,7 @@ from typing import Literal, TypeVar
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import GameStateDTO, Orders, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, Orders, PowerViewDTO
 from diplomacy_agents.enums import Power
 from diplomacy_agents.prompts import build_orders_prompt
 
@@ -52,7 +52,7 @@ class BaseAgent(ABC):
     # NOTE: Concrete subclasses must implement -----------------------------------------------------------------
 
     @abstractmethod
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
         """Return a tuple of DATC‑formatted order strings for *self.power* in thecurrent phase."""
         raise NotImplementedError  # pragma: no cover
 
@@ -65,7 +65,7 @@ class BaseAgent(ABC):
 class HoldAgent(BaseAgent):
     """Agent that issues no orders – every unit *holds* / *waits*."""
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
         """Return an empty order set."""
         return ()  # type: Orders
 
@@ -73,7 +73,7 @@ class HoldAgent(BaseAgent):
 class RandomAgent(BaseAgent):
     """Agent that submits **one random legal order** for each controllable unit in the current phase."""
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
         """Pick exactly one random order per orderable location."""
         chosen = tuple(random.choice(opts) for opts in _view.possible_orders.values())
         return chosen  # type: Orders
@@ -145,7 +145,7 @@ class LLMAgent(BaseAgent):
     # Public API                                                          #
     # ------------------------------------------------------------------ #
 
-    async def get_orders(self, _game_state: GameStateDTO, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
         """Ask the configured LLM for a valid order set, constrained to the exactlist of legal options provided in *_view*."""
         # Build a Literal union over **all** legal order strings.
         # PEP 646's unpacking (`*tuple`) expands into individual literal args.
@@ -161,7 +161,7 @@ class LLMAgent(BaseAgent):
             strict=len(_view.flat_orders) <= 1_000,
         )
 
-        prompt = build_orders_prompt(_game_state, _view)
+        prompt = build_orders_prompt(_engine, _view)
         raw_orders = await self._run_llm(prompt=prompt, output_type=output_type)
 
         return tuple(str(order) for order in raw_orders)

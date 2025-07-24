@@ -41,17 +41,17 @@ You have **1 build(s)**. Return exactly 1 distinct build orders (e.g. ['F BRE B'
       "ROM",
       "VEN"
     ],
-    "TURKEY": [
-      "ANK",
-      "CON",
-      "SMY"
-    ],
-    "RUSSIA (YOU)": [
+    "RUSSIA": [
       "MOS",
       "RUM",
       "SEV",
       "STP",
       "WAR"
+    ],
+    "TURKEY": [
+      "ANK",
+      "CON",
+      "SMY"
     ]
   },
   "supply_center_counts": {
@@ -60,8 +60,8 @@ You have **1 build(s)**. Return exactly 1 distinct build orders (e.g. ['F BRE B'
     "FRANCE": 3,
     "GERMANY": 3,
     "ITALY": 3,
-    "TURKEY": 3,
-    "RUSSIA (YOU)": 5
+    "RUSSIA": 5,
+    "TURKEY": 3
   },
   "units": {
     "AUSTRIA": {
@@ -89,16 +89,16 @@ You have **1 build(s)**. Return exactly 1 distinct build orders (e.g. ['F BRE B'
       "ROM": "A",
       "VEN": "A"
     },
-    "TURKEY": {
-      "ANK": "F",
-      "CON": "A",
-      "SMY": "A"
-    },
-    "RUSSIA (YOU)": {
+    "RUSSIA": {
       "MOS": "A",
       "RUM": "F",
       "STP/SC": "F",
       "WAR": "A"
+    },
+    "TURKEY": {
+      "ANK": "F",
+      "CON": "A",
+      "SMY": "A"
     }
   }
 }

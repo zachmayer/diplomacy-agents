@@ -31,6 +31,11 @@ Each of your **1 dislodged unit(s)** needs exactly one retreat **or** disband or
       "MAR",
       "PAR"
     ],
+    "GERMANY": [
+      "BER",
+      "KIE",
+      "MUN"
+    ],
     "ITALY": [
       "NAP",
       "ROM",
@@ -46,21 +51,16 @@ Each of your **1 dislodged unit(s)** needs exactly one retreat **or** disband or
       "ANK",
       "CON",
       "SMY"
-    ],
-    "GERMANY (YOU)": [
-      "BER",
-      "KIE",
-      "MUN"
     ]
   },
   "supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
     "FRANCE": 3,
+    "GERMANY": 3,
     "ITALY": 3,
     "RUSSIA": 4,
-    "TURKEY": 3,
-    "GERMANY (YOU)": 3
+    "TURKEY": 3
   },
   "units": {
     "AUSTRIA": {
@@ -78,6 +78,11 @@ Each of your **1 dislodged unit(s)** needs exactly one retreat **or** disband or
       "MAR": "A",
       "MUN": "A"
     },
+    "GERMANY": {
+      "BER": "A",
+      "KIE": "F",
+      "MUN": "A"
+    },
     "ITALY": {
       "NAP": "F",
       "ROM": "A",
@@ -93,11 +98,6 @@ Each of your **1 dislodged unit(s)** needs exactly one retreat **or** disband or
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
-    },
-    "GERMANY (YOU)": {
-      "BER": "A",
-      "KIE": "F",
-      "MUN": "A"
     }
   }
 }

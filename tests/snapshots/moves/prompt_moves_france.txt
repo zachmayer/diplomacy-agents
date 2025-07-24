@@ -26,6 +26,11 @@ Issue one legal order to each of your units. Units without orders will *hold*.
       "LON",
       "LVP"
     ],
+    "FRANCE": [
+      "BRE",
+      "MAR",
+      "PAR"
+    ],
     "GERMANY": [
       "BER",
       "KIE",
@@ -46,21 +51,16 @@ Issue one legal order to each of your units. Units without orders will *hold*.
       "ANK",
       "CON",
       "SMY"
-    ],
-    "FRANCE (YOU)": [
-      "BRE",
-      "MAR",
-      "PAR"
     ]
   },
   "supply_center_counts": {
     "AUSTRIA": 3,
     "ENGLAND": 3,
+    "FRANCE": 3,
     "GERMANY": 3,
     "ITALY": 3,
     "RUSSIA": 4,
-    "TURKEY": 3,
-    "FRANCE (YOU)": 3
+    "TURKEY": 3
   },
   "units": {
     "AUSTRIA": {
@@ -72,6 +72,11 @@ Issue one legal order to each of your units. Units without orders will *hold*.
       "EDI": "F",
       "LON": "F",
       "LVP": "A"
+    },
+    "FRANCE": {
+      "BRE": "F",
+      "MAR": "A",
+      "PAR": "A"
     },
     "GERMANY": {
       "BER": "A",
@@ -93,11 +98,6 @@ Issue one legal order to each of your units. Units without orders will *hold*.
       "ANK": "F",
       "CON": "A",
       "SMY": "A"
-    },
-    "FRANCE (YOU)": {
-      "BRE": "F",
-      "MAR": "A",
-      "PAR": "A"
     }
   }
 }
