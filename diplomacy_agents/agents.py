@@ -17,7 +17,7 @@ from typing import Literal, TypeVar
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
 
-from diplomacy_agents.engine import DiplomacyEngine, Orders, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine, Orders
 from diplomacy_agents.enums import Power
 from diplomacy_agents.prompts import build_orders_prompt
 
@@ -52,7 +52,7 @@ class BaseAgent(ABC):
     # NOTE: Concrete subclasses must implement -----------------------------------------------------------------
 
     @abstractmethod
-    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Return a tuple of DATC‑formatted order strings for *self.power* in thecurrent phase."""
         raise NotImplementedError  # pragma: no cover
 
@@ -65,7 +65,7 @@ class BaseAgent(ABC):
 class HoldAgent(BaseAgent):
     """Agent that issues no orders – every unit *holds* / *waits*."""
 
-    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Return an empty order set."""
         return ()  # type: Orders
 
@@ -73,9 +73,9 @@ class HoldAgent(BaseAgent):
 class RandomAgent(BaseAgent):
     """Agent that submits **one random legal order** for each controllable unit in the current phase."""
 
-    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Pick exactly one random order per orderable location."""
-        chosen = tuple(random.choice(opts) for opts in _view.possible_orders.values())
+        chosen = tuple(random.choice(opts) for opts in _engine.possible_orders[self.power].values())
         return chosen  # type: Orders
 
 
@@ -145,11 +145,12 @@ class LLMAgent(BaseAgent):
     # Public API                                                          #
     # ------------------------------------------------------------------ #
 
-    async def get_orders(self, _engine: DiplomacyEngine, _view: PowerViewDTO) -> Orders:
+    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Ask the configured LLM for a valid order set, constrained to the exactlist of legal options provided in *_view*."""
         # Build a Literal union over **all** legal order strings.
         # PEP 646's unpacking (`*tuple`) expands into individual literal args.
-        orders_literal = Literal[*_view.flat_orders]  # type: ignore[misc, valid-type]
+        flat_orders = _engine.flat_possible_orders[self.power]
+        orders_literal = Literal[*flat_orders]  # type: ignore[misc, valid-type]
 
         # Request a *list* of those literals, then wrap it for pydantic‑ai.
         base_type = list[orders_literal]
@@ -158,10 +159,10 @@ class LLMAgent(BaseAgent):
             base_type,
             name="valid_orders",
             description="Return a list of valid orders for your power in this phase.",
-            strict=len(_view.flat_orders) <= 1_000,
+            strict=len(flat_orders) <= 1_000,
         )
 
-        prompt = build_orders_prompt(_engine, _view)
+        prompt = build_orders_prompt(_engine, self.power)
         raw_orders = await self._run_llm(prompt=prompt, output_type=output_type)
 
         return tuple(str(order) for order in raw_orders)

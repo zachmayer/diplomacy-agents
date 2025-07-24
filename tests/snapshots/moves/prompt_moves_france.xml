@@ -1,174 +1,164 @@
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-Return an array of DATC order(s) for each of *your* units.
-Units without orders will hold.
-You may support or convoy other powers' units, but first consider your strategic goals.
-</instructions>
 <main-goal>
-You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
-<full-game-state>
+<general-instructions>
+Choose legal DATC orders **only** for *your* power.
+Respond with a JSON array of order strings - no commentary.
+</general-instructions>
+
+<full-game>
+This is the full game state for all powers:
+
+all_supply_center_counts:
 {
-  "is_game_done": false,
-  "short_phase": "S1901M",
-  "phase": "SPRING 1901 MOVEMENT",
-  "phase_type": "M",
-  "year": 1901,
-  "all_supply_center_counts": {
-    "AUSTRIA": 3,
-    "ENGLAND": 3,
-    "GERMANY": 3,
-    "ITALY": 3,
-    "RUSSIA": 4,
-    "TURKEY": 3,
-    "FRANCE (YOU)": 3
-  },
-  "all_supply_center_locations": {
-    "AUSTRIA": [
-      "BUD",
-      "TRI",
-      "VIE"
-    ],
-    "ENGLAND": [
-      "EDI",
-      "LON",
-      "LVP"
-    ],
-    "GERMANY": [
-      "BER",
-      "KIE",
-      "MUN"
-    ],
-    "ITALY": [
-      "NAP",
-      "ROM",
-      "VEN"
-    ],
-    "RUSSIA": [
-      "MOS",
-      "SEV",
-      "STP",
-      "WAR"
-    ],
-    "TURKEY": [
-      "ANK",
-      "CON",
-      "SMY"
-    ],
-    "FRANCE (YOU)": [
-      "BRE",
-      "MAR",
-      "PAR"
-    ]
-  },
-  "all_unit_locations": {
-    "AUSTRIA": {
-      "BUD": "A",
-      "TRI": "F",
-      "VIE": "A"
-    },
-    "ENGLAND": {
-      "EDI": "F",
-      "LON": "F",
-      "LVP": "A"
-    },
-    "GERMANY": {
-      "BER": "A",
-      "KIE": "F",
-      "MUN": "A"
-    },
-    "ITALY": {
-      "NAP": "F",
-      "ROM": "A",
-      "VEN": "A"
-    },
-    "RUSSIA": {
-      "MOS": "A",
-      "SEV": "F",
-      "STP/SC": "F",
-      "WAR": "A"
-    },
-    "TURKEY": {
-      "ANK": "F",
-      "CON": "A",
-      "SMY": "A"
-    },
-    "FRANCE (YOU)": {
-      "BRE": "F",
-      "MAR": "A",
-      "PAR": "A"
-    }
-  }
+  "AUSTRIA": 3,
+  "ENGLAND": 3,
+  "FRANCE": 3,
+  "GERMANY": 3,
+  "ITALY": 3,
+  "RUSSIA": 4,
+  "TURKEY": 3
 }
-</full-game-state>
 
-<who-am-i>
-You are power FRANCE in phase SPRING 1901 MOVEMENT (S1901M).
-</who-am-i>
-
-<your-power-view>
+all_supply_centers:
 {
-  "power": "FRANCE",
-  "my_supply_center_count": 3,
-  "my_supply_center_locations": [
+  "AUSTRIA": [
+    "BUD",
+    "TRI",
+    "VIE"
+  ],
+  "ENGLAND": [
+    "EDI",
+    "LON",
+    "LVP"
+  ],
+  "FRANCE": [
     "BRE",
     "MAR",
     "PAR"
   ],
-  "my_home_supply_center_locations": [
-    "BRE",
-    "MAR",
-    "PAR"
+  "GERMANY": [
+    "BER",
+    "KIE",
+    "MUN"
   ],
-  "my_unit_locations": {
+  "ITALY": [
+    "NAP",
+    "ROM",
+    "VEN"
+  ],
+  "RUSSIA": [
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR"
+  ],
+  "TURKEY": [
+    "ANK",
+    "CON",
+    "SMY"
+  ]
+}
+
+all_units:
+{
+  "AUSTRIA": {
+    "BUD": "A",
+    "TRI": "F",
+    "VIE": "A"
+  },
+  "ENGLAND": {
+    "EDI": "F",
+    "LON": "F",
+    "LVP": "A"
+  },
+  "FRANCE": {
     "BRE": "F",
     "MAR": "A",
     "PAR": "A"
   },
-  "my_possible_orders_by_location": {
-    "BRE": [
-      "F BRE - ENG",
-      "F BRE - GAS",
-      "F BRE - MAO",
-      "F BRE - PIC",
-      "F BRE H",
-      "F BRE S A MAR - GAS",
-      "F BRE S A PAR - GAS",
-      "F BRE S A PAR - PIC",
-      "F BRE S F LON - ENG"
-    ],
-    "MAR": [
-      "A MAR - BUR",
-      "A MAR - GAS",
-      "A MAR - PIE",
-      "A MAR - SPA",
-      "A MAR H",
-      "A MAR S A MUN - BUR",
-      "A MAR S A PAR - BUR",
-      "A MAR S A PAR - GAS",
-      "A MAR S A VEN - PIE",
-      "A MAR S F BRE - GAS"
-    ],
-    "PAR": [
-      "A PAR - BRE",
-      "A PAR - BUR",
-      "A PAR - GAS",
-      "A PAR - PIC",
-      "A PAR H",
-      "A PAR S A MAR - BUR",
-      "A PAR S A MAR - GAS",
-      "A PAR S A MUN - BUR",
-      "A PAR S F BRE",
-      "A PAR S F BRE - GAS",
-      "A PAR S F BRE - PIC"
-    ]
+  "GERMANY": {
+    "BER": "A",
+    "KIE": "F",
+    "MUN": "A"
+  },
+  "ITALY": {
+    "NAP": "F",
+    "ROM": "A",
+    "VEN": "A"
+  },
+  "RUSSIA": {
+    "MOS": "A",
+    "SEV": "F",
+    "STP/SC": "F",
+    "WAR": "A"
+  },
+  "TURKEY": {
+    "ANK": "F",
+    "CON": "A",
+    "SMY": "A"
   }
 }
-</your-power-view>
 
-<your-possible-legal-orders>
-['F BRE - ENG', 'F BRE - GAS', 'F BRE - MAO', 'F BRE - PIC', 'F BRE H', 'F BRE S A MAR - GAS', 'F BRE S A PAR - GAS', 'F BRE S A PAR - PIC', 'F BRE S F LON - ENG', 'A MAR - BUR', 'A MAR - GAS', 'A MAR - PIE', 'A MAR - SPA', 'A MAR H', 'A MAR S A MUN - BUR', 'A MAR S A PAR - BUR', 'A MAR S A PAR - GAS', 'A MAR S A VEN - PIE', 'A MAR S F BRE - GAS', 'A PAR - BRE', 'A PAR - BUR', 'A PAR - GAS', 'A PAR - PIC', 'A PAR H', 'A PAR S A MAR - BUR', 'A PAR S A MAR - GAS', 'A PAR S A MUN - BUR', 'A PAR S F BRE', 'A PAR S F BRE - GAS', 'A PAR S F BRE - PIC']
-</your-possible-legal-orders>
+game_phase_type: M
+game_year: 1901
+game_phase: SPRING 1901 MOVEMENT
+game_short_phase: S1901M
+</full-game>
+
+<you>
+power: You are playing as FRANCE
+These are your specific units and possible moves:
+
+units:
+{
+  "BRE": "F",
+  "MAR": "A",
+  "PAR": "A"
+}
+
+moves:
+{
+  "BRE": [
+    "F BRE - ENG",
+    "F BRE - GAS",
+    "F BRE - MAO",
+    "F BRE - PIC",
+    "F BRE H",
+    "F BRE S A MAR - GAS",
+    "F BRE S A PAR - GAS",
+    "F BRE S A PAR - PIC",
+    "F BRE S F LON - ENG"
+  ],
+  "MAR": [
+    "A MAR - BUR",
+    "A MAR - GAS",
+    "A MAR - PIE",
+    "A MAR - SPA",
+    "A MAR H",
+    "A MAR S A MUN - BUR",
+    "A MAR S A PAR - BUR",
+    "A MAR S A PAR - GAS",
+    "A MAR S A VEN - PIE",
+    "A MAR S F BRE - GAS"
+  ],
+  "PAR": [
+    "A PAR - BRE",
+    "A PAR - BUR",
+    "A PAR - GAS",
+    "A PAR - PIC",
+    "A PAR H",
+    "A PAR S A MAR - BUR",
+    "A PAR S A MAR - GAS",
+    "A PAR S A MUN - BUR",
+    "A PAR S F BRE",
+    "A PAR S F BRE - GAS",
+    "A PAR S F BRE - PIC"
+  ]
+}
+</you>
+
+<specific-instructions>
+Issue one legal order to each of your units. Units without orders will *hold*.
+</specific-instructions>

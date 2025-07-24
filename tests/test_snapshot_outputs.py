@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine
 from diplomacy_agents.enums import Power
 from diplomacy_agents.prompts import build_orders_prompt
 from tests.test_phase_orders import (
@@ -30,13 +30,12 @@ from tests.test_phase_orders import (
 def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> Path:
     """Build the orders prompt for *(tag, power)*, write it to disk, and return the path."""
     engine = factory()
-    view: PowerViewDTO = engine.power_view(power)
 
     base_dir = Path(__file__).parent / "snapshots" / tag
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.txt"
-    file_path.write_text(build_orders_prompt(engine, view))
+    file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.xml"
+    file_path.write_text(build_orders_prompt(engine, power))
 
     return file_path
 

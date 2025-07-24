@@ -1,144 +1,134 @@
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 dislodged unit(s).
-Return an array of exactly 1 DATC retreat or disband order(s).
-You must submit exactly one order per dislodged unit.
-</instructions>
 <main-goal>
-You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
-<full-game-state>
+<general-instructions>
+Choose legal DATC orders **only** for *your* power.
+Respond with a JSON array of order strings - no commentary.
+</general-instructions>
+
+<full-game>
+This is the full game state for all powers:
+
+all_supply_center_counts:
 {
-  "is_game_done": false,
-  "short_phase": "F1901R",
-  "phase": "FALL 1901 RETREATS",
-  "phase_type": "R",
-  "year": 1901,
-  "all_supply_center_counts": {
-    "AUSTRIA": 3,
-    "ENGLAND": 3,
-    "FRANCE": 3,
-    "ITALY": 3,
-    "RUSSIA": 4,
-    "TURKEY": 3,
-    "GERMANY (YOU)": 3
-  },
-  "all_supply_center_locations": {
-    "AUSTRIA": [
-      "BUD",
-      "TRI",
-      "VIE"
-    ],
-    "ENGLAND": [
-      "EDI",
-      "LON",
-      "LVP"
-    ],
-    "FRANCE": [
-      "BRE",
-      "MAR",
-      "PAR"
-    ],
-    "ITALY": [
-      "NAP",
-      "ROM",
-      "VEN"
-    ],
-    "RUSSIA": [
-      "MOS",
-      "SEV",
-      "STP",
-      "WAR"
-    ],
-    "TURKEY": [
-      "ANK",
-      "CON",
-      "SMY"
-    ],
-    "GERMANY (YOU)": [
-      "BER",
-      "KIE",
-      "MUN"
-    ]
-  },
-  "all_unit_locations": {
-    "AUSTRIA": {
-      "BOH": "A",
-      "BUD": "A",
-      "TRI": "F"
-    },
-    "ENGLAND": {
-      "EDI": "F",
-      "LON": "F",
-      "LVP": "A"
-    },
-    "FRANCE": {
-      "BRE": "F",
-      "MAR": "A",
-      "MUN": "A"
-    },
-    "ITALY": {
-      "NAP": "F",
-      "ROM": "A",
-      "VEN": "A"
-    },
-    "RUSSIA": {
-      "MOS": "A",
-      "SEV": "F",
-      "STP/SC": "F",
-      "WAR": "A"
-    },
-    "TURKEY": {
-      "ANK": "F",
-      "CON": "A",
-      "SMY": "A"
-    },
-    "GERMANY (YOU)": {
-      "BER": "A",
-      "KIE": "F",
-      "MUN": "*A"
-    }
-  }
+  "AUSTRIA": 3,
+  "ENGLAND": 3,
+  "FRANCE": 3,
+  "GERMANY": 3,
+  "ITALY": 3,
+  "RUSSIA": 4,
+  "TURKEY": 3
 }
-</full-game-state>
 
-<who-am-i>
-You are power GERMANY in phase FALL 1901 RETREATS (F1901R).
-</who-am-i>
-
-<your-power-view>
+all_supply_centers:
 {
-  "power": "GERMANY",
-  "my_supply_center_count": 3,
-  "my_supply_center_locations": [
+  "AUSTRIA": [
+    "BUD",
+    "TRI",
+    "VIE"
+  ],
+  "ENGLAND": [
+    "EDI",
+    "LON",
+    "LVP"
+  ],
+  "FRANCE": [
+    "BRE",
+    "MAR",
+    "PAR"
+  ],
+  "GERMANY": [
     "BER",
     "KIE",
     "MUN"
   ],
-  "my_home_supply_center_locations": [
-    "BER",
-    "KIE",
-    "MUN"
+  "ITALY": [
+    "NAP",
+    "ROM",
+    "VEN"
   ],
-  "my_unit_locations": {
+  "RUSSIA": [
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR"
+  ],
+  "TURKEY": [
+    "ANK",
+    "CON",
+    "SMY"
+  ]
+}
+
+all_units:
+{
+  "AUSTRIA": {
+    "BOH": "A",
+    "BUD": "A",
+    "TRI": "F"
+  },
+  "ENGLAND": {
+    "EDI": "F",
+    "LON": "F",
+    "LVP": "A"
+  },
+  "FRANCE": {
+    "BRE": "F",
+    "MAR": "A",
+    "MUN": "A"
+  },
+  "GERMANY": {
     "BER": "A",
     "KIE": "F",
-    "MUN": "*A"
+    "MUN": "A"
   },
-  "my_possible_orders_by_location": {
-    "MUN": [
-      "A MUN D",
-      "A MUN R RUH",
-      "A MUN R SIL",
-      "A MUN R TYR"
-    ]
+  "ITALY": {
+    "NAP": "F",
+    "ROM": "A",
+    "VEN": "A"
+  },
+  "RUSSIA": {
+    "MOS": "A",
+    "SEV": "F",
+    "STP/SC": "F",
+    "WAR": "A"
+  },
+  "TURKEY": {
+    "ANK": "F",
+    "CON": "A",
+    "SMY": "A"
   }
 }
-</your-power-view>
 
-<your-possible-legal-orders>
-['A MUN D', 'A MUN R RUH', 'A MUN R SIL', 'A MUN R TYR']
-</your-possible-legal-orders>
+game_phase_type: R
+game_year: 1901
+game_phase: FALL 1901 RETREATS
+game_short_phase: F1901R
+</full-game>
+
+<you>
+power: You are playing as GERMANY
+These are your specific units and possible moves:
+
+units:
+{
+  "BER": "A",
+  "KIE": "F",
+  "MUN": "A"
+}
+
+moves:
+{
+  "MUN": [
+    "A MUN D",
+    "A MUN R RUH",
+    "A MUN R SIL",
+    "A MUN R TYR"
+  ]
+}
+</you>
+
+<specific-instructions>
+Each of your **1 dislodged unit(s)** needs exactly one retreat **or** disband order.
+</specific-instructions>

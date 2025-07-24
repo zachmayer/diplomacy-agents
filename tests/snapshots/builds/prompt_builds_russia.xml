@@ -1,150 +1,135 @@
-
-
-<instructions>
-Choose legal DATC orders. Respond **only** with a JSON array of order strings.
-You have 1 build(s).
-Return an array **of exactly 1 DATC build order(s)**.
-• Each build must occur in a *distinct* vacant home supply centre.
-• Do **not** specify more than one build in the same location.
-• Example (two builds): ['F BRE B', 'A PAR B']
-</instructions>
 <main-goal>
-You are playing Diplomacy, a strategy board game. Your objective is to win by controlling 18 or more supply centres.
+You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
-<full-game-state>
+<general-instructions>
+Choose legal DATC orders **only** for *your* power.
+Respond with a JSON array of order strings - no commentary.
+</general-instructions>
+
+<full-game>
+This is the full game state for all powers:
+
+all_supply_center_counts:
 {
-  "is_game_done": false,
-  "short_phase": "W1901A",
-  "phase": "WINTER 1901 ADJUSTMENTS",
-  "phase_type": "A",
-  "year": 1901,
-  "all_supply_center_counts": {
-    "AUSTRIA": 3,
-    "ENGLAND": 3,
-    "FRANCE": 3,
-    "GERMANY": 3,
-    "ITALY": 3,
-    "TURKEY": 3,
-    "RUSSIA (YOU)": 5
-  },
-  "all_supply_center_locations": {
-    "AUSTRIA": [
-      "BUD",
-      "TRI",
-      "VIE"
-    ],
-    "ENGLAND": [
-      "EDI",
-      "LON",
-      "LVP"
-    ],
-    "FRANCE": [
-      "BRE",
-      "MAR",
-      "PAR"
-    ],
-    "GERMANY": [
-      "BER",
-      "KIE",
-      "MUN"
-    ],
-    "ITALY": [
-      "NAP",
-      "ROM",
-      "VEN"
-    ],
-    "TURKEY": [
-      "ANK",
-      "CON",
-      "SMY"
-    ],
-    "RUSSIA (YOU)": [
-      "MOS",
-      "RUM",
-      "SEV",
-      "STP",
-      "WAR"
-    ]
-  },
-  "all_unit_locations": {
-    "AUSTRIA": {
-      "BUD": "A",
-      "TRI": "F",
-      "VIE": "A"
-    },
-    "ENGLAND": {
-      "EDI": "F",
-      "LON": "F",
-      "LVP": "A"
-    },
-    "FRANCE": {
-      "BRE": "F",
-      "MAR": "A",
-      "PAR": "A"
-    },
-    "GERMANY": {
-      "BER": "A",
-      "KIE": "F",
-      "MUN": "A"
-    },
-    "ITALY": {
-      "NAP": "F",
-      "ROM": "A",
-      "VEN": "A"
-    },
-    "TURKEY": {
-      "ANK": "F",
-      "CON": "A",
-      "SMY": "A"
-    },
-    "RUSSIA (YOU)": {
-      "MOS": "A",
-      "RUM": "F",
-      "STP/SC": "F",
-      "WAR": "A"
-    }
-  }
+  "AUSTRIA": 3,
+  "ENGLAND": 3,
+  "FRANCE": 3,
+  "GERMANY": 3,
+  "ITALY": 3,
+  "RUSSIA": 5,
+  "TURKEY": 3
 }
-</full-game-state>
 
-<who-am-i>
-You are power RUSSIA in phase WINTER 1901 ADJUSTMENTS (W1901A).
-</who-am-i>
-
-<your-power-view>
+all_supply_centers:
 {
-  "power": "RUSSIA",
-  "my_supply_center_count": 5,
-  "my_supply_center_locations": [
+  "AUSTRIA": [
+    "BUD",
+    "TRI",
+    "VIE"
+  ],
+  "ENGLAND": [
+    "EDI",
+    "LON",
+    "LVP"
+  ],
+  "FRANCE": [
+    "BRE",
+    "MAR",
+    "PAR"
+  ],
+  "GERMANY": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "ITALY": [
+    "NAP",
+    "ROM",
+    "VEN"
+  ],
+  "RUSSIA": [
     "MOS",
     "RUM",
     "SEV",
     "STP",
     "WAR"
   ],
-  "my_home_supply_center_locations": [
-    "MOS",
-    "SEV",
-    "STP",
-    "WAR"
-  ],
-  "my_unit_locations": {
+  "TURKEY": [
+    "ANK",
+    "CON",
+    "SMY"
+  ]
+}
+
+all_units:
+{
+  "AUSTRIA": {
+    "BUD": "A",
+    "TRI": "F",
+    "VIE": "A"
+  },
+  "ENGLAND": {
+    "EDI": "F",
+    "LON": "F",
+    "LVP": "A"
+  },
+  "FRANCE": {
+    "BRE": "F",
+    "MAR": "A",
+    "PAR": "A"
+  },
+  "GERMANY": {
+    "BER": "A",
+    "KIE": "F",
+    "MUN": "A"
+  },
+  "ITALY": {
+    "NAP": "F",
+    "ROM": "A",
+    "VEN": "A"
+  },
+  "RUSSIA": {
     "MOS": "A",
     "RUM": "F",
     "STP/SC": "F",
     "WAR": "A"
   },
-  "my_possible_orders_by_location": {
-    "SEV": [
-      "A SEV B",
-      "F SEV B",
-      "WAIVE"
-    ]
+  "TURKEY": {
+    "ANK": "F",
+    "CON": "A",
+    "SMY": "A"
   }
 }
-</your-power-view>
 
-<your-possible-legal-orders>
-['A SEV B', 'F SEV B', 'WAIVE']
-</your-possible-legal-orders>
+game_phase_type: A
+game_year: 1901
+game_phase: WINTER 1901 ADJUSTMENTS
+game_short_phase: W1901A
+</full-game>
+
+<you>
+power: You are playing as RUSSIA
+These are your specific units and possible moves:
+
+units:
+{
+  "MOS": "A",
+  "RUM": "F",
+  "STP/SC": "F",
+  "WAR": "A"
+}
+
+moves:
+{
+  "SEV": [
+    "A SEV B",
+    "F SEV B",
+    "WAIVE"
+  ]
+}
+</you>
+
+<specific-instructions>
+You have **1 build(s)**. Return exactly 1 distinct build orders.
+</specific-instructions>

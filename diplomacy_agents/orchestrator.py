@@ -161,10 +161,10 @@ class GameOrchestrator:
         """Collect orders from surviving powers and submit to the engine."""
         tasks: dict[Power, asyncio.Task[Orders]] = {}
         for power in surviving_powers(self.engine):
-            view = self.engine.power_view(power)
-            if not view.flat_orders:  # nothing orderable (e.g. no builds)
+            flat_orders = self.engine.flat_possible_orders[power]
+            if not flat_orders:
                 continue
-            tasks[power] = asyncio.create_task(self.agents[power].get_orders(self.engine, view))
+            tasks[power] = asyncio.create_task(self.agents[power].get_orders(self.engine))
 
         if not tasks:  # no orders to collect
             return

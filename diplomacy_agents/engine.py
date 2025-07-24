@@ -15,7 +15,6 @@ from diplomacy_agents.enums import Location, PhaseType, Power, UnitType
 
 __all__ = [
     "Orders",
-    "PowerViewDTO",
     "DiplomacyEngine",
 ]
 
@@ -201,20 +200,16 @@ class DiplomacyEngine:
             result[power] = buildable
         return sort_by_key(result)
 
-    # ---------------------------------------------------------------------
-    # (Removed GameStateDTO – callers should access engine properties directly.)
-    # ---------------------------------------------------------------------
+    # ----------------------------------------------------------------- #
+    # Flattened legal-orders view                                       #
+    # ----------------------------------------------------------------- #
 
-    def power_view(self, power: Power) -> PowerViewDTO:
-        """Return a perspective snapshot for *power*."""
-        return PowerViewDTO(
-            power=power,
-            supply_center_count=self.supply_center_counts[power],
-            supply_centers=self.supply_centers[power],
-            home_supply_centers=self.buildable_home_centers[power],
-            units=self.units[power],
-            possible_orders=self.possible_orders[power],
-        )
+    @property
+    def flat_possible_orders(self) -> dict[Power, Orders]:
+        """Flattened legal orders for each power."""
+        return {
+            p: tuple(order for opts in self.possible_orders[p].values() for order in opts) for p in self.possible_orders
+        }
 
     # ---------------------------------------------------------------------
     # Engine I/O
