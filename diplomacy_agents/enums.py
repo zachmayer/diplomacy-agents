@@ -13,7 +13,16 @@ __all__ = [
 # phase_type: indicates the current phase type. e.g. ‘M’ for Movement, ‘R’ for Retreats, ‘A’ for Adjustment, ‘-‘ for non-playing phase
 
 
-class PhaseType(StrEnum):
+class PrettyStrEnum(StrEnum):
+    """A string enum that can be pretty-printed."""
+
+    def __str__(self) -> str:
+        return self.value
+
+    __repr__ = __str__
+
+
+class PhaseType(PrettyStrEnum):
     """The types of phases in the game."""
 
     MOVEMENT = "M"
@@ -22,7 +31,7 @@ class PhaseType(StrEnum):
     NON_PLAYING = "-"
 
 
-class UnitType(StrEnum):
+class UnitType(PrettyStrEnum):
     """The types of units in the game."""
 
     ARMY = "A"
@@ -31,7 +40,7 @@ class UnitType(StrEnum):
     DISLODGED_FLEET = "*F"
 
 
-class Power(StrEnum):
+class Power(PrettyStrEnum):
     """The powers in the game."""
 
     ENGLAND = "ENGLAND"
@@ -43,7 +52,7 @@ class Power(StrEnum):
     AUSTRIA = "AUSTRIA"
 
 
-class Location(StrEnum):
+class Location(PrettyStrEnum):
     """The locations in the game."""
 
     ADR = "ADR"

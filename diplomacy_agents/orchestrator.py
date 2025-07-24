@@ -1,4 +1,4 @@
-"""Asynchronous self‑play driver orchestrating seven agents (LLMs or baselines)."""
+"""Asynchronous self-play driver orchestrating seven agents (LLMs or baselines)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ AgentSpecName = KnownModelName | Literal["hold", "random"]
 
 
 class _SvgImageLike(Protocol):
-    """Minimal subset of ``drawsvg.Image`` used for SMIL key‑framing."""
+    """Minimal subset of ``drawsvg.Image`` used for SMIL key-framing."""
 
     def add_key_frame(self, time: float, *, opacity: float) -> None: ...
 
@@ -102,8 +102,8 @@ class GameOrchestrator:
 
     async def play_turn(self) -> None:
         """Execute one phase: snapshot, gather orders, advance game."""
-        self._capture_frame()
         await self._run_orders_phase()
+        self._capture_frame()
         self._log_running_totals()
         self.engine.process_turn()
 

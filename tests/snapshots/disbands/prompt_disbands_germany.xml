@@ -2,8 +2,13 @@
 You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
+<power>
+You are playing as GERMANY
+</power>
+
 <general-instructions>
 Choose legal DATC orders **only** for *your* power.
+You must occupy supply centers with a unit at end of Fall to capture them.
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
@@ -108,7 +113,6 @@ game_short_phase: W1901A
 </full-game>
 
 <you>
-power: You are playing as GERMANY
 These are your specific units and possible moves:
 
 units:

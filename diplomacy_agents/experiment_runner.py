@@ -16,7 +16,7 @@ import random
 import random as _rnd
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, cast, get_args
+from typing import Any, cast
 
 import pandas as pd
 
@@ -38,22 +38,22 @@ RESULTS_CSV = Path("results.csv")
 # https://ai.pydantic.dev/api/models/base/
 MODEL_UNIVERSE: tuple[str, ...] = (
     # OpenAI
-    "openai:gpt-4.1-2025-04-14",
-    "openai:gpt-4.1-mini-2025-04-14",
+    # "openai:gpt-4.1-2025-04-14",
+    # "openai:gpt-4.1-mini-2025-04-14",
     "openai:gpt-4.1-nano-2025-04-14",
-    "openai:gpt-4o-2024-11-20",
-    "openai:gpt-4o-mini-2024-07-18",
-    "openai:o3-2025-04-16",
-    "openai:o3-mini-2025-01-31",
-    "openai:o4-mini-2025-04-16",
+    # "openai:gpt-4o-2024-11-20",
+    # "openai:gpt-4o-mini-2024-07-18",
+    # "openai:o3-2025-04-16",
+    # "openai:o3-mini-2025-01-31",
+    # "openai:o4-mini-2025-04-16",
     # Google
     "google-gla:gemini-2.5-flash",
-    "google-gla:gemini-2.5-pro",
+    # "google-gla:gemini-2.5-pro",
     # Anthropic
-    "anthropic:claude-4-opus-20250514",
-    "anthropic:claude-4-sonnet-20250514",
+    # "anthropic:claude-4-opus-20250514",
+    # "anthropic:claude-4-sonnet-20250514",
     # DeepSeek
-    "deepseek:deepseek-reasoner",
+    # "deepseek:deepseek-reasoner",
     # Baselines
     "hold",
     "random",
@@ -99,7 +99,7 @@ class ExperimentRunner:
     @staticmethod
     def _random_model_map() -> PowerModelMap:
         """Return a freshly-minted mapping {power: model_name}."""
-        return cast(PowerModelMap, {p: random.choice(MODEL_UNIVERSE) for p in get_args(Power)})
+        return cast(PowerModelMap, {p: random.choice(MODEL_UNIVERSE) for p in Power})
 
     @staticmethod
     def _experiment_hash(
@@ -208,25 +208,25 @@ class ExperimentRunner:
         row: dict[str, Any] = {"hash": exp_hash}
 
         # Centres ------------------------------------------------------
-        for p in get_args(Power):
+        for p in Power:
             row[f"centres_{p}"] = final_centers.get(p, 0)
 
         # Tokens -------------------------------------------------------
-        for p in get_args(Power):
+        for p in Power:
             toks = token_by_power.get(p, {"prompt": 0, "response": 0})
             row[f"prompt_{p}"] = toks["prompt"]
             row[f"response_{p}"] = toks["response"]
 
         # Runtime ------------------------------------------------------
-        for p in get_args(Power):
+        for p in Power:
             row[f"runtime_{p}"] = runtime_by_power.get(p, 0.0)
 
         # Cost ---------------------------------------------------------
-        for p in get_args(Power):
+        for p in Power:
             row[f"cost_{p}"] = cost_by_power.get(p, 0.0)
 
         # Model names --------------------------------------------------
-        for p in get_args(Power):
+        for p in Power:
             row[f"model_{p}"] = model_map[p]
 
         df_row = pd.DataFrame([row])

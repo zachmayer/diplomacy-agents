@@ -59,8 +59,13 @@ def build_orders_prompt(engine: DiplomacyEngine, power: "Power") -> str:
 You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
 
+<power>
+You are playing as {power}
+</power>
+
 <general-instructions>
 Choose legal DATC orders **only** for *your* power.
+You must occupy supply centers with a unit at end of Fall to capture them.
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
@@ -83,7 +88,6 @@ game_short_phase: {engine.short_phase}
 </full-game>
 
 <you>
-power: You are playing as {power}
 These are your specific units and possible moves:
 
 units:

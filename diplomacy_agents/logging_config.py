@@ -35,3 +35,15 @@ def setup_logging(level: str = "INFO", json: bool = False) -> None:
         else "%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
     logging.basicConfig(format=fmt, level=getattr(logging, level.upper(), logging.INFO))
+
+    # Silence overly chatty third-party libraries ------------------------------------------------
+    # The Google Generative AI SDK logs at INFO level by default (e.g.:
+    # "AFC is enabled with max remote calls: 10").  These messages are
+    # irrelevant for normal operation and clutter output, so force its
+    # logger hierarchy down to ERROR.
+    for noisy in (
+        "google_genai",  # package root
+        "google_genai.models",  # specific sub-module emitting AFC banner
+        "httpx",  # HTTP client library
+    ):
+        logging.getLogger(noisy).setLevel(logging.ERROR)

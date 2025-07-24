@@ -12,7 +12,7 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from time import perf_counter
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
@@ -84,7 +84,7 @@ class RandomAgent(BaseAgent):
 # ---------------------------------------------------------------------------
 
 T = TypeVar("T")
-type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]  # pyright: ignore[reportInvalidTypeForm]
+type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ class LLMAgent(BaseAgent):
         output_type: OutputSpec[T],
         system_prompt: str | None = None,
     ) -> T:
-        """Execute *prompt* via *pydantic‑ai*, accumulate runtime & token usage,and return the structured output produced by the model."""
+        """Execute *prompt* via *pydantic-ai*, accumulate runtime & token usage,and return the structured output produced by the model."""
         if system_prompt is None:
             system_prompt = f"You are playing Diplomacy as {self.power}. Your goal is to win."
 
@@ -145,15 +145,22 @@ class LLMAgent(BaseAgent):
     # Public API                                                          #
     # ------------------------------------------------------------------ #
 
-    async def get_orders(self, engine: DiplomacyEngine) -> Orders:
-        """Ask the configured LLM for a valid order set, constrained to the exactlist of legal options provided in *_view*."""
+    async def get_orders(self, engine: DiplomacyEngine, max_schema_size: int = 1_000) -> Orders:
+        """Ask the configured LLM for a valid order set, constrained to the exact list of legal options provided in *engine*."""
         flat_orders = engine.flat_possible_orders[self.power]
 
+        # Construct a Literal type enumerating exactly the legal orders for this
+        # power when the list is reasonably small.  For extremely large lists
+        # we fall back to a plain ``str`` element type to avoid creating a
+        # gigantic Literal union that would slow down Pydantic’s schema
+        # generation.
+        elem_type = Literal[*tuple(flat_orders),] if len(flat_orders) <= max_schema_size else str
+
         output_type = self.output_wrapper(
-            list[flat_orders],
+            list[elem_type],
             name="valid_orders",
             description="Return a list of valid orders for your power in this phase.",
-            strict=len(flat_orders) <= 1_000,
+            strict=len(flat_orders) <= max_schema_size,
         )
 
         prompt = build_orders_prompt(engine, self.power)
