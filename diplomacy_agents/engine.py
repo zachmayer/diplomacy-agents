@@ -9,7 +9,6 @@ from typing import TypeVar
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
 from diplomacy.utils import export
-from pydantic import BaseModel, ConfigDict
 
 from diplomacy_agents.enums import Location, PhaseType, Power, UnitType
 
@@ -47,46 +46,6 @@ def parse_unit(unit_str: str) -> tuple[UnitType, Location]:
 def year_from_short_phase(token: str) -> int | None:
     """Extract `1901` from `'S1901M'`."""
     return int(token[1:5]) if len(token) >= 5 and token[1:5].isdigit() else None
-
-
-# ---------------------------------------------------------------------------
-# DTOs
-# ---------------------------------------------------------------------------
-
-
-class GameStateDTO(BaseModel):
-    """Global, immutable game snapshot."""
-
-    model_config = ConfigDict(strict=True, frozen=True)
-
-    is_done: bool
-    short_phase: str  # e.g. 'S1901M'
-    phase: str  # e.g. 'SPRING 1901 MOVEMENT'
-    phase_type: PhaseType
-    year: int
-
-    powers: tuple[Power, ...]
-    supply_centers: dict[Power, tuple[Location, ...]]
-    supply_center_counts: dict[Power, int]
-    units: dict[Power, dict[Location, UnitType]]
-
-
-class PowerViewDTO(BaseModel):
-    """Snapshot from one power’s perspective."""
-
-    model_config = ConfigDict(strict=True, frozen=True)
-
-    power: Power
-    supply_center_count: int
-    supply_centers: tuple[Location, ...]
-    home_supply_centers: tuple[Location, ...]
-    units: dict[Location, UnitType]
-    possible_orders: dict[Location, Orders]
-
-    @property
-    def flat_orders(self) -> Orders:
-        """A flattened, deduplicated tuple of all legal orders."""
-        return tuple(order for opts in self.possible_orders.values() for order in opts)
 
 
 # ---------------------------------------------------------------------------

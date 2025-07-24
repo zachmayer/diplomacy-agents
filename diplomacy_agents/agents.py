@@ -12,7 +12,7 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from time import perf_counter
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
@@ -145,24 +145,18 @@ class LLMAgent(BaseAgent):
     # Public API                                                          #
     # ------------------------------------------------------------------ #
 
-    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+    async def get_orders(self, engine: DiplomacyEngine) -> Orders:
         """Ask the configured LLM for a valid order set, constrained to the exactlist of legal options provided in *_view*."""
-        # Build a Literal union over **all** legal order strings.
-        # PEP 646's unpacking (`*tuple`) expands into individual literal args.
-        flat_orders = _engine.flat_possible_orders[self.power]
-        orders_literal = Literal[*flat_orders]  # type: ignore[misc, valid-type]
-
-        # Request a *list* of those literals, then wrap it for pydantic‑ai.
-        base_type = list[orders_literal]
+        flat_orders = engine.flat_possible_orders[self.power]
 
         output_type = self.output_wrapper(
-            base_type,
+            list[flat_orders],
             name="valid_orders",
             description="Return a list of valid orders for your power in this phase.",
             strict=len(flat_orders) <= 1_000,
         )
 
-        prompt = build_orders_prompt(_engine, self.power)
+        prompt = build_orders_prompt(engine, self.power)
         raw_orders = await self._run_llm(prompt=prompt, output_type=output_type)
 
         return tuple(str(order) for order in raw_orders)
