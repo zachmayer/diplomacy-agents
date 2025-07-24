@@ -26,7 +26,7 @@ __all__ = [
 
 Orders = tuple[str, ...]  # immutable, external callers see a tuple
 
-K = TypeVar("K")
+K = TypeVar("K", bound=str)
 V = TypeVar("V")
 
 
@@ -176,6 +176,32 @@ class DiplomacyEngine:
             nested[power] = sort_by_key(units_by_loc)
         return sort_by_key(nested)
 
+    @property
+    def possible_orders(self) -> dict[Power, dict[Location, Orders]]:
+        """All possible orders for each power."""
+        raw_possible = sort_by_key(self._game.get_all_possible_orders())
+        result: dict[Power, dict[Location, Orders]] = {}
+
+        for power in self.powers:
+            orderable = tuple(sorted(self._game.get_orderable_locations(power)))
+            possible: dict[Location, Orders] = {
+                Location(loc): tuple(sorted(raw_possible[loc])) for loc in orderable if loc in raw_possible
+            }
+            result[power] = sort_by_key(possible)
+
+        return sort_by_key(result)
+
+    @property
+    def buildable_home_centers(self) -> dict[Power, tuple[Location, ...]]:
+        """Home centers where each power can build (intersection of home centers and current supply centers)."""
+        result: dict[Power, tuple[Location, ...]] = {}
+        for power in self.powers:
+            my_centers = self.supply_centers[power]
+            all_home_centers = self.home_supply_centers[power]
+            buildable = tuple(loc for loc in all_home_centers if loc in my_centers)
+            result[power] = buildable
+        return sort_by_key(result)
+
     # ---------------------------------------------------------------------
     # DTO builders
     # ---------------------------------------------------------------------
@@ -196,29 +222,13 @@ class DiplomacyEngine:
 
     def power_view(self, power: Power) -> PowerViewDTO:
         """Return a perspective snapshot for *power*."""
-        # Possible orders
-        raw_possible = sort_by_key(self._game.get_all_possible_orders())
-        orderable = tuple(sorted(self._game.get_orderable_locations(power)))
-        possible: dict[Location, Orders] = {
-            Location(loc): tuple(sorted(raw_possible[loc])) for loc in orderable if loc in raw_possible
-        }
-        possible = sort_by_key(possible)
-
-        # Units
-        units_by_loc = self.units[power]
-
-        # Home centres where *power* can build
-        my_centers = self.supply_centers[power]
-        all_home_centers = self.home_supply_centers[power]
-        home_centers = tuple(loc for loc in all_home_centers if loc in my_centers)
-
         return PowerViewDTO(
             power=power,
-            supply_center_count=len(my_centers),
-            supply_centers=my_centers,
-            home_supply_centers=home_centers,
-            units=units_by_loc,
-            possible_orders=possible,
+            supply_center_count=self.supply_center_counts[power],
+            supply_centers=self.supply_centers[power],
+            home_supply_centers=self.buildable_home_centers[power],
+            units=self.units[power],
+            possible_orders=self.possible_orders[power],
         )
 
     # ---------------------------------------------------------------------
