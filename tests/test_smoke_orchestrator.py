@@ -9,13 +9,15 @@ from __future__ import annotations
 import asyncio
 import xml.etree.ElementTree as ET
 
-from diplomacy_agents.enums import Power
-from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
+import pytest
+
+from diplomacy_agents.orchestrator import GameOrchestrator, HoldModelMap, PowerModelMap, RandomModelMap
 
 
-def test_random_agents_smoke() -> None:
+@pytest.mark.parametrize("model_map", [HoldModelMap, RandomModelMap])
+def test_random_agents_smoke(model_map: PowerModelMap) -> None:
     """Process 5 phases using random agents – should complete without error."""
-    orch = GameOrchestrator(model_map=PowerModelMap(dict.fromkeys(Power, "random")))
+    orch = GameOrchestrator(model_map=model_map)
 
     for _ in range(5):
         asyncio.run(orch.play_turn())

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from diplomacy_agents.enums import Power
-from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
+from diplomacy_agents.orchestrator import GameOrchestrator, RandomModelMap
 
 
 def test_svg_contains_orders() -> None:
@@ -15,7 +14,7 @@ def test_svg_contains_orders() -> None:
     The presence of this group indicates that order arrows were rendered on the board.
     This regresses the bug where move arrows disappeared from animations.
     """
-    orch = GameOrchestrator(model_map=PowerModelMap(dict.fromkeys(Power, "random")))
+    orch = GameOrchestrator(model_map=RandomModelMap)
 
     # Play a single phase – this collects orders and snapshots the board afterwards.
     asyncio.run(orch.play_turn())

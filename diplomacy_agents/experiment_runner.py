@@ -10,23 +10,17 @@ from __future__ import annotations
 import asyncio
 import csv
 import hashlib
-import json
 import logging
-import random
 import random as _rnd
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
 import pandas as pd
-
-# Pricing util
 from tokonomics import calculate_token_cost
 
 from diplomacy_agents.enums import Power
-from diplomacy_agents.orchestrator import GameOrchestrator, PowerModelMap
-
-# Press export removed – gunboat mode has no messaging.
+from diplomacy_agents.orchestrator import AgentSpecName, GameOrchestrator, PowerModelMap
 
 logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
@@ -36,7 +30,7 @@ logger = logging.getLogger(__name__)
 RESULTS_CSV = Path("results.csv")
 
 # https://ai.pydantic.dev/api/models/base/
-MODEL_UNIVERSE: tuple[str, ...] = (
+MODEL_UNIVERSE: tuple[AgentSpecName, ...] = (
     # OpenAI
     # "openai:gpt-4.1-2025-04-14",
     # "openai:gpt-4.1-mini-2025-04-14",
@@ -99,7 +93,9 @@ class ExperimentRunner:
     @staticmethod
     def _random_model_map() -> PowerModelMap:
         """Return a freshly-minted mapping {power: model_name}."""
-        return cast(PowerModelMap, {p: random.choice(MODEL_UNIVERSE) for p in Power})
+        r: AgentSpecName = cast(AgentSpecName, "random")
+        data: dict[str, AgentSpecName] = {p.name: r for p in Power}
+        return PowerModelMap.model_validate(data)
 
     @staticmethod
     def _experiment_hash(
@@ -108,7 +104,7 @@ class ExperimentRunner:
         max_year: int | None,
     ) -> str:
         """Return 8-char SHA-1 hash for *model_map*, *messaging_rounds* and *max_year*."""
-        mapping_repr = json.dumps(dict(model_map), sort_keys=True)
+        mapping_repr = model_map.model_dump()
         # ``max_year`` may be ``None`` – include as literal string so differing
         # caps produce distinct hashes.
         hash_input = f"{messaging_rounds}:{max_year}:{mapping_repr}"
@@ -227,7 +223,7 @@ class ExperimentRunner:
 
         # Model names --------------------------------------------------
         for p in Power:
-            row[f"model_{p}"] = model_map[p]
+            row[f"model_{p}"] = getattr(model_map, p.name)
 
         df_row = pd.DataFrame([row])
         if RESULTS_CSV.exists():

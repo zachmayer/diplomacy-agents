@@ -5,7 +5,9 @@ Run `python -m diplomacy_agents.cli self-play` to launch a self-play match where
 all seven powers are controlled by identical LLM agents.
 """
 
+import json
 import logging
+from pathlib import Path
 
 import click
 
@@ -53,12 +55,8 @@ def cli() -> None:
 )
 def play(model_map: str, messaging_rounds: int) -> None:
     """Run the orchestrator with an explicit model map JSON file."""
-    import json
-    from pathlib import Path
-    from typing import cast
-
     data = json.loads(Path(model_map).read_text())
-    run_game(model_map=cast(PowerModelMap, data), messaging_rounds=messaging_rounds)
+    run_game(model_map=PowerModelMap(**data), messaging_rounds=messaging_rounds)
 
 
 # ---------------------------------------------------------------------------

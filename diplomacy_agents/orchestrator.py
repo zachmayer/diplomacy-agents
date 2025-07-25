@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 
 import drawsvg as draw
+from pydantic import BaseModel, ConfigDict
 from pydantic_ai.models import KnownModelName
 
 from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
@@ -40,17 +41,45 @@ class _SvgDrawingLike(Protocol):
     ) -> None: ...
 
 
-class PowerModelMap(dict[Power, AgentSpecName]):
-    """Explicit mapping from each power to its agent spec (LLM or baseline)."""
+class PowerModelMap(BaseModel):
+    """Simple Pydantic model mapping each *Power* to its agent spec."""
 
+    AUSTRIA: AgentSpecName
     ENGLAND: AgentSpecName
     FRANCE: AgentSpecName
     GERMANY: AgentSpecName
     ITALY: AgentSpecName
     RUSSIA: AgentSpecName
     TURKEY: AgentSpecName
-    AUSTRIA: AgentSpecName
 
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        use_enum_values=True,
+    )
+
+
+# All power hold
+HoldModelMap = PowerModelMap(
+    AUSTRIA="hold",
+    ENGLAND="hold",
+    FRANCE="hold",
+    GERMANY="hold",
+    ITALY="hold",
+    RUSSIA="hold",
+    TURKEY="hold",
+)
+
+# All power move randomly
+RandomModelMap = PowerModelMap(
+    AUSTRIA="random",
+    ENGLAND="random",
+    FRANCE="random",
+    GERMANY="random",
+    ITALY="random",
+    RUSSIA="random",
+    TURKEY="random",
+)
 
 # ---------------------------------------------------------------------------#
 # Utilities                                                                  #
@@ -139,7 +168,7 @@ class GameOrchestrator:
         """Instantiate one agent per power according to *self.model_map*."""
         agents: dict[Power, BaseAgent] = {}
         for power in self.engine.powers:
-            spec = self.model_map[power]
+            spec = getattr(self.model_map, power.name)
             if spec == "hold":
                 agents[power] = HoldAgent(power)
             elif spec == "random":
