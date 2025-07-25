@@ -14,7 +14,6 @@ def test_experiment_runner_smoke(model_map: PowerModelMap) -> None:
     result = runner.run_once(model_map=model_map)
 
     # Basic sanity checks on returned metrics structure
-    assert "hash" in result
     for p in (
         Power.ENGLAND,
         Power.FRANCE,

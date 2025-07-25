@@ -70,11 +70,8 @@ def experiments(runs: int, seed: int) -> None:
     runner = ExperimentRunner(seed=seed, max_year=1905)
 
     for i in range(1, runs + 1):
-        result = runner.run_once()
-        if result.get("skipped"):
-            logger.info("[%d/%d] skipped duplicate hash %s", i, runs, result["hash"])
-        else:
-            logger.info("[%d/%d] completed experiment %s", i, runs, result["hash"])
+        runner.run_once()
+        logger.info("[%d/%d] completed experiment", i, runs)
 
 
 if __name__ == "__main__":

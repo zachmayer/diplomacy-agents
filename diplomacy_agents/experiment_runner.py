@@ -8,7 +8,6 @@ persists artefacts, and appends a summary row to ``results.csv``.
 from __future__ import annotations
 
 import asyncio
-import csv
 import hashlib
 import logging
 import random as _rnd
@@ -95,11 +94,8 @@ class ExperimentRunner:
         return PowerModelMap.model_validate(data)
 
     @staticmethod
-    def _experiment_hash(
-        model_map: PowerModelMap,
-        max_year: int | None,
-    ) -> str:
-        """Return 8-char SHA-1 hash for *model_map* and *max_year*."""
+    def _run_id(model_map: PowerModelMap, max_year: int | None) -> str:
+        """Return 8-char SHA-1 hash for deterministic artifact naming."""
         mapping_repr = model_map.model_dump()
         # ``max_year`` may be ``None`` – include as literal string so differing
         # caps produce distinct hashes.
@@ -122,18 +118,6 @@ class ExperimentRunner:
         # Generate parameters ------------------------------------------------
         if model_map is None:
             model_map = self._random_model_map()
-        exp_hash = self._experiment_hash(model_map, self.max_year)
-
-        # --------------------------------------------------------------
-        # Short-circuit when results already exist
-        # --------------------------------------------------------------
-        if RESULTS_CSV.exists():
-            with RESULTS_CSV.open(newline="") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get("hash") == exp_hash:
-                        logger.info("Found previous run – returning its row as a plain dict.")
-                        return row
 
         # No global state to clear – per-agent token totals are reset with new agent instances.
 
@@ -182,21 +166,22 @@ class ExperimentRunner:
         # --------------------------------------------------------------
         # Artefact persistence
         # --------------------------------------------------------------
-        arte_dir = Path("artifacts") / exp_hash
+        run_id = self._run_id(model_map, self.max_year)
+        arte_dir = Path("artifacts") / run_id
         arte_dir.mkdir(parents=True, exist_ok=True)
 
         # DATC game state
-        orch.engine.save(str(arte_dir / f"game_{exp_hash}.datc"))
+        orch.engine.save(str(arte_dir / f"game_{run_id}.datc"))
 
         # SVG animation
-        orch.save_animation(arte_dir / f"animation_{exp_hash}.svg")
+        orch.save_animation(arte_dir / f"animation_{run_id}.svg")
 
         # Press markdown removed – no press in gunboat mode.
 
         # --------------------------------------------------------------
         # CSV append (one row)
         # --------------------------------------------------------------
-        row: dict[str, Any] = {"hash": exp_hash}
+        row: dict[str, Any] = {}
 
         # Centres ------------------------------------------------------
         for p in Power:
