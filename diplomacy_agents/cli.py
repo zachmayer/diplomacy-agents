@@ -41,8 +41,8 @@ def experiments(runs: int, seed: int) -> None:
     import asyncio
 
     async def run_experiments() -> None:
-        runner = ExperimentRunner(seed=seed)
         for i in range(1, runs + 1):
+            runner = ExperimentRunner(seed=seed)
             await runner.run_once()
             logger.info("[%d/%d] completed experiment", i, runs)
 

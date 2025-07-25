@@ -15,6 +15,11 @@ from diplomacy_agents.agents import BaseAgent, HoldAgent, LLMAgent, RandomAgent
 from diplomacy_agents.engine import DiplomacyEngine, Orders
 from diplomacy_agents.enums import Power
 
+__all__ = ["GameOrchestrator", "PowerModelMap", "HoldModelMap", "RandomModelMap"]
+
+
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------#
 # Typing helpers                                                             #
 # ---------------------------------------------------------------------------#
@@ -59,7 +64,7 @@ class PowerModelMap(BaseModel):
     )
 
 
-# All power hold
+# All powers hold
 HoldModelMap = PowerModelMap(
     AUSTRIA="hold",
     ENGLAND="hold",
@@ -70,7 +75,7 @@ HoldModelMap = PowerModelMap(
     TURKEY="hold",
 )
 
-# All power move randomly
+# All powers move randomly
 RandomModelMap = PowerModelMap(
     AUSTRIA="random",
     ENGLAND="random",
@@ -80,20 +85,6 @@ RandomModelMap = PowerModelMap(
     RUSSIA="random",
     TURKEY="random",
 )
-
-# ---------------------------------------------------------------------------#
-# Utilities                                                                  #
-# ---------------------------------------------------------------------------#
-
-
-def surviving_powers(engine: DiplomacyEngine) -> tuple[Power, ...]:
-    """Return powers that own at least one supply centre."""
-    return tuple(p for p, cnt in engine.supply_center_counts.items() if cnt > 0)
-
-
-__all__ = ["GameOrchestrator", "run_game", "PowerModelMap"]
-
-logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------#
 # Orchestrator                                                               #
@@ -187,7 +178,7 @@ class GameOrchestrator:
     async def _run_orders_phase(self) -> None:
         """Collect orders from surviving powers and submit to the engine."""
         tasks: dict[Power, asyncio.Task[Orders]] = {}
-        for power in surviving_powers(self.engine):
+        for power in self.engine.surviving_powers:
             flat_orders = self.engine.flat_possible_orders[power]
             if not flat_orders:
                 continue
@@ -236,25 +227,3 @@ class GameOrchestrator:
 
         path.parent.mkdir(parents=True, exist_ok=True)
         drawing.save_svg(str(path))
-
-
-# ---------------------------------------------------------------------------#
-# Convenience wrapper for synchronous callers                                #
-# ---------------------------------------------------------------------------#
-
-
-def run_game(
-    *,
-    model_map: PowerModelMap,
-    max_year: int | None = 1951,
-) -> dict[Power, int]:
-    """Blocking helper that hides the asyncio event loop."""
-
-    async def _runner() -> dict[Power, int]:
-        orchestrator = GameOrchestrator(
-            model_map=model_map,
-            max_year=max_year,
-        )
-        return await orchestrator.run()
-
-    return asyncio.run(_runner())

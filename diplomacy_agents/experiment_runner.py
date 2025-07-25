@@ -77,6 +77,10 @@ class ExperimentRunner:
         run_id = f"{self.max_year}:{self.model_map.model_dump()}"
         run_id = hashlib.sha1(run_id.encode()).hexdigest()[:8]
         self.run_id = run_id
+        self.orch = GameOrchestrator(
+            model_map=self.model_map,
+            max_year=self.max_year,
+        )
 
     # ------------------------------------------------------------------
     # Core async workflow
@@ -89,29 +93,23 @@ class ExperimentRunner:
         If *model_map* is ``None``, a random assignment is generated.
         Otherwise, the supplied mapping is used verbatim.
         """
-        # Generate parameters ------------------------------------------------
-
-        orch = GameOrchestrator(
-            model_map=self.model_map,
-            max_year=self.max_year,
-        )
-        final_centers = await orch.run()
+        final_centers = await self.orch.run()
 
         # --------------------------------------------------------------
         # Metrics aggregation
         # --------------------------------------------------------------
-        runtime_by_power: dict[str, float] = {p: a.total_runtime_s for p, a in orch.agents.items()}
+        runtime_by_power: dict[str, float] = {p: a.total_runtime_s for p, a in self.orch.agents.items()}
 
         # Aggregate tokens per power
         token_by_power: defaultdict[str, dict[str, int]] = defaultdict(lambda: {"prompt": 0, "response": 0})
-        for power, agent in orch.agents.items():
+        for power, agent in self.orch.agents.items():
             for _model, buckets in agent.token_totals.items():
                 token_by_power[power]["prompt"] += buckets.get("request_tokens", buckets.get("prompt", 0))
                 token_by_power[power]["response"] += buckets.get("response_tokens", buckets.get("response", 0))
 
         # Compute cost per power
         cost_by_power: dict[str, float] = {}
-        for power, agent in orch.agents.items():
+        for power, agent in self.orch.agents.items():
             total_cost = 0.0
             for model_id, buckets in agent.token_totals.items():
                 prompt = buckets.get("request_tokens", buckets.get("prompt", 0))
@@ -140,10 +138,10 @@ class ExperimentRunner:
         run_dir.mkdir(parents=True, exist_ok=True)
 
         # DATC game state
-        orch.engine.save(str(run_dir / f"game_{self.run_id}.datc"))
+        self.orch.engine.save(str(run_dir / f"game_{self.run_id}.datc"))
 
         # SVG animation
-        orch.save_animation(run_dir / f"animation_{self.run_id}.svg")
+        self.orch.save_animation(run_dir / f"animation_{self.run_id}.svg")
 
         # --------------------------------------------------------------
         # CSV append (one row)

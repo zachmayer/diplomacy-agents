@@ -159,16 +159,17 @@ class DiplomacyEngine:
             result[power] = buildable
         return sort_by_key(result)
 
-    # ----------------------------------------------------------------- #
-    # Flattened legal-orders view                                       #
-    # ----------------------------------------------------------------- #
-
     @property
     def flat_possible_orders(self) -> dict[Power, Orders]:
         """Flattened legal orders for each power."""
         return {
             p: tuple(order for opts in self.possible_orders[p].values() for order in opts) for p in self.possible_orders
         }
+
+    @property
+    def surviving_powers(self) -> tuple[Power, ...]:
+        """Return powers that own at least one supply centre."""
+        return tuple(p for p, cnt in self.supply_center_counts.items() if cnt > 0)
 
     # ---------------------------------------------------------------------
     # Engine I/O
