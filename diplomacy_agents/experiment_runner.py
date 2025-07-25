@@ -58,7 +58,8 @@ __all__ = ["ExperimentRunner"]
 class ExperimentRunner:
     """Batch self-play experiment runner."""
 
-    def __init__(self, *, seed: int = 42, max_year: int | None = 1951) -> None:
+    # TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
+    def __init__(self, *, seed: int = 42, max_year: int | None = 1905) -> None:
         """
         Store common configuration for a batch of experiments.
 
