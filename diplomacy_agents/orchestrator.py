@@ -107,7 +107,6 @@ class GameOrchestrator:
         self,
         *,
         model_map: PowerModelMap,
-        messaging_rounds: int = 3,
         max_year: int | None = 1951,
     ) -> None:
         """
@@ -117,7 +116,6 @@ class GameOrchestrator:
         or a concrete LLM model name).  No randomness is introduced here; call
         sites supply the full mapping.
         """
-        self.MESSAGING_ROUNDS: int = messaging_rounds
         self._max_year: int | None = max_year
 
         self.engine = DiplomacyEngine()
@@ -248,7 +246,6 @@ class GameOrchestrator:
 def run_game(
     *,
     model_map: PowerModelMap,
-    messaging_rounds: int = 3,
     max_year: int | None = 1951,
 ) -> dict[Power, int]:
     """Blocking helper that hides the asyncio event loop."""
@@ -256,7 +253,6 @@ def run_game(
     async def _runner() -> dict[Power, int]:
         orchestrator = GameOrchestrator(
             model_map=model_map,
-            messaging_rounds=messaging_rounds,
             max_year=max_year,
         )
         return await orchestrator.run()

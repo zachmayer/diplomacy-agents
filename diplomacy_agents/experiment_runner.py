@@ -59,14 +59,12 @@ __all__ = ["ExperimentRunner"]
 class ExperimentRunner:
     """Batch self-play experiment runner."""
 
-    def __init__(self, *, messaging_rounds: int = 3, seed: int = 42, max_year: int | None = 1951) -> None:
+    def __init__(self, *, seed: int = 42, max_year: int | None = 1951) -> None:
         """
         Store common configuration for a batch of experiments.
 
         Parameters
         ----------
-        messaging_rounds
-            Number of press rounds per movement phase.
         seed
             Seed for the global ``random`` module to obtain reproducible model
             assignments across runs.  Defaults to ``42`` to preserve existing
@@ -79,7 +77,6 @@ class ExperimentRunner:
             limit of 2000.
 
         """
-        self.messaging_rounds = messaging_rounds
         self.seed = seed
         self.max_year = max_year
 
@@ -100,14 +97,13 @@ class ExperimentRunner:
     @staticmethod
     def _experiment_hash(
         model_map: PowerModelMap,
-        messaging_rounds: int,
         max_year: int | None,
     ) -> str:
-        """Return 8-char SHA-1 hash for *model_map*, *messaging_rounds* and *max_year*."""
+        """Return 8-char SHA-1 hash for *model_map* and *max_year*."""
         mapping_repr = model_map.model_dump()
         # ``max_year`` may be ``None`` – include as literal string so differing
         # caps produce distinct hashes.
-        hash_input = f"{messaging_rounds}:{max_year}:{mapping_repr}"
+        hash_input = f"{max_year}:{mapping_repr}"
         return hashlib.sha1(hash_input.encode()).hexdigest()[:8]
 
     # ------------------------------------------------------------------
@@ -126,7 +122,7 @@ class ExperimentRunner:
         # Generate parameters ------------------------------------------------
         if model_map is None:
             model_map = self._random_model_map()
-        exp_hash = self._experiment_hash(model_map, self.messaging_rounds, self.max_year)
+        exp_hash = self._experiment_hash(model_map, self.max_year)
 
         # --------------------------------------------------------------
         # Short-circuit when results already exist
@@ -143,7 +139,6 @@ class ExperimentRunner:
 
         orch = GameOrchestrator(
             model_map=model_map,
-            messaging_rounds=self.messaging_rounds,
             max_year=self.max_year,
         )
         final_centers = await orch.run()
