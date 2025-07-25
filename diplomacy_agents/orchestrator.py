@@ -195,7 +195,7 @@ class GameOrchestrator:
             show_playback_controls=True,
         )
 
-        drawing = cast(_SvgDrawingLike, draw.Drawing(1200, 900, animation_config=config))
+        drawing = cast(_SvgDrawingLike, draw.Drawing(1150, 850, animation_config=config))
         for i, svg in enumerate(self.svg_frames):
             img = cast(
                 _SvgImageLike,
