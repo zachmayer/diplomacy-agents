@@ -57,8 +57,7 @@ __all__ = ["ExperimentRunner"]
 class ExperimentRunner:
     """Batch self-play experiment runner."""
 
-    # TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
-    def __init__(self, *, model_map: PowerModelMap | None = None, seed: int = 42, max_year: int | None = 1905) -> None:
+    def __init__(self, *, model_map: PowerModelMap | None = None, seed: int = 42, max_year: int | None = 1951) -> None:
         """Run a single experiment against the orchestrator."""
         random.seed(seed)
         self.seed = seed
@@ -94,6 +93,11 @@ class ExperimentRunner:
         Otherwise, the supplied mapping is used verbatim.
         """
         final_centers = await self.orch.run()
+        run_dir = Path("artifacts") / self.run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        self.orch.engine.save(str(run_dir / f"game_{self.run_id}.datc"))
+        self.orch.save_animation(run_dir / f"animation_{self.run_id}.svg")
 
         # --------------------------------------------------------------
         # Metrics aggregation
@@ -130,18 +134,6 @@ class ExperimentRunner:
         # Emit human-readable summary ---------------------------------------------------
         total_usd = sum(cost_by_power.values())
         logger.info("Total LLM cost this run: $%.4f", total_usd)
-
-        # --------------------------------------------------------------
-        # Artifact persistence
-        # --------------------------------------------------------------
-        run_dir = Path("artifacts") / self.run_id
-        run_dir.mkdir(parents=True, exist_ok=True)
-
-        # DATC game state
-        self.orch.engine.save(str(run_dir / f"game_{self.run_id}.datc"))
-
-        # SVG animation
-        self.orch.save_animation(run_dir / f"animation_{self.run_id}.svg")
 
         # --------------------------------------------------------------
         # CSV append (one row)

@@ -36,13 +36,20 @@ def cli() -> None:
     show_default=True,
     help="Random seed for model assignment reproducibility.",
 )
-def experiments(runs: int, seed: int) -> None:
+@click.option(
+    "--max-year",
+    type=int,
+    default=1905,  # TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
+    show_default=True,
+    help="Maximum year to run the experiment until.",
+)
+def experiments(runs: int, seed: int, max_year: int = 1951) -> None:
     """Execute *runs* experiments via ExperimentRunner."""
     import asyncio
 
     async def run_experiments() -> None:
         for i in range(1, runs + 1):
-            runner = ExperimentRunner(seed=seed)
+            runner = ExperimentRunner(seed=seed, max_year=max_year)
             await runner.run_once()
             logger.info("[%d/%d] completed experiment", i, runs)
 

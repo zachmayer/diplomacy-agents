@@ -49,8 +49,6 @@ class BaseAgent(ABC):
         # Per‑model cumulative token buckets → {model_name: {bucket: count}}
         self.token_totals: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
-    # NOTE: Concrete subclasses must implement -----------------------------------------------------------------
-
     @abstractmethod
     async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Return a tuple of DATC‑formatted order strings for *self.power* in thecurrent phase."""
@@ -63,11 +61,11 @@ class BaseAgent(ABC):
 
 
 class HoldAgent(BaseAgent):
-    """Agent that issues no orders – every unit *holds* / *waits*."""
+    """Agent that issues no orders - every unit *holds* / *waits*."""
 
     async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Return an empty order set."""
-        return ()  # type: Orders
+        return ()
 
 
 class RandomAgent(BaseAgent):
@@ -76,7 +74,7 @@ class RandomAgent(BaseAgent):
     async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
         """Pick exactly one random order per orderable location."""
         chosen = tuple(random.choice(opts) for opts in _engine.possible_orders[self.power].values())
-        return chosen  # type: Orders
+        return chosen
 
 
 # ---------------------------------------------------------------------------
@@ -93,7 +91,7 @@ type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]
 
 
 class LLMAgent(BaseAgent):
-    """Thin wrapper around *pydantic‑ai* for a single power."""
+    """Thin wrapper around *pydantic-ai* for a single power."""
 
     def __init__(self, power: Power, model_name: KnownModelName) -> None:
         """Bind *power* to a concrete backend model and choose the output wrapper."""
