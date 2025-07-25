@@ -56,10 +56,6 @@ install: ## Create virtual-env and install project incl. dev deps using uv
 run: ## Run one experiment with ExperimentRunner (single game)
 	uv run -m diplomacy_agents.cli experiments --runs 1
 
-.PHONY: run-full-press
-run-full-press: ## Run one experiment with 3 press rounds
-	uv run -m diplomacy_agents.cli experiments --runs 1
-
 .PHONY: run-ten
 run-ten: ## Run ten experiments with ExperimentRunner (single game)
 	uv run -m diplomacy_agents.cli experiments --runs 5

@@ -1,8 +1,8 @@
 """
 Batch self-play experiment runner.
 
-Runs a single game with configurable press rounds and optional year cap,
-persists artefacts, and appends a summary row to ``results.csv``.
+Runs a single game with configurable year cap and persists artifacts.
+Appends a summary row to ``results.csv``.
 """
 
 from __future__ import annotations
@@ -10,10 +10,10 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import random as _rnd
+import random
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 from tokonomics import calculate_token_cost
@@ -78,29 +78,7 @@ class ExperimentRunner:
         """
         self.seed = seed
         self.max_year = max_year
-
-        # Ensure deterministic randomness for this runner instance.
-        _rnd.seed(seed)
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _random_model_map() -> PowerModelMap:
-        """Return a freshly-minted mapping {power: model_name}."""
-        r: AgentSpecName = cast(AgentSpecName, "random")
-        data: dict[str, AgentSpecName] = {p.name: r for p in Power}
-        return PowerModelMap.model_validate(data)
-
-    @staticmethod
-    def _run_id(model_map: PowerModelMap, max_year: int | None) -> str:
-        """Return 8-char SHA-1 hash for deterministic artifact naming."""
-        mapping_repr = model_map.model_dump()
-        # ``max_year`` may be ``None`` – include as literal string so differing
-        # caps produce distinct hashes.
-        hash_input = f"{max_year}:{mapping_repr}"
-        return hashlib.sha1(hash_input.encode()).hexdigest()[:8]
+        random.seed(seed)
 
     # ------------------------------------------------------------------
     # Core async workflow
@@ -108,18 +86,22 @@ class ExperimentRunner:
 
     async def _run_once_async(self, model_map: PowerModelMap | None) -> dict[str, Any]:
         """
-        Run one game, persist artefacts, append CSV row, return metrics.
+        Run one game, persist artifacts, append CSV row, return metrics.
 
-        If *model_map* is ``None``, a random assignment is generated as before;
-        otherwise, the supplied mapping is used verbatim.  This makes smoke
-        tests deterministic and enables bespoke experiments without modifying
-        internal code.
+        If *model_map* is ``None``, a random assignment is generated.
+        Otherwise, the supplied mapping is used verbatim.
         """
         # Generate parameters ------------------------------------------------
         if model_map is None:
-            model_map = self._random_model_map()
-
-        # No global state to clear – per-agent token totals are reset with new agent instances.
+            model_map = PowerModelMap(
+                AUSTRIA=random.choice(MODEL_UNIVERSE),
+                ENGLAND=random.choice(MODEL_UNIVERSE),
+                FRANCE=random.choice(MODEL_UNIVERSE),
+                GERMANY=random.choice(MODEL_UNIVERSE),
+                ITALY=random.choice(MODEL_UNIVERSE),
+                RUSSIA=random.choice(MODEL_UNIVERSE),
+                TURKEY=random.choice(MODEL_UNIVERSE),
+            )
 
         orch = GameOrchestrator(
             model_map=model_map,
@@ -164,19 +146,18 @@ class ExperimentRunner:
         logger.info("Total LLM cost this run: $%.4f", total_usd)
 
         # --------------------------------------------------------------
-        # Artefact persistence
+        # Artifact persistence
         # --------------------------------------------------------------
-        run_id = self._run_id(model_map, self.max_year)
-        arte_dir = Path("artifacts") / run_id
-        arte_dir.mkdir(parents=True, exist_ok=True)
+        run_id = f"{self.max_year}:{model_map.model_dump()}"
+        run_id = hashlib.sha1(run_id.encode()).hexdigest()[:8]
+        run_dir = Path("artifacts") / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
 
         # DATC game state
-        orch.engine.save(str(arte_dir / f"game_{run_id}.datc"))
+        orch.engine.save(str(run_dir / f"game_{run_id}.datc"))
 
         # SVG animation
-        orch.save_animation(arte_dir / f"animation_{run_id}.svg")
-
-        # Press markdown removed – no press in gunboat mode.
+        orch.save_animation(run_dir / f"animation_{run_id}.svg")
 
         # --------------------------------------------------------------
         # CSV append (one row)
