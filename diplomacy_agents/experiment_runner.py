@@ -7,7 +7,6 @@ Appends a summary row to ``results.csv``.
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import logging
 import random
@@ -59,40 +58,11 @@ class ExperimentRunner:
     """Batch self-play experiment runner."""
 
     # TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
-    def __init__(self, *, seed: int = 42, max_year: int | None = 1905) -> None:
-        """
-        Store common configuration for a batch of experiments.
-
-        Parameters
-        ----------
-        seed
-            Seed for the global ``random`` module to obtain reproducible model
-            assignments across runs.  Defaults to ``42`` to preserve existing
-            behaviour when the parameter is omitted.
-        max_year
-            Optional hard cap on the simulation year.  When provided, games
-            terminate once the board reaches *or passes* this year (e.g.
-            ``1905`` for short smoke tests).  ``None`` disables the cap and
-            lets the upstream diplomacy engine run until its own internal
-            limit of 2000.
-
-        """
+    def __init__(self, *, model_map: PowerModelMap | None = None, seed: int = 42, max_year: int | None = 1905) -> None:
+        """Run a single experiment against the orchestrator."""
+        random.seed(seed)
         self.seed = seed
         self.max_year = max_year
-        random.seed(seed)
-
-    # ------------------------------------------------------------------
-    # Core async workflow
-    # ------------------------------------------------------------------
-
-    async def _run_once_async(self, model_map: PowerModelMap | None) -> dict[str, Any]:
-        """
-        Run one game, persist artifacts, append CSV row, return metrics.
-
-        If *model_map* is ``None``, a random assignment is generated.
-        Otherwise, the supplied mapping is used verbatim.
-        """
-        # Generate parameters ------------------------------------------------
         if model_map is None:
             model_map = PowerModelMap(
                 AUSTRIA=random.choice(MODEL_UNIVERSE),
@@ -103,9 +73,26 @@ class ExperimentRunner:
                 RUSSIA=random.choice(MODEL_UNIVERSE),
                 TURKEY=random.choice(MODEL_UNIVERSE),
             )
+        self.model_map = model_map
+        run_id = f"{self.max_year}:{self.model_map.model_dump()}"
+        run_id = hashlib.sha1(run_id.encode()).hexdigest()[:8]
+        self.run_id = run_id
+
+    # ------------------------------------------------------------------
+    # Core async workflow
+    # ------------------------------------------------------------------
+
+    async def run_once(self) -> dict[str, Any]:
+        """
+        Run one game, persist artifacts, append CSV row, return metrics.
+
+        If *model_map* is ``None``, a random assignment is generated.
+        Otherwise, the supplied mapping is used verbatim.
+        """
+        # Generate parameters ------------------------------------------------
 
         orch = GameOrchestrator(
-            model_map=model_map,
+            model_map=self.model_map,
             max_year=self.max_year,
         )
         final_centers = await orch.run()
@@ -149,16 +136,14 @@ class ExperimentRunner:
         # --------------------------------------------------------------
         # Artifact persistence
         # --------------------------------------------------------------
-        run_id = f"{self.max_year}:{model_map.model_dump()}"
-        run_id = hashlib.sha1(run_id.encode()).hexdigest()[:8]
-        run_dir = Path("artifacts") / run_id
+        run_dir = Path("artifacts") / self.run_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
         # DATC game state
-        orch.engine.save(str(run_dir / f"game_{run_id}.datc"))
+        orch.engine.save(str(run_dir / f"game_{self.run_id}.datc"))
 
         # SVG animation
-        orch.save_animation(run_dir / f"animation_{run_id}.svg")
+        orch.save_animation(run_dir / f"animation_{self.run_id}.svg")
 
         # --------------------------------------------------------------
         # CSV append (one row)
@@ -185,7 +170,7 @@ class ExperimentRunner:
 
         # Model names --------------------------------------------------
         for p in Power:
-            row[f"model_{p}"] = getattr(model_map, p.name)
+            row[f"model_{p}"] = getattr(self.model_map, p.name)
 
         df_row = pd.DataFrame([row])
         if RESULTS_CSV.exists():
@@ -195,20 +180,3 @@ class ExperimentRunner:
 
         # Return collected data for interactive callers ----------------
         return row
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    def run_once(self, *, model_map: PowerModelMap | None = None) -> dict[str, Any]:
-        """
-        Blocking wrapper around the async workflow.
-
-        Parameters
-        ----------
-        model_map
-            Explicit power→model mapping.  When omitted, a random mapping is
-            generated using the runner's seed-controlled RNG.
-
-        """
-        return asyncio.run(self._run_once_async(model_map))

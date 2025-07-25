@@ -38,11 +38,15 @@ def cli() -> None:
 )
 def experiments(runs: int, seed: int) -> None:
     """Execute *runs* experiments via ExperimentRunner."""
-    runner = ExperimentRunner(seed=seed)
+    import asyncio
 
-    for i in range(1, runs + 1):
-        runner.run_once()
-        logger.info("[%d/%d] completed experiment", i, runs)
+    async def run_experiments() -> None:
+        runner = ExperimentRunner(seed=seed)
+        for i in range(1, runs + 1):
+            await runner.run_once()
+            logger.info("[%d/%d] completed experiment", i, runs)
+
+    asyncio.run(run_experiments())
 
 
 if __name__ == "__main__":
