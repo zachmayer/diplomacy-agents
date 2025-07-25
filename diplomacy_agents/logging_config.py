@@ -9,11 +9,12 @@ call it again – it will be a no-op if the root logger is already configured.
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 __all__ = ["setup_logging"]
 
 
-def setup_logging(level: str = "INFO", json: bool = False) -> None:
+def setup_logging(level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO") -> None:
     """
     Configure root logger if no handler exists.
 
@@ -21,19 +22,13 @@ def setup_logging(level: str = "INFO", json: bool = False) -> None:
     ----------
     level
         Root log level (e.g. "INFO", "DEBUG").
-    json
-        Emit logs as single-line JSON objects when *True* (useful for parsing).
 
     """
     if logging.getLogger().handlers:
         # Logging already configured – skip.
         return
 
-    fmt = (
-        '{"ts":"%(asctime)s","lvl":"%(levelname)s","name":"%(name)s","msg":"%(message)s"}'
-        if json
-        else "%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
+    fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
     logging.basicConfig(format=fmt, level=getattr(logging, level.upper(), logging.INFO))
 
     # Silence overly chatty third-party libraries ------------------------------------------------
@@ -46,4 +41,4 @@ def setup_logging(level: str = "INFO", json: bool = False) -> None:
         "google_genai.models",  # specific sub-module emitting AFC banner
         "httpx",  # HTTP client library
     ):
-        logging.getLogger(noisy).setLevel(logging.ERROR)
+        logging.getLogger(noisy).setLevel(logging.WARNING)
