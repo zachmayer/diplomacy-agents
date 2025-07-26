@@ -31,4 +31,3 @@ jobs:
     steps:
       - name: Conventional PR Title
         uses: aslafy-z/conventional-pr-title-action@v3.2.0
-      
