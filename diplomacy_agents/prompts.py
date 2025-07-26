@@ -1,11 +1,60 @@
 """Prompt-construction helpers for Diplomacy LLM agents."""
 
 import json
+import logging
+import uuid
 from collections.abc import Callable, Mapping, Sized
+from pathlib import Path
 from typing import TypeGuard, TypeVar
 
+# Third-party
+from token_count import TokenCount
+
+# Internal imports
 from diplomacy_agents.engine import DiplomacyEngine
 from diplomacy_agents.enums import PhaseType, Power
+
+# ---------------------------------------------------------------------------
+# Global utilities
+# ---------------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+_TOKEN_COUNTER = TokenCount(model_name="gpt-4.1")
+
+
+def _count_tokens(text: str) -> int:
+    """Return a fast, approximate token count for *text*."""
+    return int(_TOKEN_COUNTER.num_tokens_from_string(text))
+
+
+# ---------------------------------------------------------------------------
+# Helper for persisting oversized prompts                                    #
+# ---------------------------------------------------------------------------
+
+
+def _persist_long_prompt(  # pragma: no cover
+    prompt: str,
+    short_phase: str,
+    power: "Power",
+    token_count: int,
+) -> None:
+    """Write *prompt* to ``artifacts/long_prompts`` and emit a warning."""
+    logger.warning(
+        "Orders prompt for %s/%s is extremely long: %d tokens (>8192)",
+        short_phase,
+        power,
+        token_count,
+    )
+
+    out_dir = Path("artifacts") / "long_prompts"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    file_path = out_dir / f"{short_phase}_{power}_{uuid.uuid4().hex}.txt"
+    try:
+        file_path.write_text(prompt)
+    except Exception as exc:  # Pragmatic best-effort logging
+        logger.error("Failed to persist long prompt to %s: %s", file_path, exc)
+
 
 # Public re-exports ----------------------------------------------------
 
@@ -13,13 +62,6 @@ __all__: list[str] = [
     "build_orders_prompt",
 ]
 
-lost_home_center_note = """
-Note that home supply centers are the only places you can build units.
-You may not own some or all of your home supply centers.
-If you do not own a particular home supply center, you cannot build units there.
-
-If you do not own a particular home supply center, it is probably important to recapture.
-"""
 
 K = TypeVar("K", bound=str)
 
@@ -77,24 +119,23 @@ _PHASE_GUIDE: dict[str, Callable[[DiplomacyEngine, "Power"], str]] = {
 }
 
 
-def build_orders_prompt(engine: DiplomacyEngine, power: "Power") -> str:
+def build_orders_prompt(engine: DiplomacyEngine, power: "Power", phases_back: int = 2) -> str:
     """Return the full instruction prompt for orders generation."""
     guidance_fn = _PHASE_GUIDE.get(str(engine.phase_type), lambda _e, _p: "")
     guidance = guidance_fn(engine, power)
 
     home_centers = tuple(sorted(engine.home_supply_centers[power]))
     owned_centers = tuple(sorted(engine.supply_centers[power]))
+    lookback_phases = list(engine.state_history.keys())[-phases_back:]
 
-    write_lost_home_center_note = len(set(home_centers) - set(owned_centers)) > 0
+    order_history = {phase: engine.order_history[phase] for phase in lookback_phases}
+    result_history = {phase: engine.result_history[phase] for phase in lookback_phases}
+    state_history = {phase: engine.state_history[phase] for phase in lookback_phases}
 
-    return f"""\
+    prompt: str = f"""\
 <main-goal>
 You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
 </main-goal>
-
-<power>
-You are playing as {power}
-</power>
 
 <general-instructions>
 * Choose legal DATC orders **only** for *your* power.
@@ -102,26 +143,36 @@ You are playing as {power}
 * A supply center must be empty in order to build a unit there.
     * (But be aware: Empty supply centers are vulnerable to capture.)
 * You may not build units in supply centers you do not own.
+* You can only build units in your home supply centers.
+* You may not necessarily own all of your home supply centers at a given time.
+* If you do not own a particular home supply center, you cannot build units there.
+* If you do not own a particular home supply center, it is probably important to recapture.
 
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
+
+<power>
+You are playing as {power}
+
+Your home supply centers are: {home_centers}
+</power>
 
 <game-history>
 This is the history of the game:
 
 <order-history>
-These are the orders submitted by each power in each phase:
-{dump_dict(engine.order_history)}
+These are the orders submitted by each power in the last 2 phases:
+{dump_dict(order_history)}
 
 </order-history>
 <result-history>
 These are the results of the orders for each phase:
-{dump_dict(engine.result_history)}
+{dump_dict(result_history)}
 
 </result-history>
 <state-history>
 This is the history of the board state for each phase:
-{dump_dict(engine.state_history)}
+{dump_dict(state_history)}
 </state-history>
 </game-history>
 
@@ -143,23 +194,31 @@ game_phase: {engine.phase}
 game_short_phase: {engine.short_phase}
 </full-game-current-state>
 
-<you>
-These are your power, owned supply centers and home supply centers
-
-- power: {power}
-- owned_supply_centers: {owned_centers}
-- home_supply_centers: {home_centers}
-{lost_home_center_note if write_lost_home_center_note else ""}
-These are your units and possible moves:
+<your-current-state>
+owned_supply_centers: {owned_centers}
 
 units:
 {dump_dict(engine.units[power])}
 
 possible_moves:
 {dump_dict(engine.possible_orders[power])}
-</you>
+</your-current-state>
 
 <specific-instructions>
 {guidance}
 </specific-instructions>
 """
+
+    # ------------------------------------------------------------------
+    # Diagnostics – token length & oversized prompt handling
+    # ------------------------------------------------------------------
+    token_count = _count_tokens(prompt)
+    logger.debug("Orders prompt length for %s/%s: %d tokens", engine.short_phase, power, token_count)
+
+    if token_count > 8_192:
+        _persist_long_prompt(prompt, engine.short_phase, power, token_count)
+
+    # ------------------------------------------------------------------
+    # Return
+    # ------------------------------------------------------------------
+    return prompt

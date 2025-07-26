@@ -451,6 +451,7 @@ dependencies = [
     { name = "drawsvg" },
     { name = "pandas" },
     { name = "pydantic-ai" },
+    { name = "token-count" },
     { name = "tokencost" },
     { name = "tokonomics" },
 ]
@@ -474,6 +475,7 @@ requires-dist = [
     { name = "drawsvg", specifier = ">=2.4.0" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "pydantic-ai", specifier = ">=0.4.7" },
+    { name = "token-count", specifier = ">=0.2.1" },
     { name = "tokencost", specifier = ">=0.1.24" },
     { name = "tokonomics", specifier = ">=0.3.14" },
 ]
@@ -626,6 +628,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/8b/02/0835e6ab9cfc03916
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2f/e0/014d5d9d7a4564cf1c40b5039bc882db69fd881111e03ab3657ac0b218e2/fsspec-2025.7.0-py3-none-any.whl", hash = "sha256:8b012e39f63c7d5f10474de957f3ab793b47b45ae7d39f2fb735f8bbe25c0e21", size = 199597, upload-time = "2025-07-15T16:05:19.529Z" },
 ]
+
+[[package]]
+name = "gitignore-parser"
+version = "0.1.12"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/86/a8/faf07759672973362e3f1f9742281a90aec7846e8a4043c4df5652990054/gitignore_parser-0.1.12.tar.gz", hash = "sha256:78b22243adc0f02102c56c5e8c9a1d9121394142ca6143a90daa7f8d7a07a17e", size = 5407, upload-time = "2025-04-14T04:21:11.009Z" }
 
 [[package]]
 name = "google-auth"
@@ -1947,6 +1955,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/bb/4513da71cac187383541facd0291c4572b03ec23c561de5811781bbd988f/tiktoken-0.9.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cc156cb314119a8bb9748257a2eaebd5cc0753b6cb491d26694ed42fc7cb3139", size = 1195649, upload-time = "2025-02-14T06:02:43Z" },
     { url = "https://files.pythonhosted.org/packages/fa/5c/74e4c137530dd8504e97e3a41729b1103a4ac29036cbfd3250b11fd29451/tiktoken-0.9.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:cd69372e8c9dd761f0ab873112aba55a0e3e506332dd9f7522ca466e817b1b7a", size = 1258465, upload-time = "2025-02-14T06:02:45.046Z" },
     { url = "https://files.pythonhosted.org/packages/de/a8/8f499c179ec900783ffe133e9aab10044481679bb9aad78436d239eee716/tiktoken-0.9.0-cp313-cp313-win_amd64.whl", hash = "sha256:5ea0edb6f83dc56d794723286215918c1cde03712cbbafa0348b33448faf5b95", size = 894669, upload-time = "2025-02-14T06:02:47.341Z" },
+]
+
+[[package]]
+name = "token-count"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gitignore-parser" },
+    { name = "tiktoken" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/7f/f779c0ef6b683c3b9c104b64e0b83f0435950a8d692eb7e0db1e443fbe98/token-count-0.2.1.tar.gz", hash = "sha256:f6462985a5ca2b925cc869932c3a2f64f57d91e78d9f5dc04dfdf717c206293a", size = 4065, upload-time = "2024-03-24T07:30:40.717Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/95/53/010fcaf4021799d74452eddeec9ad6bb244e41b98485d036cf6253172d2f/token_count-0.2.1-py3-none-any.whl", hash = "sha256:b71fd116e8e5f15002570e00c1aa1c8a5e11e3b76599f70d81bfb98b2daf6bb4", size = 4873, upload-time = "2024-03-24T07:30:38.658Z" },
 ]
 
 [[package]]
