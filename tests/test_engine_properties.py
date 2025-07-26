@@ -39,8 +39,8 @@ def test_history_getters_non_empty() -> None:
     # Result history -----------------------------------------------------
     result_hist = eng.result_history
     assert first_phase in result_hist, "result_history should have same phase key"
-    # Each entry is a (unit_str, results) tuple
-    for unit_str, results in result_hist[first_phase]:
+    # Each entry maps unit_str → results tuple
+    for unit_str, results in result_hist[first_phase].items():
         assert isinstance(unit_str, str)
         assert isinstance(results, tuple)
 
@@ -56,6 +56,6 @@ def test_order_result_enum_usage() -> None:
     """Ensure OrderResult enum values appear in result_history."""
     eng = _play_single_phase()
     for phase_results in eng.result_history.values():
-        for _unit, results in phase_results:
+        for results in phase_results.values():
             for res in results:
                 assert isinstance(res, OrderResult)

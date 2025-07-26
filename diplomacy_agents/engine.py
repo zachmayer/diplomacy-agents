@@ -175,15 +175,17 @@ class DiplomacyEngine:
         return hist
 
     @property
-    def result_history(self) -> dict[str, list[tuple[str, tuple[OrderResult, ...]]]]:
+    def result_history(self) -> dict[str, dict[str, tuple[OrderResult, ...]]]:
         """
         Chronological history of order execution results.
 
-        Returns list-based entries to keep JSON-serialisable (string) keys.
-        Each list element is a tuple ``(unit_str, results)`` where
-        ``unit_str`` is the raw engine unit string (e.g. ``'A MUN'`` or
-        ``'WAIVE'``) and ``results`` is a tuple of ``OrderResult``.
-        ``successful`` orders (empty result list) are omitted.
+        Structure → ``{ phase: { unit_str: tuple[OrderResult, ...] } }``.
+
+        The underlying ``diplomacy`` engine stores results as
+        ``{unit_str: list[Any]}``. We convert each result to our
+        ``OrderResult`` enum while *preserving* even "successful" orders
+        (empty result list) because they are still useful for
+        comprehensive phase reconstruction.
         """
 
         def _convert_result(obj: object) -> OrderResult:
@@ -193,17 +195,17 @@ class DiplomacyEngine:
                 text = text.split(":", 1)[1]
             return OrderResult(text.strip().lower())
 
-        hist: dict[str, list[tuple[str, tuple[OrderResult, ...]]]] = {}
+        hist: dict[str, dict[str, tuple[OrderResult, ...]]] = {}
         for phase_key, results in self._game.result_history.items():
             phase = str(phase_key)
-            entries: list[tuple[str, tuple[OrderResult, ...]]] = []
+            phase_dict: dict[str, tuple[OrderResult, ...]] = {}
 
             for unit_key, raw_results in results.items():
-                # Keep even successful orders (may be pruned later)
                 converted_results = tuple(_convert_result(r) for r in raw_results)
-                entries.append((unit_key, converted_results))
+                phase_dict[unit_key] = converted_results
 
-            hist[phase] = entries
+            # Sort the inner dict for determinism
+            hist[phase] = sort_by_key(phase_dict)
         return hist
 
     @property
