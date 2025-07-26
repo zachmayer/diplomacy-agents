@@ -1,0 +1,178 @@
+<main-goal>
+You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
+</main-goal>
+
+<power>
+You are playing as FRANCE
+</power>
+
+<general-instructions>
+* Choose legal DATC orders **only** for *your* power.
+* You must occupy supply centers with a unit at end of Fall to capture them.
+* A supply center must be empty in order to build a unit there.
+    * (But be aware: Empty supply centers are vulnerable to capture.)
+* You may not build units in supply centers you do not own.
+
+Respond with a JSON array of order strings - no commentary.
+</general-instructions>
+
+<full-game>
+This is the full game state for all powers:
+
+all_supply_center_counts:
+{
+  "AUSTRIA": 3,
+  "ENGLAND": 3,
+  "FRANCE": 3,
+  "GERMANY": 3,
+  "ITALY": 3,
+  "RUSSIA": 4,
+  "TURKEY": 3
+}
+
+all_supply_centers:
+{
+  "AUSTRIA": [
+    "BUD",
+    "TRI",
+    "VIE"
+  ],
+  "ENGLAND": [
+    "EDI",
+    "LON",
+    "LVP"
+  ],
+  "FRANCE": [
+    "BRE",
+    "MAR",
+    "PAR"
+  ],
+  "GERMANY": [
+    "BER",
+    "KIE",
+    "MUN"
+  ],
+  "ITALY": [
+    "NAP",
+    "ROM",
+    "VEN"
+  ],
+  "RUSSIA": [
+    "MOS",
+    "SEV",
+    "STP",
+    "WAR"
+  ],
+  "TURKEY": [
+    "ANK",
+    "CON",
+    "SMY"
+  ]
+}
+
+all_units:
+{
+  "AUSTRIA": {
+    "BUD": "A",
+    "TRI": "F",
+    "VIE": "A"
+  },
+  "ENGLAND": {
+    "EDI": "F",
+    "LON": "F",
+    "LVP": "A"
+  },
+  "FRANCE": {
+    "BRE": "F",
+    "MAR": "A",
+    "PAR": "A"
+  },
+  "GERMANY": {
+    "BER": "A",
+    "KIE": "F",
+    "MUN": "A"
+  },
+  "ITALY": {
+    "NAP": "F",
+    "ROM": "A",
+    "VEN": "A"
+  },
+  "RUSSIA": {
+    "MOS": "A",
+    "SEV": "F",
+    "STP/SC": "F",
+    "WAR": "A"
+  },
+  "TURKEY": {
+    "ANK": "F",
+    "CON": "A",
+    "SMY": "A"
+  }
+}
+
+game_phase_type: M
+game_year: 1901
+game_phase: SPRING 1901 MOVEMENT
+game_short_phase: S1901M
+</full-game>
+
+<you>
+These are your power, owned supply centers and home supply centers
+
+- power: FRANCE
+- owned_supply_centers: (BRE, MAR, PAR)
+- home_supply_centers: (BRE, MAR, PAR)
+
+These are your units and possible moves:
+
+units:
+{
+  "BRE": "F",
+  "MAR": "A",
+  "PAR": "A"
+}
+
+possible_moves:
+{
+  "BRE": [
+    "F BRE - ENG",
+    "F BRE - GAS",
+    "F BRE - MAO",
+    "F BRE - PIC",
+    "F BRE H",
+    "F BRE S A MAR - GAS",
+    "F BRE S A PAR - GAS",
+    "F BRE S A PAR - PIC",
+    "F BRE S F LON - ENG"
+  ],
+  "MAR": [
+    "A MAR - BUR",
+    "A MAR - GAS",
+    "A MAR - PIE",
+    "A MAR - SPA",
+    "A MAR H",
+    "A MAR S A MUN - BUR",
+    "A MAR S A PAR - BUR",
+    "A MAR S A PAR - GAS",
+    "A MAR S A VEN - PIE",
+    "A MAR S F BRE - GAS"
+  ],
+  "PAR": [
+    "A PAR - BRE",
+    "A PAR - BUR",
+    "A PAR - GAS",
+    "A PAR - PIC",
+    "A PAR H",
+    "A PAR S A MAR - BUR",
+    "A PAR S A MAR - GAS",
+    "A PAR S A MUN - BUR",
+    "A PAR S F BRE",
+    "A PAR S F BRE - GAS",
+    "A PAR S F BRE - PIC"
+  ]
+}
+</you>
+
+<specific-instructions>
+Issue one legal order to each of your units. Units without orders will *hold*.
+</specific-instructions>

@@ -13,6 +13,14 @@ __all__ = ["build_orders_prompt"]
 K = TypeVar("K", bound=Hashable)
 V = TypeVar("V")
 
+lost_home_center_note = """
+Note that home supply centers are the only places you can build units.
+You may not own some or all of your home supply centers.
+If you do not own a particular home supply center, you cannot build units there.
+
+If you do not own a particular home supply center, it is probably important to recapture.
+"""
+
 
 def dump_dict[K: Hashable, V](d: Mapping[K, V]) -> str:
     """Dump a mapping to a pretty-printed JSON string."""
@@ -38,7 +46,7 @@ def _movement_guidance(_engine: DiplomacyEngine, _power: "Power") -> str:
 def _retreat_guidance(engine: DiplomacyEngine, power: Power) -> str:
     """Guidance for Retreat phases."""
     pending = len(engine.possible_orders[power])
-    return f"Each of your **{pending} dislodged unit(s)** needs exactly one retreat **or** disband order."
+    return f"You have **{pending} dislodged unit(s)**. Return exactly {pending} retreat **or** disband order(s)."
 
 
 # Map phase-code → guidance generator (functions take engine, power)
@@ -54,6 +62,11 @@ def build_orders_prompt(engine: DiplomacyEngine, power: "Power") -> str:
     guidance_fn = _PHASE_GUIDE.get(str(engine.phase_type), lambda _e, _p: "")
     guidance = guidance_fn(engine, power)
 
+    home_centers = tuple(sorted(engine.home_supply_centers[power]))
+    owned_centers = tuple(sorted(engine.supply_centers[power]))
+
+    write_lost_home_center_note = len(set(home_centers) - set(owned_centers)) > 0
+
     return f"""\
 <main-goal>
 You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres.
@@ -64,8 +77,12 @@ You are playing as {power}
 </power>
 
 <general-instructions>
-Choose legal DATC orders **only** for *your* power.
-You must occupy supply centers with a unit at end of Fall to capture them.
+* Choose legal DATC orders **only** for *your* power.
+* You must occupy supply centers with a unit at end of Fall to capture them.
+* A supply center must be empty in order to build a unit there.
+    * (But be aware: Empty supply centers are vulnerable to capture.)
+* You may not build units in supply centers you do not own.
+
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
@@ -88,13 +105,13 @@ game_short_phase: {engine.short_phase}
 </full-game>
 
 <you>
-These are your power, units and possible moves:
+These are your power, owned supply centers and home supply centers
 
-power: {power}
-
-supply_centers: {engine.supply_centers[power]}
-
-home_supply_centers: {engine.home_supply_centers[power]}
+- power: {power}
+- owned_supply_centers: {owned_centers}
+- home_supply_centers: {home_centers}
+{lost_home_center_note if write_lost_home_center_note else ""}
+These are your units and possible moves:
 
 units:
 {dump_dict(engine.units[power])}
