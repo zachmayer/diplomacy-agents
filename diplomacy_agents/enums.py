@@ -1,4 +1,4 @@
-"""Canonical token literals used throughout the project (PEP 695 type aliases)."""
+"""Enums for the game."""
 
 from enum import StrEnum
 
