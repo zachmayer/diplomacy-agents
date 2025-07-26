@@ -23,7 +23,7 @@ def _adjustment_guidance(engine: DiplomacyEngine, power: Power) -> str:
     """Guidance for Adjustment (build / disband) phases."""
     diff = engine.supply_center_counts[power] - len(engine.units[power])
     if diff > 0:
-        return f"You have **{diff} build(s)**. Return exactly {diff} distinct build orders."
+        return f"You have **{diff} build(s)**. Return exactly {diff} distinct build order(s)."
     if diff < 0:
         removes = -diff
         return f"You must **disband {removes} unit(s)**. Return exactly {removes} disband order(s)."
@@ -88,12 +88,18 @@ game_short_phase: {engine.short_phase}
 </full-game>
 
 <you>
-These are your specific units and possible moves:
+These are your power, units and possible moves:
+
+power: {power}
+
+supply_centers: {engine.supply_centers[power]}
+
+home_supply_centers: {engine.home_supply_centers[power]}
 
 units:
 {dump_dict(engine.units[power])}
 
-moves:
+possible_moves:
 {dump_dict(engine.possible_orders[power])}
 </you>
 

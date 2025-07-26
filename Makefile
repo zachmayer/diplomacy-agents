@@ -96,3 +96,4 @@ clean: ## Clean up all generated files
 	rm -rf .coverage.xml
 	rm -rf htmlcov
 	rm -rf uv.lock
+	rm -rf artifacts/

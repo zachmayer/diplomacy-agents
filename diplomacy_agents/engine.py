@@ -117,8 +117,9 @@ class DiplomacyEngine:
         """All home supply centers for each power, sorted by power and location."""
         homes: dict[Power, tuple[Location, ...]] = {}
         for power in self.powers:
-            locs = tuple(sorted(Location(h) for h in self._game.powers[power].homes))
-            homes[power] = locs
+            home_locs = tuple(sorted(Location(h) for h in self._game.powers[power].homes))
+            owned_locs = self.supply_centers[power]
+            homes[power] = tuple(sorted(loc for loc in home_locs if loc in owned_locs))
         return sort_by_key(homes)
 
     @property

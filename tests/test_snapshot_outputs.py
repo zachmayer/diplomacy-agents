@@ -31,7 +31,7 @@ def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEn
     """Build the orders prompt for *(tag, power)*, write it to disk, and return the path."""
     engine = factory()
 
-    base_dir = Path("artifacts") / "snapshots"
+    base_dir = Path("artifacts") / "prompts_snapshots"
     base_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.xml"
