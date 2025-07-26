@@ -58,7 +58,7 @@ class DiplomacyEngine:
 
     def __init__(self, *, rules: set[str] | None = None) -> None:
         """Initialize the diplomacy engine."""
-        default_rules = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER"}
+        default_rules = {"NO_DEADLINE", "ALWAYS_WAIT", "CIVIL_DISORDER", "NO_PRESS"}
         self._game: _RawGame = _RawGame(rules=rules or default_rules)
 
     # ---------------------------------------------------------------------
@@ -117,8 +117,7 @@ class DiplomacyEngine:
         """All home supply centers for each power, sorted by power and location."""
         homes: dict[Power, tuple[Location, ...]] = {}
         for power in self.powers:
-            home_locs = tuple(sorted(Location(h) for h in self._game.powers[power].homes))
-            homes[power] = tuple(sorted(home_locs))
+            homes[power] = tuple(sorted(Location(h) for h in self._game.powers[power].homes))
         return sort_by_key(homes)
 
     @property
@@ -146,17 +145,6 @@ class DiplomacyEngine:
             }
             result[power] = sort_by_key(possible)
 
-        return sort_by_key(result)
-
-    @property
-    def buildable_home_centers(self) -> dict[Power, tuple[Location, ...]]:
-        """Home centers where each power can build (intersection of home centers and current supply centers)."""
-        result: dict[Power, tuple[Location, ...]] = {}
-        for power in self.powers:
-            my_centers = self.supply_centers[power]
-            all_home_centers = self.home_supply_centers[power]
-            buildable = tuple(loc for loc in all_home_centers if loc in my_centers)
-            result[power] = buildable
         return sort_by_key(result)
 
     @property
