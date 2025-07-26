@@ -7,6 +7,7 @@ __all__ = [
     "UnitType",
     "Power",
     "Location",
+    "OrderResult",
 ]
 
 # https://diplomacy.readthedocs.io/en/stable/api/diplomacy.engine.game.html
@@ -137,3 +138,22 @@ class Location(PrettyStrEnum):
     WAR = "WAR"
     WES = "WES"
     YOR = "YOR"
+
+
+# ---------------------------------------------------------------------------
+# Order execution result types
+# ---------------------------------------------------------------------------
+
+
+class OrderResult(PrettyStrEnum):
+    """Order execution results (mirrors diplomacy.utils.order_results)."""
+
+    OK = ""  # Successful execution (engine returns empty list)
+    NO_CONVOY = "no convoy"
+    BOUNCE = "bounce"
+    VOID = "void"
+    CUT = "cut"
+    DISLODGED = "dislodged"
+    DISRUPTED = "disrupted"
+    DISBAND = "disband"
+    MAYBE = "maybe"

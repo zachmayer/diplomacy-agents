@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from diplomacy import Game as _RawGame
 from diplomacy.engine.renderer import Renderer
 from diplomacy.utils import export
 
-from diplomacy_agents.enums import Location, PhaseType, Power, UnitType
+from diplomacy_agents.enums import Location, OrderResult, PhaseType, Power, UnitType
 
 __all__ = [
     "Orders",
@@ -158,6 +158,81 @@ class DiplomacyEngine:
     def surviving_powers(self) -> tuple[Power, ...]:
         """Return powers that own at least one supply centre."""
         return tuple(p for p, cnt in self.supply_center_counts.items() if cnt > 0)
+
+    # ------------------------------------------------------------------
+    # Histories
+    # ------------------------------------------------------------------
+
+    @property
+    def order_history(self) -> dict[str, dict[Power, Orders]]:
+        """Chronological history of orders submitted by each power."""
+        hist: dict[str, dict[Power, Orders]] = {}
+        # _RawGame provides order_history dynamically; pyright unknown-member suppressed at file top
+        for phase_key, orders in self._game.order_history.items():
+            phase = str(phase_key)
+            cleaned: dict[Power, Orders] = {
+                Power(power): tuple(order_list)
+                for power, order_list in orders.items()
+                if order_list  # drop empty lists
+            }
+            hist[phase] = sort_by_key(cleaned) if cleaned else {}
+        return hist
+
+    @property
+    def result_history(self) -> dict[str, dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]]]:
+        """Chronological history of order execution results."""
+
+        def _convert_result(obj: object) -> OrderResult:
+            text = str(obj)
+            # Engine repr may be '10003:void' → keep message part
+            if ":" in text:
+                text = text.split(":", 1)[1]
+            return OrderResult(text.strip().lower())
+
+        hist: dict[str, dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]]] = {}
+        for phase_key, results in self._game.result_history.items():
+            phase = str(phase_key)
+            converted: dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]] = {}
+
+            for unit_key, raw_results in results.items():
+                if unit_key != "WAIVE":  # Normal units
+                    if not raw_results:
+                        continue  # successful orders ignored
+                    unit = parse_unit(unit_key)
+                    converted[unit] = tuple(_convert_result(r) for r in raw_results)
+                else:  # Special adjustment phase unit
+                    converted[unit_key] = tuple(_convert_result(r) for r in raw_results)
+
+            hist[phase] = sort_by_key(converted) if converted else {}
+        return hist
+
+    @property
+    def state_history(self) -> dict[str, dict[str, Any]]:
+        """Chronological history of simplified game states (units, centers, retreats, builds)."""
+        hist: dict[str, dict[str, Any]] = {}
+        for phase_key, state in self._game.state_history.items():
+            phase = str(phase_key)
+
+            units_raw = state.get("units", {})
+            units: dict[Power, tuple[tuple[UnitType, Location], ...]] = {
+                Power(p): tuple(parse_unit(u) for u in unit_list) for p, unit_list in units_raw.items()
+            }
+
+            centers_raw = state.get("centers", {})
+            centers: dict[Power, tuple[Location, ...]] = {
+                Power(p): tuple(Location(loc) for loc in locs) for p, locs in centers_raw.items()
+            }
+
+            simplified = {
+                "units": sort_by_key(units),
+                "centers": sort_by_key(centers),
+                "retreats": state.get("retreats", {}),
+                "builds": state.get("builds", {}),
+            }
+
+            hist[phase] = simplified
+
+        return hist
 
     # ---------------------------------------------------------------------
     # Engine I/O

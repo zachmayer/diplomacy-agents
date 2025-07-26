@@ -61,7 +61,7 @@ test: test-unit test-smoke ## Run all tests (unit then smoke)
 
 .PHONY: coverage
 coverage: ## Run tests with coverage reporting
-	uv run coverage run -m pytest && uv run coverage report --fail-under 90
+	uv run coverage run -m pytest && uv run coverage report --fail-under 95
 
 .PHONY: all
 all: format lint types contract test coverage ## Run all checks
