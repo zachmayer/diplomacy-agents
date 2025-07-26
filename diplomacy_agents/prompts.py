@@ -20,7 +20,7 @@ from diplomacy_agents.enums import PhaseType, Power
 
 logger = logging.getLogger(__name__)
 
-_TOKEN_COUNTER = TokenCount(model_name="gpt-4.1")
+_TOKEN_COUNTER = TokenCount(model_name="gpt-4o")
 
 
 def _count_tokens(text: str) -> int:
@@ -49,7 +49,7 @@ def _persist_long_prompt(  # pragma: no cover
 
     out_dir = Path("artifacts") / "long_prompts"
     out_dir.mkdir(parents=True, exist_ok=True)
-    file_path = out_dir / f"{short_phase}_{power}_{uuid.uuid4().hex}.txt"
+    file_path = out_dir / f"{short_phase}_{power}_{uuid.uuid4().hex}.xml"
     try:
         file_path.write_text(prompt)
     except Exception as exc:  # Pragmatic best-effort logging
@@ -126,11 +126,11 @@ def build_orders_prompt(engine: DiplomacyEngine, power: "Power", phases_back: in
 
     home_centers = tuple(sorted(engine.home_supply_centers[power]))
     owned_centers = tuple(sorted(engine.supply_centers[power]))
-    lookback_phases = list(engine.state_history.keys())[-phases_back:]
+    phases = list(engine.state_history.keys())[-phases_back:][::-1]
 
-    order_history = {phase: engine.order_history[phase] for phase in lookback_phases}
-    result_history = {phase: engine.result_history[phase] for phase in lookback_phases}
-    state_history = {phase: engine.state_history[phase] for phase in lookback_phases}
+    order_history = {phase: engine.order_history[phase] for phase in phases}
+    result_history = {phase: engine.result_history[phase] for phase in phases}
+    state_history = {phase: engine.state_history[phase] for phase in phases}
 
     prompt: str = f"""\
 <main-goal>
@@ -141,7 +141,7 @@ You are playing Diplomacy. Your goal is to win by controlling 18+ supply centres
 * Choose legal DATC orders **only** for *your* power.
 * You must occupy supply centers with a unit at end of Fall to capture them.
 * A supply center must be empty in order to build a unit there.
-    * (But be aware: Empty supply centers are vulnerable to capture.)
+    * (But be aware: empty supply centers are vulnerable to capture.)
 * You may not build units in supply centers you do not own.
 * You can only build units in your home supply centers.
 * You may not necessarily own all of your home supply centers at a given time.
@@ -166,8 +166,11 @@ These are the orders submitted by each power in the last 2 phases:
 
 </order-history>
 <result-history>
-These are the results of the orders for each phase:
+These are the no-convoy, bounces, voids, cuts, dislodged, disrupted, disbanded, and maybe results for each phase.
+
+Successfully orders will not appear in this list.
 {dump_dict(result_history)}
+
 
 </result-history>
 <state-history>

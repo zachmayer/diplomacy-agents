@@ -53,6 +53,20 @@ class Power(PrettyStrEnum):
     AUSTRIA = "AUSTRIA"
 
 
+class OrderResult(PrettyStrEnum):
+    """Order execution results (mirrors diplomacy.utils.order_results)."""
+
+    OK = ""  # Successful execution (engine returns empty list)
+    NO_CONVOY = "no convoy"
+    BOUNCE = "bounce"
+    VOID = "void"
+    CUT = "cut"
+    DISLODGED = "dislodged"
+    DISRUPTED = "disrupted"
+    DISBAND = "disband"
+    MAYBE = "maybe"
+
+
 class Location(PrettyStrEnum):
     """The locations in the game."""
 
@@ -138,22 +152,3 @@ class Location(PrettyStrEnum):
     WAR = "WAR"
     WES = "WES"
     YOR = "YOR"
-
-
-# ---------------------------------------------------------------------------
-# Order execution result types
-# ---------------------------------------------------------------------------
-
-
-class OrderResult(PrettyStrEnum):
-    """Order execution results (mirrors diplomacy.utils.order_results)."""
-
-    OK = ""  # Successful execution (engine returns empty list)
-    NO_CONVOY = "no convoy"
-    BOUNCE = "bounce"
-    VOID = "void"
-    CUT = "cut"
-    DISLODGED = "dislodged"
-    DISRUPTED = "disrupted"
-    DISBAND = "disband"
-    MAYBE = "maybe"
