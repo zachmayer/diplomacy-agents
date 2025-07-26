@@ -1,5 +1,5 @@
 """
-Run a few years in civil‑disorder mode and ensure the engine survives.
+Run a few years in civil-disorder mode and ensure the engine survives.
 
 The loop submits *no* meaningful orders; every unit implicitly holds / waits.
 """

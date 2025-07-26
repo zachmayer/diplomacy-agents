@@ -15,17 +15,38 @@ lint: ## Check formatting & linting (no fixes)
 	uv run ruff check .
 
 .PHONY: types
-types: ## Type-check using pyright in strict mode
+types: ## Type-check using pyright
 	uv run pyright
 
-.PHONY: contract
-contract: ## Type contracts: cast/ignore only in engine.py
+.PHONY: no-type-ignore
+no-type-ignore: ## Type contracts: no type ignore allowed
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *type: *ignore' diplomacy_agents | grep -v -E 'diplomacy_agents/(engine|agents)\.py' ; then \
-		echo '❌  Type-Safety Contract breached'; exit 1; \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *type: *ignore' diplomacy_agents ; then \
+		echo '❌  Type-Safety Contract breached (no type: ignore allowed)'; exit 1; \
 	else \
 		echo '✅  Type-Safety Contract upheld'; \
 	fi
+
+.PHONY: no-noqa
+no-noqa: ## Type contracts: no noqa allowed
+	@set -e; \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *noqa: *' diplomacy_agents ; then \
+		echo '❌  Noqa Contract breached (no noqa allowed)'; exit 1; \
+	else \
+		echo '✅  Noqa Contract upheld'; \
+	fi
+
+.PHONY: no-cast
+no-cast: ## Type contracts: no cast allowed
+	@set -e; \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '.cast\(' diplomacy_agents ; then \
+		echo '❌  Cast Contract breached (no cast allowed)'; exit 1; \
+	else \
+		echo '✅  No Cast Contract upheld'; \
+	fi
+
+.PHONY: contract
+contract: no-type-ignore no-noqa no-cast ## Type contracts: no type ignore or cast allowed
 
 .PHONY: test-unit
 test-unit: ## Run fast unit tests (everything except smoke)

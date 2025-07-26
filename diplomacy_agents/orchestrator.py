@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+
+# ---------------------------------------------------------------------------#
+# Imports                                                                  #
+# ---------------------------------------------------------------------------#
 import logging
 from pathlib import Path
-from typing import Any, Literal, Protocol, cast
+from typing import Literal
 
-import drawsvg as draw
+from drawsvg import Drawing, Image, types
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai.models import KnownModelName
 
@@ -27,23 +31,7 @@ logger = logging.getLogger(__name__)
 AgentSpecName = KnownModelName | Literal["hold", "random"]
 
 
-class _SvgImageLike(Protocol):
-    """Minimal subset of ``drawsvg.Image`` used for SMIL key-framing."""
-
-    def add_key_frame(self, time: float, *, opacity: float) -> None: ...
-
-
-class _SvgDrawingLike(Protocol):
-    """Subset of ``drawsvg.Drawing`` used here."""
-
-    def append(self, element: _SvgImageLike, *, z: int | None = None) -> None: ...
-
-    def save_svg(
-        self,
-        fname: str,
-        encoding: str = "utf-8",
-        context: None | dict[str, Any] = None,
-    ) -> None: ...
+# Removed lightweight wrappers; we now use ``drawsvg`` classes directly.
 
 
 class PowerModelMap(BaseModel):
@@ -167,7 +155,7 @@ class GameOrchestrator:
         return agents
 
     def _log_running_totals(self) -> None:
-        """Emit debug‑level cumulative runtime per power."""
+        """Emit debug-level cumulative runtime per power."""
         runtimes = {p: a.total_runtime_s for p, a in self.agents.items()}
         logger.debug("Cumulative runtime (s): %.2f %s", sum(runtimes.values()), runtimes)
 
@@ -207,18 +195,15 @@ class GameOrchestrator:
         path = Path(output_path)
         fps = 2
         duration = len(self.svg_frames) / fps
-        config = draw.types.SyncedAnimationConfig(
+        config = types.SyncedAnimationConfig(
             duration=duration,
             show_playback_progress=True,
             show_playback_controls=True,
         )
 
-        drawing = cast(_SvgDrawingLike, draw.Drawing(1150, 850, animation_config=config))
+        drawing = Drawing(1150, 850, animation_config=config)
         for i, svg in enumerate(self.svg_frames):
-            img = cast(
-                _SvgImageLike,
-                draw.Image(0, 0, 1200, 850, data=svg.encode(), mime_type="image/svg+xml"),
-            )
+            img = Image(0, 0, 1200, 850, data=svg.encode(), mime_type="image/svg+xml")
             img.add_key_frame(i / fps, opacity=0)
             img.add_key_frame(i / fps + 0.01, opacity=1)
             img.add_key_frame(i / fps + 1, opacity=1)

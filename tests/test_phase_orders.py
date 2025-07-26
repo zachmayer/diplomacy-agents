@@ -1,7 +1,7 @@
 """
-Phase‑specific order‑availability tests against the refactored `DiplomacyEngine`.
+Phase-specific order-availability tests against the refactored `DiplomacyEngine`.
 
-These regression checks ensure that legal‑order generation still covers
+These regression checks ensure that legal-order generation still covers
 retreats, builds and disbands in tricky board positions.
 """
 
@@ -95,7 +95,7 @@ def _setup_disband_germany() -> DiplomacyEngine:
     eng.set_orders(Power.AUSTRIA, ("A BOH S A BUR - MUN",))
     _advance_until(eng, "F1901R")
 
-    # Retreat Germany to RUH so it still has unit‑count mismatch later
+    # Retreat Germany to RUH so it still has unit-count mismatch later
     eng.set_orders(Power.GERMANY, ("A MUN R RUH",))
     _advance_until(eng, "W1901A")
     return eng
@@ -110,7 +110,7 @@ def test_disband_phase_has_disband_orders() -> None:
     assert " d" in flat or "disband" in flat
 
 
-# Export helpers for snapshot tests without triggering private‑usage warnings.
+# Export helpers for snapshot tests without triggering private-usage warnings.
 __all__ = [
     "_setup_retreat_germany",
     "_setup_build_russia",

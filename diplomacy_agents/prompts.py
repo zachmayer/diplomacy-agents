@@ -1,4 +1,4 @@
-"""Prompt‑construction helpers for Diplomacy LLM agents."""
+"""Prompt-construction helpers for Diplomacy LLM agents."""
 
 import json
 from collections.abc import Callable, Hashable, Mapping

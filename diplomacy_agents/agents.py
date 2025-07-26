@@ -1,8 +1,8 @@
 """
-Agents controlling each power – baseline (hold/random) and LLM‑backed.
+Agents controlling each power - baseline (hold/random) and LLM-backed.
 
-The module is intentionally self‑contained so callers who need only baseline
-agents do **not** import the heavier *pydantic‑ai* dependency chain.
+The module is intentionally self-contained so callers who need only baseline
+agents do **not** import the heavier *pydantic-ai* dependency chain.
 """
 
 from __future__ import annotations
@@ -43,15 +43,15 @@ class BaseAgent(ABC):
         self.power = power
         self.total_runtime_s: float = 0.0
 
-        # Subclasses may switch this to NativeOutput when the LLM supports JSON‑schema.
+        # Subclasses may switch this to NativeOutput when the LLM supports JSON-schema.
         self.output_wrapper = ToolOutput
 
-        # Per‑model cumulative token buckets → {model_name: {bucket: count}}
+        # Per-model cumulative token buckets → {model_name: {bucket: count}}
         self.token_totals: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     @abstractmethod
     async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
-        """Return a tuple of DATC‑formatted order strings for *self.power* in thecurrent phase."""
+        """Return a tuple of DATC-formatted order strings for *self.power* in thecurrent phase."""
         raise NotImplementedError  # pragma: no cover
 
 
@@ -78,7 +78,7 @@ class RandomAgent(BaseAgent):
 
 
 # ---------------------------------------------------------------------------
-# Generic output‑spec typing (for pydantic‑ai)
+# Generic output-spec typing (for pydantic-ai)
 # ---------------------------------------------------------------------------
 
 T = TypeVar("T")
@@ -86,7 +86,7 @@ type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]
 
 
 # ---------------------------------------------------------------------------
-# LLM‑backed agent
+# LLM-backed agent
 # ---------------------------------------------------------------------------
 
 
@@ -98,7 +98,7 @@ class LLMAgent(BaseAgent):
         super().__init__(power)
         self.model_name = model_name
 
-        # Prefer NativeOutput when the target model advertises JSON‑schema support.
+        # Prefer NativeOutput when the target model advertises JSON-schema support.
         # Otherwise use tool calls for JSON output via a tool call.
         if models.infer_model(model_name).profile.supports_json_schema_output:
             self.output_wrapper = NativeOutput

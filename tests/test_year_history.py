@@ -1,4 +1,4 @@
-"""Unit tests for year‑extraction helper on phase tokens."""
+"""Unit tests for year-extraction helper on phase tokens."""
 
 from __future__ import annotations
 
