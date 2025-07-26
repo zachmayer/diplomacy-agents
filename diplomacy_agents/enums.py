@@ -1,4 +1,4 @@
-"""Canonical token literals used throughout the project (PEP 695 type aliases)."""
+"""Enums for the game."""
 
 from enum import StrEnum
 
@@ -7,6 +7,7 @@ __all__ = [
     "UnitType",
     "Power",
     "Location",
+    "OrderResult",
 ]
 
 # https://diplomacy.readthedocs.io/en/stable/api/diplomacy.engine.game.html
@@ -50,6 +51,20 @@ class Power(PrettyStrEnum):
     RUSSIA = "RUSSIA"
     TURKEY = "TURKEY"
     AUSTRIA = "AUSTRIA"
+
+
+class OrderResult(PrettyStrEnum):
+    """Order execution results (mirrors diplomacy.utils.order_results)."""
+
+    OK = ""  # Successful execution (engine returns empty list)
+    NO_CONVOY = "no convoy"
+    BOUNCE = "bounce"
+    VOID = "void"
+    CUT = "cut"
+    DISLODGED = "dislodged"
+    DISRUPTED = "disrupted"
+    DISBAND = "disband"
+    MAYBE = "maybe"
 
 
 class Location(PrettyStrEnum):
