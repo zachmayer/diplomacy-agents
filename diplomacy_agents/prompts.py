@@ -218,7 +218,7 @@ possible_moves:
     token_count = _count_tokens(prompt)
     logger.debug("Orders prompt length for %s/%s: %d tokens", engine.short_phase, power, token_count)
 
-    if token_count > 8_192:
+    if token_count > 4_096:
         _persist_long_prompt(prompt, engine.short_phase, power, token_count)
 
     # ------------------------------------------------------------------
