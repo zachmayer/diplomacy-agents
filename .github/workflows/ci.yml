@@ -8,7 +8,6 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +27,8 @@ jobs:
 
   pr-title:
     runs-on: ubuntu-latest
+    permissions:
+      statuses: write
     steps:
       - name: Conventional PR Title
         uses: aslafy-z/conventional-pr-title-action@v3.2.0
