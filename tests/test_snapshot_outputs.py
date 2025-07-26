@@ -1,92 +1,60 @@
 # pyright: reportPrivateUsage=false
 """
+Generate snapshot JSON / prompt artefacts for manual inspection.
 
-Generate snapshot JSON artifacts for inspection & regression checks.
-
-This test isn't about behavioural assertions; it serialises the first-turn
-state of the `DiplomacyEngine` so humans (and future tests) can eyeball or
-compare the structures we expose via our typed façade.
-
-It writes files into tests/snapshots/<phase>/<power>/ … so they can be easily
-committed and diffed.
+Each parametrised case serialises the board state and the generated orders
+prompt for a specific power, writing files under *artifacts/snapshots/*.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import cast
 
 import pytest
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
-from diplomacy_agents.literals import Power
-from diplomacy_agents.prompts import build_message_prompt, build_orders_prompt
-
-# type: ignore[reportPrivateUsage]
-from tests.test_phase_orders import (  # type: ignore[reportPrivateUsage]
+from diplomacy_agents.engine import DiplomacyEngine
+from diplomacy_agents.enums import Power
+from diplomacy_agents.prompts import build_orders_prompt
+from tests.test_phase_orders import (
     _setup_build_russia,
     _setup_disband_germany,
     _setup_retreat_germany,
 )
 
+# ---------------------------------------------------------------------------#
+# Helper                                                                      #
+# ---------------------------------------------------------------------------#
 
-# Power is a plain ``str`` value at runtime – annotate as ``str`` to keep Pyright happy.
-def _generate_snapshot(tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> tuple[Path, Path]:
-    """
-    Generate and write the *orders* and *press* prompts.
 
-    Returns
-    -------
-    (orders_path, press_path)
-        Filesystem paths of the written prompt XML files so callers can assert
-        on their existence (or open them for inspection).
-
-    """
+def _generate_snapshot(tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> Path:
+    """Build the orders prompt for *(tag, power)*, write it to disk, and return the path."""
     engine = factory()
 
-    # Seed some public‐press context so the prompt isn't empty.
-    engine.add_message(cast(Power, "FRANCE"), "Greetings all – may we share the spoils?")
-    engine.add_message(cast(Power, "GERMANY"), "We shall see, Frankreich.")
-
-    game_state = engine.get_game_state()
-    pov: PowerViewDTO = engine.get_power_view(power)  # type: ignore[arg-type]
-
-    base_dir = Path(__file__).parent / "snapshots" / tag
+    base_dir = Path("artifacts") / "prompts_snapshots"
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    # Helper to avoid repetition when writing files.
-    def _write(filename: str, content: str) -> Path:
-        path = base_dir / filename
-        path.write_text(content)
-        return path
+    file_path = base_dir / f"prompt_{tag}_{power.value.lower()}.xml"
+    file_path.write_text(build_orders_prompt(engine, power))
 
-    file_prefix = f"{tag}_{power.lower()}"
+    return file_path
 
-    orders_path = _write(
-        f"prompt_{file_prefix}.xml",
-        build_orders_prompt(game_state, pov),
-    )
-    press_path = _write(
-        f"prompt_press_{file_prefix}.xml",
-        build_message_prompt(game_state, pov, 3),
-    )
 
-    return orders_path, press_path
+# ---------------------------------------------------------------------------#
+# Parametrised snapshot generation                                           #
+# ---------------------------------------------------------------------------#
 
 
 @pytest.mark.parametrize(
     ("case_tag", "power", "factory"),
     [
-        ("moves", "FRANCE", DiplomacyEngine),
-        ("retreats", "GERMANY", _setup_retreat_germany),
-        ("builds", "RUSSIA", _setup_build_russia),
-        ("disbands", "GERMANY", _setup_disband_germany),
+        ("moves", Power.FRANCE, DiplomacyEngine),
+        ("retreats", Power.GERMANY, _setup_retreat_germany),
+        ("builds", Power.RUSSIA, _setup_build_russia),
+        ("disbands", Power.GERMANY, _setup_disband_germany),
     ],
 )
-def test_snapshot_prompt(case_tag: str, power: str, factory: Callable[[], DiplomacyEngine]) -> None:
-    """Generate snapshot files for *(case, power)* and assert they exist."""
-    orders_path, press_path = _generate_snapshot(case_tag, power, factory)
-
-    assert orders_path.exists()
-    assert press_path.exists()
+def test_snapshot_prompt(case_tag: str, power: Power, factory: Callable[[], DiplomacyEngine]) -> None:
+    """Generate snapshot prompt files and assert they were written."""
+    prompt_path = _generate_snapshot(case_tag, power, factory)
+    assert prompt_path.exists()

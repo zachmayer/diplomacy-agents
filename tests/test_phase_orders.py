@@ -1,121 +1,116 @@
 """
-Phase‐specific order availability tests adapted to the new `DiplomacyEngine` façade.
+Phase-specific order-availability tests against the refactored `DiplomacyEngine`.
 
-These are regression-style checks to make sure legal-order generation still
-covers retreats, builds and disbands – scenarios that previously required
-carefully crafted board positions.
+These regression checks ensure that legal-order generation still covers
+retreats, builds and disbands in tricky board positions.
 """
 
 from __future__ import annotations
 
-from diplomacy_agents.engine import DiplomacyEngine, PowerViewDTO
+from diplomacy_agents.engine import DiplomacyEngine
+from diplomacy_agents.enums import Power
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Helpers                                                                    #
+# ---------------------------------------------------------------------------#
 
 
-def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:  # noqa: D401
-    """Process turns until `engine.phase` starts with *phase_prefix*."""
-    while not engine.get_game_state().phase.startswith(phase_prefix):
+def _advance_until(engine: DiplomacyEngine, phase_prefix: str) -> None:
+    """Advance the game until `engine.game_state().short_phase` starts with the prefix."""
+    while not engine.short_phase.startswith(phase_prefix):
         engine.process_turn()
 
 
-# ---------------------------------------------------------------------------
-# Scenario 1 – Retreat phase (F1901R) ---------------------------------------
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Scenario 1 – Retreat phase (F1901R)                                        #
+# ---------------------------------------------------------------------------#
 
 
 def _setup_retreat_germany() -> DiplomacyEngine:
-    """Create an F1901R retreat scenario for Germany (A MUN dislodged)."""
+    """Create an F1901R retreat scenario where Germany’s A MUN is dislodged."""
     eng = DiplomacyEngine()
-    # Spring 1901 movement
-    eng.submit_orders("FRANCE", ["A PAR - BUR"])
-    eng.submit_orders("AUSTRIA", ["A VIE - BOH"])
-    _advance_until(eng, "F1901M")  # progress through S1901R to F1901M
 
-    # Fall 1901 movement: BUR supported into MUN
-    eng.submit_orders("FRANCE", ["A BUR - MUN"])
-    eng.submit_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    # Spring 1901 movement
+    eng.set_orders(Power.FRANCE, ("A PAR - BUR",))
+    eng.set_orders(Power.AUSTRIA, ("A VIE - BOH",))
+    _advance_until(eng, "F1901M")  # through S1901R to F1901M
+
+    # Fall 1901: BUR + support into MUN
+    eng.set_orders(Power.FRANCE, ("A BUR - MUN",))
+    eng.set_orders(Power.AUSTRIA, ("A BOH S A BUR - MUN",))
     _advance_until(eng, "F1901R")
+
     return eng
 
 
-def test_retreat_options_include_retreat_or_disband() -> None:  # noqa: D401
+def test_retreat_options_include_retreat_or_disband() -> None:
     """Legal orders for Germany in F1901R must include a retreat or disband."""
     eng = _setup_retreat_germany()
-    germany: PowerViewDTO = eng.get_power_view("GERMANY")
+    assert eng.short_phase.endswith("R"), "Expected retreat phase"
 
-    # Retreat phase confirmation using global state
-    assert eng.get_game_state().phase.endswith("R"), "Expected retreat phase"
-
-    # At least one retreat (" R ") or disband (" D") order should be legal.
-    flat = " ".join(germany.orders_list)
+    flat_orders = eng.flat_possible_orders[Power.GERMANY]
+    flat = " ".join(flat_orders)
     assert " R " in flat or " D" in flat
 
 
-# ---------------------------------------------------------------------------
-# Scenario 2 – Build phase (W1901A) -----------------------------------------
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Scenario 2 – Build phase (W1901A)                                          #
+# ---------------------------------------------------------------------------#
 
 
 def _setup_build_russia() -> DiplomacyEngine:
     """Russia captures RUM to earn +1 build in W1901A."""
     eng = DiplomacyEngine()
-    _advance_until(eng, "F1901M")  # advance to Fall movement
+    _advance_until(eng, "F1901M")
 
-    eng.submit_orders("RUSSIA", ["F SEV - RUM"])
+    eng.set_orders(Power.RUSSIA, ("F SEV - RUM",))
     _advance_until(eng, "W1901A")
     return eng
 
 
-def test_build_phase_has_build_orders() -> None:  # noqa: D401
+def test_build_phase_has_build_orders() -> None:
     """Russia should have at least one build order available in W1901A."""
     eng = _setup_build_russia()
-    rus: PowerViewDTO = eng.get_power_view("RUSSIA")
+    assert eng.short_phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
+    rus_flat = eng.flat_possible_orders[Power.RUSSIA]
+    flat = " ".join(rus_flat).lower()
+    assert "build" in flat or any(o.endswith(" B") for o in rus_flat)
 
-    assert eng.get_game_state().phase.startswith("W1901A"), "Expected Winter 1901 adjustments"
-    all_orders_flat = rus.orders_list
-    assert "build" in " ".join(all_orders_flat).lower() or any(o.endswith(" B") for o in all_orders_flat)
 
-
-# ---------------------------------------------------------------------------
-# Scenario 3 – Disband phase (W1901A with removal) ---------------------------
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------#
+# Scenario 3 – Disband phase (W1901A with removal)                           #
+# ---------------------------------------------------------------------------#
 
 
 def _setup_disband_germany() -> DiplomacyEngine:
     """Germany loses MUN and must remove one unit in W1901A."""
     eng = DiplomacyEngine()
+
     # Same opening as retreat scenario
-    eng.submit_orders("FRANCE", ["A PAR - BUR"])
-    eng.submit_orders("AUSTRIA", ["A VIE - BOH"])
+    eng.set_orders(Power.FRANCE, ("A PAR - BUR",))
+    eng.set_orders(Power.AUSTRIA, ("A VIE - BOH",))
     _advance_until(eng, "F1901M")
 
-    eng.submit_orders("FRANCE", ["A BUR - MUN"])
-    eng.submit_orders("AUSTRIA", ["A BOH S A BUR - MUN"])
+    eng.set_orders(Power.FRANCE, ("A BUR - MUN",))
+    eng.set_orders(Power.AUSTRIA, ("A BOH S A BUR - MUN",))
     _advance_until(eng, "F1901R")
 
-    # Retreat Germany to RUH so it still has unit count mismatch later
-    eng.submit_orders("GERMANY", ["A MUN R RUH"])
+    # Retreat Germany to RUH so it still has unit-count mismatch later
+    eng.set_orders(Power.GERMANY, ("A MUN R RUH",))
     _advance_until(eng, "W1901A")
     return eng
 
 
-def test_disband_phase_has_disband_orders() -> None:  # noqa: D401
-    """Germany must have a disband/removal option after losing a centre."""
+def test_disband_phase_has_disband_orders() -> None:
+    """Germany must receive disband options after losing a centre."""
     eng = _setup_disband_germany()
-    ger: PowerViewDTO = eng.get_power_view("GERMANY")
-
-    assert eng.get_game_state().phase.startswith("W1901A")
-    # Germany should have more units than centers and therefore disband options.
-    flat = " ".join(ger.orders_list)
-    assert " D" in flat or "disband" in flat.lower()
+    assert eng.short_phase.startswith("W1901A")
+    ger_flat = eng.flat_possible_orders[Power.GERMANY]
+    flat = " ".join(ger_flat).lower()
+    assert " d" in flat or "disband" in flat
 
 
-# Export helpers so snapshot tests can import them without private-usage
-# warnings from the type checker.
-
+# Export helpers for snapshot tests without triggering private-usage warnings.
 __all__ = [
     "_setup_retreat_germany",
     "_setup_build_russia",
