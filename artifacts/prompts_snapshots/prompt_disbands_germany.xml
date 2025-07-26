@@ -16,7 +16,675 @@ You are playing as GERMANY
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
-<full-game>
+<game-history>
+This is the history of the game:
+
+<order-history>
+These are the orders submitted by each power in each phase:
+{
+  "F1901M": {
+    "AUSTRIA": [
+      "A BOH S A BUR - MUN"
+    ],
+    "FRANCE": [
+      "A BUR - MUN"
+    ]
+  },
+  "F1901R": {
+    "GERMANY": [
+      "A MUN R RUH"
+    ]
+  },
+  "S1901M": {
+    "AUSTRIA": [
+      "A VIE - BOH"
+    ],
+    "FRANCE": [
+      "A PAR - BUR"
+    ]
+  }
+}
+
+</order-history>
+<result-history>
+These are the results of the orders for each phase:
+{
+  "F1901M": [
+    [
+      "A BUD",
+      []
+    ],
+    [
+      "F TRI",
+      []
+    ],
+    [
+      "A BOH",
+      []
+    ],
+    [
+      "F EDI",
+      []
+    ],
+    [
+      "F LON",
+      []
+    ],
+    [
+      "A LVP",
+      []
+    ],
+    [
+      "F BRE",
+      []
+    ],
+    [
+      "A MAR",
+      []
+    ],
+    [
+      "A BUR",
+      []
+    ],
+    [
+      "F KIE",
+      []
+    ],
+    [
+      "A BER",
+      []
+    ],
+    [
+      "A MUN",
+      [
+        "dislodged"
+      ]
+    ],
+    [
+      "F NAP",
+      []
+    ],
+    [
+      "A ROM",
+      []
+    ],
+    [
+      "A VEN",
+      []
+    ],
+    [
+      "A WAR",
+      []
+    ],
+    [
+      "A MOS",
+      []
+    ],
+    [
+      "F SEV",
+      []
+    ],
+    [
+      "F STP/SC",
+      []
+    ],
+    [
+      "F ANK",
+      []
+    ],
+    [
+      "A CON",
+      []
+    ],
+    [
+      "A SMY",
+      []
+    ]
+  ],
+  "F1901R": [
+    [
+      "A MUN",
+      []
+    ]
+  ],
+  "S1901M": [
+    [
+      "A BUD",
+      []
+    ],
+    [
+      "A VIE",
+      []
+    ],
+    [
+      "F TRI",
+      []
+    ],
+    [
+      "F EDI",
+      []
+    ],
+    [
+      "F LON",
+      []
+    ],
+    [
+      "A LVP",
+      []
+    ],
+    [
+      "F BRE",
+      []
+    ],
+    [
+      "A MAR",
+      []
+    ],
+    [
+      "A PAR",
+      []
+    ],
+    [
+      "F KIE",
+      []
+    ],
+    [
+      "A BER",
+      []
+    ],
+    [
+      "A MUN",
+      []
+    ],
+    [
+      "F NAP",
+      []
+    ],
+    [
+      "A ROM",
+      []
+    ],
+    [
+      "A VEN",
+      []
+    ],
+    [
+      "A WAR",
+      []
+    ],
+    [
+      "A MOS",
+      []
+    ],
+    [
+      "F SEV",
+      []
+    ],
+    [
+      "F STP/SC",
+      []
+    ],
+    [
+      "F ANK",
+      []
+    ],
+    [
+      "A CON",
+      []
+    ],
+    [
+      "A SMY",
+      []
+    ]
+  ]
+}
+
+</result-history>
+<state-history>
+This is the history of the board state for each phase:
+{
+  "F1901M": {
+    "centers": {
+      "AUSTRIA": [
+        "BUD",
+        "TRI",
+        "VIE"
+      ],
+      "ENGLAND": [
+        "EDI",
+        "LON",
+        "LVP"
+      ],
+      "FRANCE": [
+        "BRE",
+        "MAR",
+        "PAR"
+      ],
+      "GERMANY": [
+        "BER",
+        "KIE",
+        "MUN"
+      ],
+      "ITALY": [
+        "NAP",
+        "ROM",
+        "VEN"
+      ],
+      "RUSSIA": [
+        "MOS",
+        "SEV",
+        "STP",
+        "WAR"
+      ],
+      "TURKEY": [
+        "ANK",
+        "CON",
+        "SMY"
+      ]
+    },
+    "units": {
+      "AUSTRIA": [
+        [
+          "A",
+          "BUD"
+        ],
+        [
+          "F",
+          "TRI"
+        ],
+        [
+          "A",
+          "BOH"
+        ]
+      ],
+      "ENGLAND": [
+        [
+          "F",
+          "EDI"
+        ],
+        [
+          "F",
+          "LON"
+        ],
+        [
+          "A",
+          "LVP"
+        ]
+      ],
+      "FRANCE": [
+        [
+          "F",
+          "BRE"
+        ],
+        [
+          "A",
+          "MAR"
+        ],
+        [
+          "A",
+          "BUR"
+        ]
+      ],
+      "GERMANY": [
+        [
+          "F",
+          "KIE"
+        ],
+        [
+          "A",
+          "BER"
+        ],
+        [
+          "A",
+          "MUN"
+        ]
+      ],
+      "ITALY": [
+        [
+          "F",
+          "NAP"
+        ],
+        [
+          "A",
+          "ROM"
+        ],
+        [
+          "A",
+          "VEN"
+        ]
+      ],
+      "RUSSIA": [
+        [
+          "A",
+          "WAR"
+        ],
+        [
+          "A",
+          "MOS"
+        ],
+        [
+          "F",
+          "SEV"
+        ],
+        [
+          "F",
+          "STP/SC"
+        ]
+      ],
+      "TURKEY": [
+        [
+          "F",
+          "ANK"
+        ],
+        [
+          "A",
+          "CON"
+        ],
+        [
+          "A",
+          "SMY"
+        ]
+      ]
+    }
+  },
+  "F1901R": {
+    "centers": {
+      "AUSTRIA": [
+        "BUD",
+        "TRI",
+        "VIE"
+      ],
+      "ENGLAND": [
+        "EDI",
+        "LON",
+        "LVP"
+      ],
+      "FRANCE": [
+        "BRE",
+        "MAR",
+        "PAR"
+      ],
+      "GERMANY": [
+        "BER",
+        "KIE",
+        "MUN"
+      ],
+      "ITALY": [
+        "NAP",
+        "ROM",
+        "VEN"
+      ],
+      "RUSSIA": [
+        "MOS",
+        "SEV",
+        "STP",
+        "WAR"
+      ],
+      "TURKEY": [
+        "ANK",
+        "CON",
+        "SMY"
+      ]
+    },
+    "retreats": {
+      "GERMANY": [
+        "A MUN"
+      ]
+    },
+    "units": {
+      "AUSTRIA": [
+        [
+          "A",
+          "BUD"
+        ],
+        [
+          "F",
+          "TRI"
+        ],
+        [
+          "A",
+          "BOH"
+        ]
+      ],
+      "ENGLAND": [
+        [
+          "F",
+          "EDI"
+        ],
+        [
+          "F",
+          "LON"
+        ],
+        [
+          "A",
+          "LVP"
+        ]
+      ],
+      "FRANCE": [
+        [
+          "F",
+          "BRE"
+        ],
+        [
+          "A",
+          "MAR"
+        ],
+        [
+          "A",
+          "MUN"
+        ]
+      ],
+      "GERMANY": [
+        [
+          "F",
+          "KIE"
+        ],
+        [
+          "A",
+          "BER"
+        ],
+        [
+          "A",
+          "MUN"
+        ]
+      ],
+      "ITALY": [
+        [
+          "F",
+          "NAP"
+        ],
+        [
+          "A",
+          "ROM"
+        ],
+        [
+          "A",
+          "VEN"
+        ]
+      ],
+      "RUSSIA": [
+        [
+          "A",
+          "WAR"
+        ],
+        [
+          "A",
+          "MOS"
+        ],
+        [
+          "F",
+          "SEV"
+        ],
+        [
+          "F",
+          "STP/SC"
+        ]
+      ],
+      "TURKEY": [
+        [
+          "F",
+          "ANK"
+        ],
+        [
+          "A",
+          "CON"
+        ],
+        [
+          "A",
+          "SMY"
+        ]
+      ]
+    }
+  },
+  "S1901M": {
+    "centers": {
+      "AUSTRIA": [
+        "BUD",
+        "TRI",
+        "VIE"
+      ],
+      "ENGLAND": [
+        "EDI",
+        "LON",
+        "LVP"
+      ],
+      "FRANCE": [
+        "BRE",
+        "MAR",
+        "PAR"
+      ],
+      "GERMANY": [
+        "BER",
+        "KIE",
+        "MUN"
+      ],
+      "ITALY": [
+        "NAP",
+        "ROM",
+        "VEN"
+      ],
+      "RUSSIA": [
+        "MOS",
+        "SEV",
+        "STP",
+        "WAR"
+      ],
+      "TURKEY": [
+        "ANK",
+        "CON",
+        "SMY"
+      ]
+    },
+    "units": {
+      "AUSTRIA": [
+        [
+          "A",
+          "BUD"
+        ],
+        [
+          "A",
+          "VIE"
+        ],
+        [
+          "F",
+          "TRI"
+        ]
+      ],
+      "ENGLAND": [
+        [
+          "F",
+          "EDI"
+        ],
+        [
+          "F",
+          "LON"
+        ],
+        [
+          "A",
+          "LVP"
+        ]
+      ],
+      "FRANCE": [
+        [
+          "F",
+          "BRE"
+        ],
+        [
+          "A",
+          "MAR"
+        ],
+        [
+          "A",
+          "PAR"
+        ]
+      ],
+      "GERMANY": [
+        [
+          "F",
+          "KIE"
+        ],
+        [
+          "A",
+          "BER"
+        ],
+        [
+          "A",
+          "MUN"
+        ]
+      ],
+      "ITALY": [
+        [
+          "F",
+          "NAP"
+        ],
+        [
+          "A",
+          "ROM"
+        ],
+        [
+          "A",
+          "VEN"
+        ]
+      ],
+      "RUSSIA": [
+        [
+          "A",
+          "WAR"
+        ],
+        [
+          "A",
+          "MOS"
+        ],
+        [
+          "F",
+          "SEV"
+        ],
+        [
+          "F",
+          "STP/SC"
+        ]
+      ],
+      "TURKEY": [
+        [
+          "F",
+          "ANK"
+        ],
+        [
+          "A",
+          "CON"
+        ],
+        [
+          "A",
+          "SMY"
+        ]
+      ]
+    }
+  }
+}
+</state-history>
+</game-history>
+
+<full-game-current-state>
 This is the full game state for all powers:
 
 all_supply_center_counts:
@@ -114,7 +782,7 @@ game_phase_type: A
 game_year: 1901
 game_phase: WINTER 1901 ADJUSTMENTS
 game_short_phase: W1901A
-</full-game>
+</full-game-current-state>
 
 <you>
 These are your power, owned supply centers and home supply centers

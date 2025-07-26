@@ -16,7 +16,26 @@ You are playing as FRANCE
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
-<full-game>
+<game-history>
+This is the history of the game:
+
+<order-history>
+These are the orders submitted by each power in each phase:
+{}
+
+</order-history>
+<result-history>
+These are the results of the orders for each phase:
+{}
+
+</result-history>
+<state-history>
+This is the history of the board state for each phase:
+{}
+</state-history>
+</game-history>
+
+<full-game-current-state>
 This is the full game state for all powers:
 
 all_supply_center_counts:
@@ -114,7 +133,7 @@ game_phase_type: M
 game_year: 1901
 game_phase: SPRING 1901 MOVEMENT
 game_short_phase: S1901M
-</full-game>
+</full-game-current-state>
 
 <you>
 These are your power, owned supply centers and home supply centers

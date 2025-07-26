@@ -1,17 +1,17 @@
 """Prompt-construction helpers for Diplomacy LLM agents."""
 
 import json
-from collections.abc import Callable, Hashable, Mapping
-from typing import TypeVar
+from collections.abc import Callable, Mapping, Sized
+from typing import TypeGuard, TypeVar
 
 from diplomacy_agents.engine import DiplomacyEngine
 from diplomacy_agents.enums import PhaseType, Power
 
-__all__ = ["build_orders_prompt"]
+# Public re-exports ----------------------------------------------------
 
-
-K = TypeVar("K", bound=Hashable)
-V = TypeVar("V")
+__all__: list[str] = [
+    "build_orders_prompt",
+]
 
 lost_home_center_note = """
 Note that home supply centers are the only places you can build units.
@@ -21,10 +21,30 @@ If you do not own a particular home supply center, you cannot build units there.
 If you do not own a particular home supply center, it is probably important to recapture.
 """
 
+K = TypeVar("K", bound=str)
 
-def dump_dict[K: Hashable, V](d: Mapping[K, V]) -> str:
-    """Dump a mapping to a pretty-printed JSON string."""
-    return json.dumps(d, indent=2, default=str, sort_keys=True)
+
+def is_empty(x: object) -> bool:
+    return x is None or (isinstance(x, Sized) and len(x) == 0)
+
+
+def is_mapping(x: object) -> TypeGuard[Mapping[str, object]]:
+    return isinstance(x, Mapping)
+
+
+def prune_empty_keys[K: str](d: Mapping[K, object]) -> dict[K, object]:
+    cleaned: dict[K, object] = {}
+    for k, v in d.items():
+        if is_mapping(v):
+            v = prune_empty_keys(v)
+        if not is_empty(v):
+            cleaned[k] = v
+    return cleaned
+
+
+def dump_dict[K: str, V](d: Mapping[K, V]) -> str:
+    """Pretty‑print *any* mapping after pruning empty values."""
+    return json.dumps(prune_empty_keys(d), indent=2, sort_keys=True, default=str)
 
 
 def _adjustment_guidance(engine: DiplomacyEngine, power: Power) -> str:
@@ -86,7 +106,26 @@ You are playing as {power}
 Respond with a JSON array of order strings - no commentary.
 </general-instructions>
 
-<full-game>
+<game-history>
+This is the history of the game:
+
+<order-history>
+These are the orders submitted by each power in each phase:
+{dump_dict(engine.order_history)}
+
+</order-history>
+<result-history>
+These are the results of the orders for each phase:
+{dump_dict(engine.result_history)}
+
+</result-history>
+<state-history>
+This is the history of the board state for each phase:
+{dump_dict(engine.state_history)}
+</state-history>
+</game-history>
+
+<full-game-current-state>
 This is the full game state for all powers:
 
 all_supply_center_counts:
@@ -102,7 +141,7 @@ game_phase_type: {engine.phase_type}
 game_year: {engine.year}
 game_phase: {engine.phase}
 game_short_phase: {engine.short_phase}
-</full-game>
+</full-game-current-state>
 
 <you>
 These are your power, owned supply centers and home supply centers

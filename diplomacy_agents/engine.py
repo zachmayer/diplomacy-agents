@@ -170,17 +170,21 @@ class DiplomacyEngine:
         # _RawGame provides order_history dynamically; pyright unknown-member suppressed at file top
         for phase_key, orders in self._game.order_history.items():
             phase = str(phase_key)
-            cleaned: dict[Power, Orders] = {
-                Power(power): tuple(order_list)
-                for power, order_list in orders.items()
-                if order_list  # drop empty lists
-            }
+            cleaned: dict[Power, Orders] = {Power(power): tuple(order_list) for power, order_list in orders.items()}
             hist[phase] = sort_by_key(cleaned) if cleaned else {}
         return hist
 
     @property
-    def result_history(self) -> dict[str, dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]]]:
-        """Chronological history of order execution results."""
+    def result_history(self) -> dict[str, list[tuple[str, tuple[OrderResult, ...]]]]:
+        """
+        Chronological history of order execution results.
+
+        Returns list-based entries to keep JSON-serialisable (string) keys.
+        Each list element is a tuple ``(unit_str, results)`` where
+        ``unit_str`` is the raw engine unit string (e.g. ``'A MUN'`` or
+        ``'WAIVE'``) and ``results`` is a tuple of ``OrderResult``.
+        ``successful`` orders (empty result list) are omitted.
+        """
 
         def _convert_result(obj: object) -> OrderResult:
             text = str(obj)
@@ -189,21 +193,17 @@ class DiplomacyEngine:
                 text = text.split(":", 1)[1]
             return OrderResult(text.strip().lower())
 
-        hist: dict[str, dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]]] = {}
+        hist: dict[str, list[tuple[str, tuple[OrderResult, ...]]]] = {}
         for phase_key, results in self._game.result_history.items():
             phase = str(phase_key)
-            converted: dict[tuple[UnitType, Location] | str, tuple[OrderResult, ...]] = {}
+            entries: list[tuple[str, tuple[OrderResult, ...]]] = []
 
             for unit_key, raw_results in results.items():
-                if unit_key != "WAIVE":  # Normal units
-                    if not raw_results:
-                        continue  # successful orders ignored
-                    unit = parse_unit(unit_key)
-                    converted[unit] = tuple(_convert_result(r) for r in raw_results)
-                else:  # Special adjustment phase unit
-                    converted[unit_key] = tuple(_convert_result(r) for r in raw_results)
+                # Keep even successful orders (may be pruned later)
+                converted_results = tuple(_convert_result(r) for r in raw_results)
+                entries.append((unit_key, converted_results))
 
-            hist[phase] = sort_by_key(converted) if converted else {}
+            hist[phase] = entries
         return hist
 
     @property
@@ -223,11 +223,23 @@ class DiplomacyEngine:
                 Power(p): tuple(Location(loc) for loc in locs) for p, locs in centers_raw.items()
             }
 
+            # Retreats ---------------------------------------------------
+            retreats_raw = state.get("retreats", {})
+            retreats: dict[Power | str, tuple[str, ...]] = {
+                Power(p) if p in Power.__members__ else p: tuple(opts) for p, opts in retreats_raw.items()
+            }
+
+            # Builds -----------------------------------------------------
+            builds_raw = state.get("builds", {})
+            builds: dict[Power, tuple[Location, ...]] = {
+                Power(p): tuple(Location(loc) for loc in data.get("homes", [])) for p, data in builds_raw.items()
+            }
+
             simplified = {
                 "units": sort_by_key(units),
                 "centers": sort_by_key(centers),
-                "retreats": state.get("retreats", {}),
-                "builds": state.get("builds", {}),
+                "retreats": sort_by_key(retreats),
+                "builds": sort_by_key(builds),
             }
 
             hist[phase] = simplified
