@@ -74,9 +74,9 @@ RandomModelMap = PowerModelMap(
     TURKEY="random",
 )
 
-# ---------------------------------------------------------------------------#
-# Orchestrator                                                               #
-# ---------------------------------------------------------------------------#
+# ---------------------------------------------------------------------------
+# Orchestrator
+# ---------------------------------------------------------------------------
 
 
 class GameOrchestrator:
@@ -102,9 +102,9 @@ class GameOrchestrator:
         self.model_map: PowerModelMap = model_map
         self.agents: dict[Power, BaseAgent] = self._init_agents()
 
-    # ------------------------------------------------------------------ #
-    # Public control flow                                                 #
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------
+    # Public control flow
+    # ------------------------------------------------------------------
 
     async def play_turn(self) -> None:
         """Execute one phase: snapshot, gather orders, advance game."""
@@ -137,9 +137,9 @@ class GameOrchestrator:
 
         return self.engine.supply_center_counts
 
-    # ------------------------------------------------------------------ #
-    # Agent initialisation & logging                                     #
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------
+    # Agent initialization & logging
+    # ------------------------------------------------------------------
 
     def _init_agents(self) -> dict[Power, BaseAgent]:
         """Instantiate one agent per power according to *self.model_map*."""
@@ -159,9 +159,9 @@ class GameOrchestrator:
         runtimes = {p: a.total_runtime_s for p, a in self.agents.items()}
         logger.debug("Cumulative runtime (s): %.2f %s", sum(runtimes.values()), runtimes)
 
-    # ------------------------------------------------------------------ #
-    # Orders phase                                                       #
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------
+    # Orders phase
+    # ------------------------------------------------------------------
 
     async def _run_orders_phase(self) -> None:
         """Collect orders from surviving powers and submit to the engine."""
@@ -179,9 +179,9 @@ class GameOrchestrator:
         for power, task in tasks.items():
             self.engine.set_orders(power, task.result())
 
-    # ------------------------------------------------------------------ #
-    # Snapshot / animation helpers                                       #
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------
+    # Snapshot / animation helpers
+    # ------------------------------------------------------------------
 
     def _capture_frame(self) -> None:
         """Render current board to SVG and append to the frame buffer."""

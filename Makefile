@@ -97,3 +97,6 @@ clean: ## Clean up all generated files
 	rm -rf htmlcov
 	rm -rf uv.lock
 	rm -rf artifacts/
+	rm -rf __pycache__/
+	rm -rf tests/__pycache__/
+	rm -rf diplomacy_agents/__pycache__/
