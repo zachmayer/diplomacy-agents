@@ -13,6 +13,7 @@ dependencies = [
     "tokonomics>=0.3.14",
     "pandas>=2.3.1",
     "anthropic>=0.54.0",
+    "token-count>=0.2.1",
 ]
 
 [dependency-groups]

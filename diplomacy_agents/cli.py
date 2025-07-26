@@ -39,8 +39,7 @@ def cli() -> None:
 @click.option(
     "--max-year",
     type=int,
-    default=1905,  # TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
-    show_default=True,
+    default=1951,  # 19051905190519051905   1905    TODO: WHEN DONE TESTING, CHANGE MAX_YEAR TO 1951
     help="Maximum year to run the experiment until.",
 )
 def experiments(runs: int, seed: int, max_year: int = 1951) -> None:
