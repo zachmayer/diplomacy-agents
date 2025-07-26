@@ -25,3 +25,10 @@ jobs:
 
       - name: Checks
         run: make check-ci
+
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Conventional PR Title
+        uses: aslafy-z/conventional-pr-title-action@v3.2.0
+      
