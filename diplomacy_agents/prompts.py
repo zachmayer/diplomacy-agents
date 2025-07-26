@@ -41,7 +41,7 @@ def _persist_long_prompt(  # pragma: no cover
 ) -> None:
     """Write *prompt* to ``artifacts/long_prompts`` and emit a warning."""
     logger.warning(
-        "Orders prompt for %s/%s is extremely long: %d tokens (>8192)",
+        "Orders prompt for %s/%s is extremely long: %d tokens",
         short_phase,
         power,
         token_count,
