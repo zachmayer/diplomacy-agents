@@ -126,7 +126,7 @@ def build_orders_prompt(engine: DiplomacyEngine, power: "Power", phases_back: in
 
     home_centers = tuple(sorted(engine.home_supply_centers[power]))
     owned_centers = tuple(sorted(engine.supply_centers[power]))
-    phases = list(engine.state_history.keys())[-phases_back:][::-1]
+    phases = list(engine.state_history.keys())[-phases_back:]
 
     order_history = {phase: engine.order_history[phase] for phase in phases}
     result_history = {phase: engine.result_history[phase] for phase in phases}
