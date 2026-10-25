@@ -28,6 +28,8 @@ jobs:
         run: make check-ci
 
   pr-title:
+    # Push runs on main have no PR title to check; the action errors there.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       statuses: write
