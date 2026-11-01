@@ -1,0 +1,17 @@
+# Weekly, grouped.
+# Cooldown: a release waits 7 days before a version update proposes it, time
+# for a compromised release to be caught and yanked. Security updates skip it.
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      all-actions:
+        patterns:
+          - "*"
