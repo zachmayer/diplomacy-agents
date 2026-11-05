@@ -39,8 +39,8 @@ MODEL_UNIVERSE: tuple[AgentSpecName, ...] = (
     # "openai:o3-mini-2025-01-31",
     # "openai:o4-mini-2025-04-16",
     # Google
-    "google-gla:gemini-2.5-flash",
-    # "google-gla:gemini-2.5-pro",
+    "google:gemini-2.5-flash",
+    # "google:gemini-2.5-pro",
     # Anthropic
     # "anthropic:claude-4-opus-20250514",
     # "anthropic:claude-4-sonnet-20250514",
@@ -124,8 +124,8 @@ class ExperimentRunner:
 
                 token_costs = await calculate_token_cost(
                     model=model_id,
-                    prompt_tokens=prompt,
-                    completion_tokens=completion,
+                    input_tokens=prompt,
+                    output_tokens=completion,
                 )
                 if token_costs is not None:
                     total_cost += float(token_costs.total_cost)
