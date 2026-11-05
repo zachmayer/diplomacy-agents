@@ -67,7 +67,7 @@ coverage: ## Run tests with coverage reporting
 all: format lint types contract test coverage ## Run all checks
 
 .PHONY: check-ci
-check-ci: lint types contract test-unit ## Checks for CI (unit tests only)
+check-ci: lint types contract test ## Checks for CI (unit + smoke tests)
 
 .PHONY: install
 install: ## Create virtual-env and install project incl. dev deps using uv

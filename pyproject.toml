@@ -6,22 +6,26 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "diplomacy>=1.1.2",
-    "pydantic-ai>=0.4.7",
+    # Slim plus the providers MODEL_UNIVERSE names; add an extra to try another provider.
+    "pydantic-ai-slim[anthropic,google,openai]>=2.66.0",
     "click>=8.1.7",
     "drawsvg>=2.4.0",
-    "tokencost>=0.1.24",
-    "tokonomics>=0.3.14",
+    "tokonomics>=0.5.1",
     "pandas>=2.3.1",
-    "anthropic>=0.54.0",
     "token-count>=0.2.1",
 ]
+
+[tool.uv]
+# tokonomics on Python 3.12 tops out at 0.5.1, whose anyenv imports hishel._serializers,
+# gone in hishel 1.0. tokonomics swallows the ImportError and prices every run at $0.
+constraint-dependencies = ["hishel<1"]
 
 [dependency-groups]
 dev = [
     "pandas-stubs>=2.3.0.250703",
     "pre-commit>=4.2.0",
     "pyright>=1.1.403",
-    "pytest>=8.4.1",
+    "pytest>=9.0.3",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.0",
@@ -97,6 +101,7 @@ plugins = ["pydantic.pyright_plugin"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     'ignore:datetime\.datetime\.utcfromtimestamp\(\) is deprecated.*:DeprecationWarning',
 ]

@@ -6,7 +6,8 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
-from pydantic_ai.usage import Usage
+from pydantic_ai.profiles import ModelProfile
+from pydantic_ai.usage import RunUsage
 
 # We now track usage per-agent instead of a global list.
 from diplomacy_agents.agents import LLMAgent
@@ -16,10 +17,7 @@ from diplomacy_agents.enums import Power
 class _StubModel:
     """Minimal stub mimicking the return value of ``pydantic_ai.models.infer_model``."""
 
-    class _Profile:
-        supports_json_schema_output = False
-
-    profile = _Profile()
+    profile = ModelProfile(supports_json_schema_output=False)
 
 
 class _StubResult:
@@ -27,10 +25,7 @@ class _StubResult:
 
     def __init__(self) -> None:
         self.output = "OK"
-        self._usage = Usage(request_tokens=10, response_tokens=5, total_tokens=15)
-
-    def usage(self) -> Usage:
-        return self._usage
+        self.usage = RunUsage(input_tokens=10, output_tokens=5)
 
 
 class _StubAgent:

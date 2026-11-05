@@ -100,7 +100,7 @@ class LLMAgent(BaseAgent):
 
         # Prefer NativeOutput when the target model advertises JSON-schema support.
         # Otherwise use tool calls for JSON output via a tool call.
-        if models.infer_model(model_name).profile.supports_json_schema_output:
+        if models.infer_model(model_name).profile.get("supports_json_schema_output", False):
             self.output_wrapper = NativeOutput
 
     # ------------------------------------------------------------------ #
@@ -121,18 +121,17 @@ class LLMAgent(BaseAgent):
             model=self.model_name,
             system_prompt=system_prompt,
             output_type=output_type,
-            retries=1,
-            output_retries=3,
+            retries={"tools": 1, "output": 3},
         )
 
         start = perf_counter()
         result = await agent.run(prompt)
         self.total_runtime_s += perf_counter() - start
 
-        usage = result.usage()
+        usage = result.usage
         buckets = self.token_totals[self.model_name]
-        buckets["request_tokens"] += usage.request_tokens or 0
-        buckets["response_tokens"] += usage.response_tokens or 0
+        buckets["request_tokens"] += usage.input_tokens
+        buckets["response_tokens"] += usage.output_tokens
         if details := getattr(usage, "details", None):
             for k, v in details.items():
                 buckets[k] += v
