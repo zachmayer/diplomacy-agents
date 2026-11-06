@@ -12,10 +12,12 @@ import random
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from time import perf_counter
-from typing import Literal, TypeVar
+from typing import Annotated, TypeVar, override
 
+from pydantic import GetPydanticSchema
 from pydantic_ai import Agent, NativeOutput, ToolOutput, models
 from pydantic_ai.models import KnownModelName
+from pydantic_core import core_schema
 
 from diplomacy_agents.engine import DiplomacyEngine, Orders
 from diplomacy_agents.enums import Power
@@ -28,6 +30,7 @@ __all__ = [
     "HoldAgent",
     "RandomAgent",
     "LLMAgent",
+    "order_list_type",
 ]
 
 # ---------------------------------------------------------------------------
@@ -44,13 +47,13 @@ class BaseAgent(ABC):
         self.total_runtime_s: float = 0.0
 
         # Subclasses may switch this to NativeOutput when the LLM supports JSON-schema.
-        self.output_wrapper = ToolOutput
+        self.output_wrapper: type[ToolOutput[list[str]]] | type[NativeOutput[list[str]]] = ToolOutput
 
         # Per-model cumulative token buckets → {model_name: {bucket: count}}
         self.token_totals: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
 
     @abstractmethod
-    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+    async def get_orders(self, engine: DiplomacyEngine) -> Orders:
         """Return a tuple of DATC-formatted order strings for *self.power* in thecurrent phase."""
         raise NotImplementedError  # pragma: no cover
 
@@ -63,7 +66,8 @@ class BaseAgent(ABC):
 class HoldAgent(BaseAgent):
     """Agent that issues no orders - every unit *holds* / *waits*."""
 
-    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+    @override
+    async def get_orders(self, engine: DiplomacyEngine) -> Orders:
         """Return an empty order set."""
         return ()
 
@@ -71,9 +75,10 @@ class HoldAgent(BaseAgent):
 class RandomAgent(BaseAgent):
     """Agent that submits **one random legal order** for each controllable unit in the current phase."""
 
-    async def get_orders(self, _engine: DiplomacyEngine) -> Orders:
+    @override
+    async def get_orders(self, engine: DiplomacyEngine) -> Orders:
         """Pick exactly one random order per orderable location."""
-        chosen = tuple(random.choice(opts) for opts in _engine.possible_orders[self.power].values())
+        chosen = tuple(random.choice(opts) for opts in engine.possible_orders[self.power].values())
         return chosen
 
 
@@ -83,6 +88,27 @@ class RandomAgent(BaseAgent):
 
 T = TypeVar("T")
 type OutputSpec[T] = type[T] | ToolOutput[T] | NativeOutput[T]
+
+
+# ---------------------------------------------------------------------------
+# Legal-order output type
+# ---------------------------------------------------------------------------
+
+
+def order_list_type(flat_orders: Orders, max_schema_size: int) -> type[list[str]]:
+    """
+    Return the output type for a list of orders, limited to *flat_orders* when that list is reasonably small.
+
+    The legal set is only known at runtime, so the static type is ``list[str]``, and Pydantic gets the core schema
+    it would build for ``Literal[*flat_orders]``: same JSON schema, same validation, same retry feedback. For
+    extremely large lists we fall back to a plain ``str`` element type to avoid a gigantic literal schema.
+    """
+    if len(flat_orders) > max_schema_size:
+        return list[str]
+
+    # ``Literal[...]`` drops repeats, such as the ``WAIVE`` every build location offers.
+    legal_orders = list(dict.fromkeys(flat_orders))
+    return list[Annotated[str, GetPydanticSchema(lambda _source, _handler: core_schema.literal_schema(legal_orders))]]
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +143,7 @@ class LLMAgent(BaseAgent):
         if system_prompt is None:
             system_prompt = f"You are playing Diplomacy as {self.power}. Your goal is to win."
 
-        agent = Agent(
+        agent: Agent[None, T] = Agent(
             model=self.model_name,
             system_prompt=system_prompt,
             output_type=output_type,
@@ -142,19 +168,13 @@ class LLMAgent(BaseAgent):
     # Public API                                                          #
     # ------------------------------------------------------------------ #
 
+    @override
     async def get_orders(self, engine: DiplomacyEngine, max_schema_size: int = 1_000) -> Orders:
         """Ask the configured LLM for a valid order set, constrained to the exact list of legal options provided in *engine*."""
         flat_orders = engine.flat_possible_orders[self.power]
 
-        # Construct a Literal type enumerating exactly the legal orders for this
-        # power when the list is reasonably small.  For extremely large lists
-        # we fall back to a plain ``str`` element type to avoid creating a
-        # gigantic Literal union that would slow down Pydantic’s schema
-        # generation.
-        elem_type = Literal[*tuple(flat_orders),] if len(flat_orders) <= max_schema_size else str
-
         output_type = self.output_wrapper(
-            list[elem_type],
+            order_list_type(flat_orders, max_schema_size),
             name="valid_orders",
             description="Return a list of valid orders for your power in this phase.",
             strict=len(flat_orders) <= max_schema_size,

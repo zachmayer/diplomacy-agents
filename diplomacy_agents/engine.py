@@ -1,9 +1,8 @@
-# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownParameterType=false
 """Typed, minimal façade over the `diplomacy` engine."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from diplomacy import Game as _RawGame
@@ -68,12 +67,12 @@ class DiplomacyEngine:
     @property
     def is_done(self) -> bool:
         """Return True if the game is over."""
-        return self._game.is_game_done
+        return bool(self._game.is_game_done)
 
     @property
     def short_phase(self) -> str:
         """Short phase string, e.g. 'S1901M'."""
-        return self._game.get_current_phase()
+        return str(self._game.get_current_phase())
 
     @property
     def phase(self) -> str:
@@ -167,7 +166,6 @@ class DiplomacyEngine:
     def order_history(self) -> dict[str, dict[Power, Orders]]:
         """Chronological history of orders submitted by each power."""
         hist: dict[str, dict[Power, Orders]] = {}
-        # _RawGame provides order_history dynamically; pyright unknown-member suppressed at file top
         for phase_key, orders in self._game.order_history.items():
             phase = str(phase_key)
             cleaned: dict[Power, Orders] = {Power(power): tuple(order_list) for power, order_list in orders.items()}
@@ -262,8 +260,7 @@ class DiplomacyEngine:
 
     def render_svg(self, *, incl_orders: bool = True, incl_abbrev: bool = True) -> str:
         """Return current board as an SVG string."""
-        renderer: Callable[..., str] = Renderer(self._game).render
-        return renderer(incl_orders=incl_orders, incl_abbrev=incl_abbrev)
+        return str(Renderer(self._game).render(incl_orders=incl_orders, incl_abbrev=incl_abbrev))
 
     def save(self, file_path: str) -> None:
         """Write the game to *file_path* in DATC JSON format."""

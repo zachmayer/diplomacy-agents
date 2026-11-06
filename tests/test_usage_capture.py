@@ -68,7 +68,7 @@ def test_stats_capture(monkeypatch: pytest.MonkeyPatch) -> None:
 
     _ = _dummy_state_view()
 
-    asyncio.run(agent._run_llm(prompt="hi", output_type=str))  # pyright: ignore[reportPrivateUsage]
+    asyncio.run(agent._run_llm(prompt="hi", output_type=str))
 
     # Verify token aggregation happened.
     totals = agent.token_totals["openai:gpt-4.1"]

@@ -24,7 +24,9 @@ class SyncedAnimationConfig:
         show_playback_controls: bool,
     ) -> None: ...
 
+_SyncedAnimationConfigClass = type[SyncedAnimationConfig]
+
 class TypesSubmodule(ModuleType):
-    SyncedAnimationConfig: type[SyncedAnimationConfig]
+    SyncedAnimationConfig: _SyncedAnimationConfigClass
 
 types: TypesSubmodule

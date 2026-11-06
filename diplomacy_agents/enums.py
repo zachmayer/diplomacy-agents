@@ -1,6 +1,7 @@
 """Enums for the game."""
 
 from enum import StrEnum
+from typing import override
 
 __all__ = [
     "PhaseType",
@@ -17,6 +18,7 @@ __all__ = [
 class PrettyStrEnum(StrEnum):
     """A string enum that can be pretty-printed."""
 
+    @override
     def __str__(self) -> str:
         return self.value
 
