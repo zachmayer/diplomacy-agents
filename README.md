@@ -25,7 +25,7 @@ GitHub Actions runs `make check-ci` for every push & PR.
 
 ### Tooling
 
-All config (ruff, pyright) lives in `pyproject.toml`. Makefile is self-documenting:
+All config (ruff, ty) lives in `pyproject.toml`. Makefile is self-documenting:
 
 ```bash
 make help
@@ -44,7 +44,7 @@ Uses [diplomacy](https://github.com/diplomacy/diplomacy) python package for the 
 
 ## 🛡️ Type-Safety Contract
 
-1. **No `cast()` or `# type: ignore`** outside `diplomacy_agents/engine.py`.  
+1. **No `cast()`, `# type: ignore`, or `# ty: ignore`** outside `diplomacy_agents/engine.py`.  
    • If another file needs a cast, create a typed helper in `engine.py` instead.  
    • The only allowed suppressions are for untyped third-party libraries.
 
@@ -57,7 +57,7 @@ Uses [diplomacy](https://github.com/diplomacy/diplomacy) python package for the 
    • All function parameters are explicitly typed — never use bare `*args` or `**kwargs`.
 
 4. **Full static safety.**  
-   • `pyright --strict` must report zero errors; CI enforces this via `make lint types`.
+   • `ty check .` must report zero errors and zero warnings, with the rules listed in `pyproject.toml` on; CI enforces this via `make lint types`.
 
 5. **Keep the helpers façade thin.**  
    • `engine.py` is the only module that talks directly to the untyped `diplomacy` library. Keep it
@@ -86,10 +86,10 @@ _Before every commit, run `make check-all` locally._
 - Names: Use `snake_case` for variables and functions. Export public symbols via `__all__`.
 - Simplicity: Keep code linear and obvious. Avoid clever one-liners or unnecessary branching. Use keyword-only arguments for clarity.
 
-### 3 · Typing (`pyright --strict`)
+### 3 · Typing (`ty`)
 
-- **Forbidden:** `Any`, `Optional` where a default is possible, unchecked reflection, and silent `# type: ignore` comments.
-- **Single escape hatch:** `engine.py` is the only place `cast()` or `# type: ignore` may be used to handle the untyped `diplomacy` library.
+- **Forbidden:** `Any`, `Optional` where a default is possible, unchecked reflection, and silent `# ty: ignore` comments.
+- **Single escape hatch:** `engine.py` is the only place `cast()` or `# ty: ignore` may be used to handle the untyped `diplomacy` library.
 - Prefer explicit types: Use `Literal`, `NewType`, and Pydantic models over raw primitives like `str` or `dict`.
 
 ### 4 · Contracts

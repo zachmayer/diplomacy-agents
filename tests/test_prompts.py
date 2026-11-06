@@ -26,8 +26,7 @@ def test_prune_empty_keys_recursion() -> None:
 def test_dump_dict_prunes_and_serialises() -> None:
     """``dump_dict`` should prune empties and return valid JSON."""
     src: dict[str, object] = {"a": [], "b": {"x": 1, "y": []}}
-    data: dict[str, object] = json.loads(dump_dict(src))
-    assert data == {"b": {"x": 1}}
+    assert json.loads(dump_dict(src)) == {"b": {"x": 1}}
 
 
 def _first_orders(engine: DiplomacyEngine, power: Power) -> tuple[str, ...]:

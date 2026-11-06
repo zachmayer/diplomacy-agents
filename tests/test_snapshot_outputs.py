@@ -1,4 +1,3 @@
-# pyright: reportPrivateUsage=false
 """
 Generate snapshot JSON / prompt artefacts for manual inspection.
 

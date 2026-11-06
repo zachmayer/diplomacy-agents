@@ -24,11 +24,11 @@ constraint-dependencies = ["hishel<1"]
 dev = [
     "pandas-stubs>=2.3.0.250703",
     "pre-commit>=4.2.0",
-    "pyright>=1.1.403",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.0",
+    "ty>=0.0.98",
 ]
 
 [tool.ruff]
@@ -48,6 +48,7 @@ select = [
   "ANN",       # Type annotations
   "T",         # Print statements
   "ARG",       # Unused arguments
+  "SLF",       # Private member access
   "W",         # Newline at EOF (W292)
 ]
 
@@ -65,6 +66,7 @@ case-sensitive = true
 known-third-party = ["diplomacy", "pydantic", "pydantic_ai", "click"]
 
 [tool.ruff.lint.per-file-ignores]
+"tests/**" = ["SLF001"]  # tests reach into private helpers on purpose
 "diplomacy_agents/agent.py" = ["ANN001"]  # decorator params lack annotations
 
 [tool.ruff.format]
@@ -73,31 +75,36 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-[tool.pyright]
-typeCheckingMode = "strict"
-reportMissingTypeStubs = "none"
-enableTypeIgnoreComments = false
-reportUnusedImport = "error"
-reportUnusedVariable = "error"
-reportUnusedFunction = "error"
-reportUnusedClass = "error"
-reportUnnecessaryTypeIgnoreComment = "error"
-failOnWarnings = true
-useLibraryCodeForTypes = true
-strictListInference = true
-strictDictionaryInference = true
-strictSetInference = true
-strictParameterNoneValue = true
-reportOptionalMemberAccess  = "error"
-reportOptionalSubscript = "error"
-reportOptionalOperand = "error"
-reportOptionalIterable = "error"
-reportOptionalCall = "error"
-reportOptionalContextManager = "error"
-pythonVersion = "3.12"
-venvPath = "."
-venv = ".venv"
-plugins = ["pydantic.pyright_plugin"]
+[tool.ty.environment]
+python-version = "3.12"
+extra-paths = ["typings"]  # our stubs, which win over the installed untyped drawsvg
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.terminal]
+error-on-warning = true
+
+# Off by default in ty. Named here, not `all`, so coverage changes only when this file does.
+[tool.ty.rules]
+blanket-ignore-comment = "error"
+disjoint-cast = "error"
+division-by-zero = "error"
+dynamic-function-decorator-return = "error"
+invalid-legacy-positional-parameter = "error"
+mismatched-sentinel-name = "error"
+missing-override-decorator = "error"
+missing-type-argument = "error"
+possibly-missing-attribute = "error"
+possibly-missing-import = "error"
+possibly-unresolved-reference = "error"
+redundant-condition-strict = "error"
+truthiness-test-of-none-union = "error"
+unsound-assignment = "error"
+unsound-return-statement = "error"
+unsound-yield = "error"
+unsupported-dynamic-base = "error"
+# Skipped: missing-direct-dependency, a preview rule.
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

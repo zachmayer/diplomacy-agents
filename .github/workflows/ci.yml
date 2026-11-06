@@ -1,7 +1,7 @@
 name: CI
 
 # quality: zizmor finds no workflow security flaws, the uv lockfile installs,
-# and lint, pyright, the type contracts, and the unit + smoke tests pass.
+# and lint, ty, the type contracts, and the unit + smoke tests pass.
 # Dependabot's PRs merge once it passes.
 on:
   push:

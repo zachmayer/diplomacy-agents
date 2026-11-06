@@ -15,14 +15,14 @@ lint: ## Check formatting & linting (no fixes)
 	uv run ruff check .
 
 .PHONY: types
-types: ## Type-check using pyright
-	uv run pyright
+types: ## Type-check using ty
+	uv run ty check .
 
 .PHONY: no-type-ignore
-no-type-ignore: ## Type contracts: no type ignore allowed
+no-type-ignore: ## Type contracts: no type or ty ignore allowed
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *type: *ignore' diplomacy_agents ; then \
-		echo '❌  Type-Safety Contract breached (no type: ignore allowed)'; exit 1; \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *(type|ty): *ignore' diplomacy_agents tests ; then \
+		echo '❌  Type-Safety Contract breached (no type: ignore or ty: ignore allowed)'; exit 1; \
 	else \
 		echo '✅  Type-Safety Contract upheld'; \
 	fi
@@ -30,7 +30,7 @@ no-type-ignore: ## Type contracts: no type ignore allowed
 .PHONY: no-noqa
 no-noqa: ## Type contracts: no noqa allowed
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *noqa: *' diplomacy_agents ; then \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '# *noqa: *' diplomacy_agents tests ; then \
 		echo '❌  Noqa Contract breached (no noqa allowed)'; exit 1; \
 	else \
 		echo '✅  Noqa Contract upheld'; \
@@ -39,7 +39,7 @@ no-noqa: ## Type contracts: no noqa allowed
 .PHONY: no-cast
 no-cast: ## Type contracts: no cast allowed
 	@set -e; \
-	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '.cast\(' diplomacy_agents ; then \
+	if grep -R --include='*.py' --exclude-dir='__pycache__' --line-number -E '.cast\(' diplomacy_agents tests ; then \
 		echo '❌  Cast Contract breached (no cast allowed)'; exit 1; \
 	else \
 		echo '✅  No Cast Contract upheld'; \
