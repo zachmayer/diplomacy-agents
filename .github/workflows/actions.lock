@@ -8,8 +8,7 @@ workflows:
         - 'actions/setup-python@v7.1.0'
         - 'astral-sh/setup-uv@v10.3.3'
         - 'zizmorcore/zizmor-action@v0.8.1'
-    '.github/workflows/verify-lockfile.yml':
-        - 'actions/checkout@v7.0.1'
+    '.github/workflows/verify-lockfile.yml': []
 dependencies:
     'actions/checkout@v7.0.1':
         ref: 'v7.0.1'
